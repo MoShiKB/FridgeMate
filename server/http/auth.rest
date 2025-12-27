@@ -1,0 +1,37 @@
+### Register a new user
+POST http://localhost:3001/auth/register
+Content-Type: application/json
+
+{
+    "userName": "johndoe",
+    "email": "john.doe@example.com",
+    "password": "securePassword123"
+}
+
+### Login with email and password
+POST http://localhost:3001/auth/login
+Content-Type: application/json
+
+{
+    "email": "john.doe@example.com",
+    "password": "securePassword123"
+}
+
+### Refresh token
+POST http://localhost:3001/auth/refresh-token
+Content-Type: application/json
+
+{
+    "refreshToken": "YOUR_REFRESH_TOKEN_HERE"
+}
+
+### Logout (requires access token)
+POST http://localhost:3001/auth/logout
+Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
+
+### Health check
+GET http://localhost:3001/health
+
+### Google OAuth login (open in browser)
+# GET http://localhost:3001/auth/login/google
+

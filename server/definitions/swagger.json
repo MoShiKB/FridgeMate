@@ -1,0 +1,319 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "description": "API documentation for FridgeMate",
+    "version": "1.0.0",
+    "title": "FridgeMate API"
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "host": "localhost:3001",
+  "basePath": "/",
+  "schemes": [
+    "http"
+  ],
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Register a new user",
+        "description": "This endpoint registers a new user with username, email and password",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "User registration info",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UserRegistration"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "User registered successfully",
+            "schema": {
+              "$ref": "#/definitions/RegisterResponse"
+            }
+          },
+          "400": {
+            "description": "User already exists or validation error"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Log in a user",
+        "description": "This endpoint logs in a user and returns access and refresh tokens",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "User login credentials",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UserLogin"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "schema": {
+              "$ref": "#/definitions/LoginResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid credentials"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Log out a user",
+        "description": "Logs out the authenticated user and invalidates their refresh token, user is identified from the access token.",
+        "parameters": [],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Logged out successfully",
+            "schema": {
+              "$ref": "#/definitions/LogoutResponse"
+            }
+          },
+          "403": {
+            "description": "Not authorized - missing or invalid access token"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/auth/refresh-token": {
+      "post": {
+        "tags": ["Auth"],
+        "summary": "Refresh access token",
+        "description": "This endpoint refreshes the access token using a valid refresh token",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Refresh token",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RefreshToken"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token refreshed successfully",
+            "schema": {
+              "$ref": "#/definitions/RefreshTokenResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid refresh token"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/auth/login/google": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Login with Google",
+        "description": "Redirects to Google OAuth login page",
+        "responses": {
+          "302": {
+            "description": "Redirects to Google OAuth"
+          }
+        }
+      }
+    },
+    "/auth/login/google/callback": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Google OAuth callback",
+        "description": "Handles Google OAuth callback and redirects with tokens",
+        "responses": {
+          "302": {
+            "description": "Redirects to callback URL with tokens"
+          },
+          "400": {
+            "description": "Google authentication failed"
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": ["Health"],
+        "summary": "Health check",
+        "description": "Check if the server is running",
+        "responses": {
+          "200": {
+            "description": "Server is healthy",
+            "schema": {
+              "$ref": "#/definitions/HealthResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "UserRegistration": {
+      "type": "object",
+      "required": ["userName", "email", "password"],
+      "properties": {
+        "userName": {
+          "type": "string",
+          "example": "johndoe"
+        },
+        "email": {
+          "type": "string",
+          "example": "john.doe@example.com"
+        },
+        "password": {
+          "type": "string",
+          "example": "securePassword123",
+          "minLength": 6
+        }
+      }
+    },
+    "UserLogin": {
+      "type": "object",
+      "required": ["email", "password"],
+      "properties": {
+        "email": {
+          "type": "string",
+          "example": "john.doe@example.com"
+        },
+        "password": {
+          "type": "string",
+          "example": "securePassword123"
+        }
+      }
+    },
+    "RefreshToken": {
+      "type": "object",
+      "required": ["refreshToken"],
+      "properties": {
+        "refreshToken": {
+          "type": "string",
+          "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        }
+      }
+    },
+    "RegisterResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "example": "User registered successfully"
+        },
+        "user": {
+          "type": "object",
+          "properties": {
+            "_id": {
+              "type": "string"
+            },
+            "userName": {
+              "type": "string"
+            },
+            "email": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "LoginResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "example": "Login successful"
+        },
+        "accessToken": {
+          "type": "string"
+        },
+        "refreshToken": {
+          "type": "string"
+        }
+      }
+    },
+    "LogoutResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "example": "Logged out successfully"
+        }
+      }
+    },
+    "RefreshTokenResponse": {
+      "type": "object",
+      "properties": {
+        "accessToken": {
+          "type": "string"
+        }
+      }
+    },
+    "HealthResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "example": "ok"
+        },
+        "timestamp": {
+          "type": "string",
+          "example": "2024-01-01T00:00:00.000Z"
+        }
+      }
+    }
+  },
+  "securityDefinitions": {
+    "bearerAuth": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header",
+      "description": "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\""
+    }
+  }
+}
+
