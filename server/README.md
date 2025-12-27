@@ -1,6 +1,6 @@
 # FridgeMate Server
 
-Backend authentication API for FridgeMate.
+Backend for FridgeMate.
 
 ## Setup
 
