@@ -4,9 +4,12 @@ import { FridgeModel } from "../models/fridge.model";
 import { UserModel } from "../models/user.model";
 
 function makeInviteCode() {
-
   const part = Math.random().toString(36).slice(2, 8).toUpperCase();
   return `${part}`;
+}
+
+function normalizeInviteCode(code: string) {
+  return String(code || "").trim().toUpperCase();
 }
 
 export class FridgesService {
@@ -16,7 +19,7 @@ export class FridgesService {
     const fridge = await FridgeModel.create({
       name,
       inviteCode: makeInviteCode(),
-      members: [{ userId: userObjectId }],
+      members: [{ userId: userObjectId, joinedAt: new Date() }],
     });
 
     await UserModel.findByIdAndUpdate(userId, { activeFridgeId: fridge._id });
@@ -24,13 +27,16 @@ export class FridgesService {
   }
 
   static async joinByInviteCode(userId: string, inviteCode: string) {
-    const fridge = await FridgeModel.findOne({ inviteCode });
+    const normalized = normalizeInviteCode(inviteCode);
+    if (!normalized) throw new ApiError(400, "Invite code is required", "INVITE_REQUIRED");
+
+    const fridge = await FridgeModel.findOne({ inviteCode: normalized });
     if (!fridge) throw new ApiError(404, "Invalid invite code", "INVITE_NOT_FOUND");
 
-    const userObjectId = new mongoose.Types.ObjectId(userId);
     const already = fridge.members.some((m) => m.userId.toString() === userId);
     if (already) throw new ApiError(409, "User already in this fridge", "ALREADY_IN_FRIDGE");
 
+    const userObjectId = new mongoose.Types.ObjectId(userId);
     fridge.members.push({ userId: userObjectId, joinedAt: new Date() });
     await fridge.save();
 
@@ -47,7 +53,12 @@ export class FridgesService {
     if (!fridge) throw new ApiError(404, "Fridge not found", "FRIDGE_NOT_FOUND");
 
     fridge.members = fridge.members.filter((m) => m.userId.toString() !== userId);
-    await fridge.save();
+
+    if (fridge.members.length === 0) {
+      await FridgeModel.deleteOne({ _id: fridge._id });
+    } else {
+      await fridge.save();
+    }
 
     await UserModel.findByIdAndUpdate(userId, { activeFridgeId: null });
     return { ok: true };
@@ -60,14 +71,24 @@ export class FridgesService {
 
     const fridge = await FridgeModel.findById(user.activeFridgeId).lean();
     if (!fridge) throw new ApiError(404, "Fridge not found", "FRIDGE_NOT_FOUND");
+
     return fridge;
   }
 
   static async getMyFridgeMembers(userId: string) {
-    const fridge = await this.getMyFridge(userId);
-    const memberIds = fridge.members.map((m) => m.userId);
+  const fridge = await this.getMyFridge(userId);
+  const memberIds = fridge.members.map((m) => m.userId);
 
-    const users = await UserModel.find({ _id: { $in: memberIds } }, { displayName: 1, photoUrl: 1 }).lean();
-    return users.map((u) => ({ userId: u._id.toString(), displayName: u.displayName, photoUrl: u.photoUrl }));
-  }
+  const users = await UserModel.find(
+    { _id: { $in: memberIds } },
+    { displayName: 1, profileImage: 1 }
+  )
+    .sort({ displayName: 1 })
+    .lean();
+
+  return users.map((u) => ({
+    userId: u._id.toString(),
+    displayName: u.displayName,
+    profileImage: (u as any).profileImage,   }));
+}
 }

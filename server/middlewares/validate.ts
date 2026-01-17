@@ -1,21 +1,34 @@
 import { NextFunction, Request, Response } from "express";
 import { ZodSchema } from "zod";
 
-type Parts = {
+type ValidateParts = {
   body?: ZodSchema;
   query?: ZodSchema;
   params?: ZodSchema;
 };
 
-export function validate(parts: Parts) {
-  return (req: Request, _res: Response, next: NextFunction) => {
+export function validate(parts: ValidateParts) {
+  return (req: Request, res: Response, next: NextFunction) => {
     try {
-      if (parts.body) req.body = parts.body.parse(req.body);
-      if (parts.query) req.query = parts.query.parse(req.query);
-      if (parts.params) req.params = parts.params.parse(req.params);
-      next();
-    } catch (err) {
-      next(err);
+      if (parts.body) {
+        // parse returns unknown, we cast because Express types are not generic-friendly here
+        req.body = parts.body.parse(req.body) as any;
+      }
+
+      if (parts.query) {
+        req.query = parts.query.parse(req.query) as any;
+      }
+
+      if (parts.params) {
+        req.params = parts.params.parse(req.params) as any;
+      }
+
+      return next();
+    } catch (err: any) {
+      return res.status(400).json({
+        message: "Validation error",
+        errors: err?.errors ?? err?.issues ?? err,
+      });
     }
   };
 }

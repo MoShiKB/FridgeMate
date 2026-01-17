@@ -1,94 +1,76 @@
-import { Request, Response, NextFunction } from 'express';
-import { AuthService, RegisterData } from '../services/auth.service';
-import { UserService } from "../services/user.service";
+import { Request, Response, NextFunction } from "express";
+import { AuthService, RegisterData } from "../services/auth.service";
 
 export const AuthController = {
-    async register(req: Request, res: Response, next: NextFunction) {
-        const { userName, email, password } = req.body;
-        try {
-            const response = await AuthService.register({
-                isGoogleUser: false,
-                userName,
-                email,
-                password
-            });
-            res.status(response.status).json(response.data);
-        } catch (err: any) {
-            next(err);
-        }
-    },
+  async register(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { userName, displayName, email, password, profileImage } = req.body;
 
-    async login(req: Request, res: Response, next: NextFunction) {
-        const { email, password } = req.body;
-        try {
-            const response = await AuthService.login({ isGoogleUser: false, email, password });
-            res.status(response.status).json(response.data);
-        } catch (err: any) {
-            next(err);
-        }
-    },
+      const payload: RegisterData = {
+        userName,
+        displayName,
+        email,
+        password,
+        profileImage,
+      };
 
-    async handleGoogleCallback(req: Request, res: Response, next: NextFunction) {
-        const redirectRoute = `/auth/google/callback`;
-        const googleDefaultPass = 'NotNeededToSignInWithGoogle';
-        const googleUser = req?.user as { email: string; userName: string; profileImage: string };
-
-        if (!googleUser) {
-            return next(new Error("Something happened while trying to login with Google"));
-        }
-
-        try {
-            const existingUser = await UserService.getUserByEmail(googleUser.email);
-            if (existingUser) {
-                const response = await AuthService.login({
-                    isGoogleUser: true,
-                    email: googleUser.email,
-                    password: googleDefaultPass
-                });
-                return res.redirect(`${redirectRoute}?accessToken=${response.data.accessToken}&refreshToken=${response.data.refreshToken}`);
-            } else {
-                const registrationData: RegisterData = {
-                    isGoogleUser: true,
-                    userName: googleUser.userName,
-                    email: googleUser.email,
-                    password: googleDefaultPass,
-                    profileImage: googleUser.profileImage
-                };
-
-                const registerResponse = await AuthService.register(registrationData);
-                if (registerResponse.status === 201) {
-                    const loginResponse = await AuthService.login({
-                        isGoogleUser: true,
-                        email: googleUser.email,
-                        password: googleDefaultPass
-                    });
-                    return res.redirect(`${redirectRoute}?accessToken=${loginResponse.data.accessToken}&refreshToken=${loginResponse.data.refreshToken}`);
-                }
-                res.redirect(`${redirectRoute}`);
-            }
-        } catch (err: any) {
-            next(err);
-        }
-    },
-
-    async logout(req: Request, res: Response, next: NextFunction) {
-        const { userId } = req.body;
-        try {
-            const response = await AuthService.logout(userId);
-            res.status(response.status).json(response.data);
-        } catch (err: any) {
-            next(err);
-        }
-    },
-
-    async refreshToken(req: Request, res: Response, next: NextFunction) {
-        const { refreshToken } = req.body;
-        try {
-            const response = await AuthService.refreshToken(refreshToken);
-            res.status(response.status).json(response.data);
-        } catch (err: any) {
-            next(err);
-        }
+      const response = await AuthService.register(payload);
+      return res.status(response.status).json(response.data);
+    } catch (err) {
+      next(err);
     }
-};
+  },
 
+  async login(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { email, password } = req.body;
+      const response = await AuthService.login({ email, password });
+      return res.status(response.status).json(response.data);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async handleGoogleCallback(req: Request, res: Response, next: NextFunction) {
+    const redirectRoute = `/auth/google/callback`;
+    const googleUser = req.user as { email?: string; userName?: string; profileImage?: string };
+
+    if (!googleUser?.email) {
+      return next(new Error("Google login failed: missing email"));
+    }
+
+    try {
+      const response = await AuthService.loginWithGoogle(
+        googleUser.email,
+        googleUser.userName,
+        googleUser.profileImage
+      );
+
+      return res.redirect(
+        `${redirectRoute}?accessToken=${response.data.accessToken}&refreshToken=${response.data.refreshToken}`
+      );
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async logout(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { userId } = req.body;
+      const response = await AuthService.logout(userId);
+      return res.status(response.status).json(response.data);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async refreshToken(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { refreshToken } = req.body;
+      const response = await AuthService.refreshToken(refreshToken);
+      return res.status(response.status).json(response.data);
+    } catch (err) {
+      next(err);
+    }
+  },
+};

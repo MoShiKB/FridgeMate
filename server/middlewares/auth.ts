@@ -1,36 +1,34 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import { env } from "../config/env";
-import { ApiError } from "../utils/errors";
+
+type AuthedRequest = Request & { user?: { userId: string } };
+
+function unauthorized(res: Response) {
+  return res.status(401).json({ message: "Unauthorized" });
+}
 
 /**
- * Temporary auth middleware until Firebase integration.
- * Modes:
- * - DEV_AUTH_MODE=header: expects `x-user-id`
- * - DEV_AUTH_MODE=jwt: expects `Authorization: Bearer <jwt>` with payload { userId }
+ * JWT auth middleware:
+ * expects: Authorization: Bearer <jwt>
+ * payload must include: { userId }
  */
-export function requireAuth(req: Request, _res: Response, next: NextFunction) {
-  const mode = env.DEV_AUTH_MODE;
-
-  if (mode === "header") {
-    const userId = req.header("x-user-id")?.trim();
-    if (!userId) return next(new ApiError(401, "Unauthorized", "UNAUTHORIZED"));
-    req.user = { userId };
-    return next();
+export function requireAuth(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.header("authorization");
+  if (!authHeader?.toLowerCase().startsWith("bearer ")) {
+    return unauthorized(res);
   }
 
-  const header = req.header("authorization");
-  if (!header?.toLowerCase().startsWith("bearer ")) {
-    return next(new ApiError(401, "Unauthorized", "UNAUTHORIZED"));
-  }
-  const token = header.slice("bearer ".length).trim();
+  const token = authHeader.slice("bearer ".length).trim();
+  if (!token) return unauthorized(res);
 
   try {
-    const payload = jwt.verify(token, env.JWT_SECRET) as { userId?: string };
-    if (!payload.userId) throw new Error("missing userId");
-    req.user = { userId: payload.userId };
+    const payload = jwt.verify(token, process.env.JWT_SECRET as string) as { userId?: string };
+
+    if (!payload.userId) return unauthorized(res);
+
+    (req as AuthedRequest).user = { userId: payload.userId };
     return next();
   } catch {
-    return next(new ApiError(401, "Unauthorized", "UNAUTHORIZED"));
+    return unauthorized(res);
   }
 }
