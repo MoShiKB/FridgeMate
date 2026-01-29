@@ -11,7 +11,6 @@ export function validate(parts: ValidateParts) {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
       if (parts.body) {
-        // parse returns unknown, we cast because Express types are not generic-friendly here
         req.body = parts.body.parse(req.body) as any;
       }
 

@@ -97,7 +97,6 @@ export const AuthService = {
       const uname = userName?.trim().toLowerCase();
       const displayName = userName?.trim() || normalizedEmail.split("@")[0];
 
-      // שים "password" אקראית (לא משתמשים בה) רק כדי לעמוד בדרישת required
       const randomPass = await bcrypt.hash(String(Date.now()) + normalizedEmail, 10);
 
       user = await UserModel.create({
@@ -111,7 +110,6 @@ export const AuthService = {
         activeFridgeId: null,
       });
     } else {
-      // עדכון תמונה/שם אם השתנו
       const updates: any = {};
       if (userName && user.userName !== userName.trim().toLowerCase()) updates.userName = userName.trim().toLowerCase();
       if (profileImage && user.profileImage !== profileImage) updates.profileImage = profileImage;

@@ -7,11 +7,7 @@ function unauthorized(res: Response) {
   return res.status(401).json({ message: "Unauthorized" });
 }
 
-/**
- * JWT auth middleware:
- * expects: Authorization: Bearer <jwt>
- * payload must include: { userId }
- */
+
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.header("authorization");
   if (!authHeader?.toLowerCase().startsWith("bearer ")) {

@@ -2,12 +2,10 @@ import UserModel, { IUser } from "../models/user.model";
 
 export const UserService = {
   async getUserById(userId: string) {
-    // להחזיר אובייקט רגיל (lean זה בסדר כאן)
     return UserModel.findById(userId).lean();
   },
 
   async getUserByEmail(email: string) {
-    // חשוב: לא עושים lean פה כדי לאפשר select('+password') כשצריך
     return UserModel.findOne({ email: email.toLowerCase().trim() }).select("+password +refreshToken").exec();
   },
 
@@ -15,7 +13,6 @@ export const UserService = {
     return UserModel.findOne({ userName: userName.toLowerCase().trim() }).exec();
   },
 
-  // זה הפונקציה שה-controller הישן משתמש בה
   async updateProfile(userId: string, userData: Partial<IUser>) {
     const update: any = {};
 

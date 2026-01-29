@@ -15,18 +15,18 @@ interface CustomError extends Error {
 }
 
 const errorHandler = (error: CustomError | MongoError, req: Request, res: Response, next: NextFunction): Response => {
-    // MongoDB errors
+
     if (error instanceof MongoError) {
         switch (error.code) {
-            case 11000: // Duplicate key error
+            case 11000: 
                 return res.status(400).json({ message: 'Duplicate key error: A record with this key already exists.' });
-            case 121: // Document failed validation
+            case 121: 
                 return res.status(400).json({ message: 'Document failed validation.' });
             default:
                 return res.status(500).json({ message: 'An internal server error occurred.' });
         }
     } else {
-        // General errors
+        
         console.error(error.message);
         console.log(error.stack);
         return res.status(error.status || 400).send(error.message);
