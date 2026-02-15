@@ -171,7 +171,6 @@ describe('Authentication Controller Tests', () => {
 
     describe('POST /auth/refresh-token', () => {
         it('should refresh the access token successfully', async () => {
-            // Update the user created by setup.ts with our refreshToken
             await User.findByIdAndUpdate(setupUserId, { refreshToken });
 
             const res = await request(app)

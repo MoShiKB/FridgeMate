@@ -1,25 +1,39 @@
-import User, { IUser } from '../models/user.model';
+import UserModel, { IUser } from "../models/user.model";
 
 export const UserService = {
-    async getUserById(userId: string) {
-        const user: IUser | null = await User.findById(userId);
-        return user;
-    },
+  async getUserById(userId: string) {
+    return UserModel.findById(userId).lean();
+  },
 
-    async getUserByEmail(email: string) {
-        const user: IUser | null = await User.findOne({ email }).select('+password').exec();
-        return user;
-    },
+  async getUserByEmail(email: string) {
+    return UserModel.findOne({ email: email.toLowerCase().trim() }).select("+password +refreshToken").exec();
+  },
 
-    async updateProfile(userId: string, userData: Partial<IUser>) {
-        return User.findByIdAndUpdate(userId, {
-            profileImage: userData.profileImage,
-            userName: userData.userName,
-        }, { new: true });
-    },
+  async getUserByUserName(userName: string) {
+    return UserModel.findOne({ userName: userName.toLowerCase().trim() }).exec();
+  },
 
-    async getAllUsers() {
-        return User.find({}).select('-password -refreshToken');
+  async updateProfile(userId: string, userData: Partial<IUser>) {
+    const update: any = {};
+
+    if (typeof userData.userName === "string") {
+      update.userName = userData.userName.trim().toLowerCase();
     }
-};
+    if (typeof (userData as any).profileImage === "string") {
+      update.profileImage = (userData as any).profileImage.trim();
+    }
+    if (typeof userData.displayName === "string") {
+      update.displayName = userData.displayName.trim();
+    }
+    if (userData.age !== undefined) update.age = userData.age;
+    if (userData.address !== undefined) update.address = userData.address;
+    if (userData.allergies !== undefined) update.allergies = userData.allergies;
+    if (userData.dietPreference !== undefined) update.dietPreference = userData.dietPreference;
 
+    return UserModel.findByIdAndUpdate(userId, { $set: update }, { new: true, runValidators: true }).lean();
+  },
+
+  async getAllUsers() {
+    return UserModel.find({}).select("-password -refreshToken").lean();
+  },
+};

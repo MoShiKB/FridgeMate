@@ -1,106 +1,148 @@
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import User, { IUser } from '../models/user.model';
-import { UserService } from "./user.service";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import UserModel, { IUser } from "../models/user.model";
 
 export interface RegisterData {
-    userName: string;
-    email: string;
-    password: string;
-    profileImage?: string;
-    isGoogleUser: boolean;
+  userName?: string;
+  displayName?: string;
+  email: string;
+  password: string;
+  profileImage?: string;
 }
 
 interface LoginData {
-    email: string;
-    password: string;
-    isGoogleUser: boolean;
+  email: string;
+  password: string;
+}
+
+function signAccessToken(user: any) {
+  return jwt.sign(
+    {
+      userId: user._id,
+      userName: user.userName,
+      email: user.email,
+      role: user.role,
+      profileImage: user.profileImage,
+    },
+    process.env.JWT_SECRET as string,
+    { expiresIn: process.env.JWT_EXPIRES_IN as jwt.SignOptions["expiresIn"] }
+  );
+}
+
+function signRefreshToken(userId: string) {
+  return jwt.sign(
+    { userId },
+    process.env.JWT_REFRESH_SECRET as string,
+    { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN as jwt.SignOptions["expiresIn"] }
+  );
 }
 
 export const AuthService = {
-    async register({ userName, email, password, profileImage, isGoogleUser }: RegisterData) {
-        const existUser = await UserService.getUserByEmail(email);
-        if (existUser) {
-            throw new Error('User already exists');
-        }
+  async register(data: RegisterData) {
+    const email = data.email.toLowerCase().trim();
 
-        let newUser: IUser;
-        if (isGoogleUser) {
-            newUser = new User({ userName, email, password: password, profileImage: profileImage });
-        } else {
-            const salt = await bcrypt.genSalt(10);
-            const hashedPassword = await bcrypt.hash(password, salt);
-            newUser = new User({ userName, email, password: hashedPassword, profileImage });
-        }
+    const exist = await UserModel.findOne({ email }).lean();
+    if (exist) throw new Error("User already exists");
 
-        await newUser.save();
-        const { password: _, refreshToken: __, ...userWithoutSensitiveData } = newUser.toObject();
-        return { status: 201, data: { message: 'User registered successfully', user: userWithoutSensitiveData } };
-    },
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(data.password, salt);
 
-    async login({ email, password, isGoogleUser }: LoginData) {
-        const user: IUser | null = await UserService.getUserByEmail(email);
-        if (!user) {
-            throw new Error('Invalid credentials');
-        }
+    const userName = data.userName?.trim().toLowerCase();
+    const displayName = data.displayName?.trim() || (userName || email.split("@")[0]);
 
-        if (!isGoogleUser) {
-            const isMatch = await bcrypt.compare(password, user.password);
-            if (!isMatch) {
-                throw new Error('Invalid credentials');
-            }
-        }
+    const newUser = await UserModel.create({
+      email,
+      userName,
+      displayName,
+      password: hashedPassword,
+      profileImage: data.profileImage,
+      allergies: [],
+      dietPreference: "NONE",
+      activeFridgeId: null,
+    });
 
-        const accessToken = jwt.sign({
-            userId: user._id,
-            userName: user.userName,
-            email: user.email,
-            role: user.role,
-            profileImage: user.profileImage
-        }, process.env.JWT_SECRET as string, { expiresIn: process.env.JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'] });
+    const userObj = newUser.toObject();
+    delete (userObj as any).password;
+    delete (userObj as any).refreshToken;
 
-        const refreshToken = jwt.sign(
-            { userId: user._id },
-            process.env.JWT_REFRESH_SECRET as string,
-            { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN as jwt.SignOptions['expiresIn'] }
-        );
+    return { status: 201, data: { message: "User registered successfully", user: userObj } };
+  },
 
-        user.refreshToken = refreshToken;
-        await user.save();
+  async login({ email, password }: LoginData) {
+    const normalizedEmail = email.toLowerCase().trim();
 
-        return { status: 200, data: { message: 'Login successful', accessToken, refreshToken } };
-    },
+    // חשוב: select("+password") כי password מוגדר select:false במודל
+    const user = await UserModel.findOne({ email: normalizedEmail }).select("+password").exec();
+    if (!user || !user.password) throw new Error("Invalid credentials");
 
-    async logout(userId: string) {
-        const user: IUser | null = await User.findById(userId).select('+refreshToken').exec();
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) throw new Error("Invalid credentials");
 
-        if (!user) {
-            throw new Error('Invalid token');
-        }
+    const accessToken = signAccessToken(user);
+    const refreshToken = signRefreshToken(user._id.toString());
 
-        user.refreshToken = null;
-        await user.save();
+    user.refreshToken = refreshToken;
+    await user.save();
 
-        return { status: 200, data: { message: 'Logged out successfully' } };
-    },
+    return { status: 200, data: { message: "Login successful", accessToken, refreshToken } };
+  },
 
-    async refreshToken(refreshToken: string) {
-        const decodedToken: any = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET as string);
-        const user: IUser | null = await User.findById(decodedToken.userId).select('+refreshToken').exec();
+  // Login for Google: בלי סיסמה בכלל
+  async loginWithGoogle(email: string, userName?: string, profileImage?: string) {
+    const normalizedEmail = email.toLowerCase().trim();
 
-        if (!user || user.refreshToken !== refreshToken) {
-            throw new Error('Invalid refresh token');
-        }
+    let user = await UserModel.findOne({ email: normalizedEmail }).exec();
 
-        const newAccessToken = jwt.sign({
-            userId: user._id,
-            userName: user.userName,
-            email: user.email,
-            role: user.role,
-            profileImage: user.profileImage
-        }, process.env.JWT_SECRET as string, { expiresIn: process.env.JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'] });
+    if (!user) {
+      const uname = userName?.trim().toLowerCase();
+      const displayName = userName?.trim() || normalizedEmail.split("@")[0];
 
-        return { status: 200, data: { accessToken: newAccessToken } };
+      const randomPass = await bcrypt.hash(String(Date.now()) + normalizedEmail, 10);
+
+      user = await UserModel.create({
+        email: normalizedEmail,
+        userName: uname,
+        displayName,
+        password: randomPass,
+        profileImage,
+        allergies: [],
+        dietPreference: "NONE",
+        activeFridgeId: null,
+      });
+    } else {
+      const updates: any = {};
+      if (userName && user.userName !== userName.trim().toLowerCase()) updates.userName = userName.trim().toLowerCase();
+      if (profileImage && user.profileImage !== profileImage) updates.profileImage = profileImage;
+      if (Object.keys(updates).length) {
+        await UserModel.updateOne({ _id: user._id }, { $set: updates });
+      }
     }
-};
 
+    const accessToken = signAccessToken(user);
+    const refreshToken = signRefreshToken(user._id.toString());
+
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    return { status: 200, data: { message: "Login successful", accessToken, refreshToken } };
+  },
+
+  async logout(userId: string) {
+    const user = await UserModel.findById(userId).select("+refreshToken").exec();
+    if (!user) throw new Error("Invalid token");
+
+    user.refreshToken = null;
+    await user.save();
+    return { status: 200, data: { message: "Logged out successfully" } };
+  },
+
+  async refreshToken(refreshToken: string) {
+    const decodedToken = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET as string) as { userId: string };
+
+    const user = await UserModel.findById(decodedToken.userId).select("+refreshToken").exec();
+    if (!user || user.refreshToken !== refreshToken) throw new Error("Invalid refresh token");
+
+    const newAccessToken = signAccessToken(user);
+    return { status: 200, data: { accessToken: newAccessToken } };
+  },
+};
