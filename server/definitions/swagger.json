@@ -25,6 +25,23 @@
     "http"
   ],
   "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health check",
+        "description": "Check if the server is running",
+        "responses": {
+          "200": {
+            "description": "Server is healthy",
+            "schema": {
+              "$ref": "#/definitions/HealthResponse"
+            }
+          }
+        }
+      }
+    },
     "/auth/register": {
       "post": {
         "tags": [
@@ -319,6 +336,13 @@
         ],
         "summary": "List user's chats",
         "description": "Returns all chats for the authenticated user, sorted by most recent activity",
+    "/ai/recipes/generate": {
+      "post": {
+        "tags": [
+          "AI"
+        ],
+        "summary": "Generate recipes using AI",
+        "description": "Generate personalized recipes based on available ingredients, allergies, and dietary preferences",
         "security": [
           {
             "bearerAuth": []
@@ -333,6 +357,235 @@
           },
           "401": {
             "description": "Not authorized"
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/GenerateRecipesRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recipes generated successfully",
+            "schema": {
+              "$ref": "#/definitions/GenerateRecipesResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request - ingredients required"
+          },
+          "403": {
+            "description": "Not authorized"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        }
+      }
+    },
+    "/ai/ask": {
+      "post": {
+        "tags": [
+          "AI"
+        ],
+        "summary": "Ask AI about cooking",
+        "description": "Free-form query to ask the AI about cooking, recipes, or ingredient usage. Can optionally include a recipe (inline or by ID) for context.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/AskAIRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "AI response",
+            "schema": {
+              "$ref": "#/definitions/AskAIResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request - query required"
+          },
+          "403": {
+            "description": "Not authorized"
+          },
+          "404": {
+            "description": "Recipe not found (when using recipeId)"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        }
+      }
+    },
+    "/recipes/save": {
+      "post": {
+        "tags": [
+          "Recipes"
+        ],
+        "summary": "Save a recipe to favorites",
+        "description": "Save a generated recipe to the user's favorites",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/SaveRecipeRequest"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Recipe saved to favorites",
+            "schema": {
+              "$ref": "#/definitions/SaveRecipeResponse"
+            }
+          },
+          "400": {
+            "description": "Recipe title is required"
+          },
+          "403": {
+            "description": "Not authorized"
+          },
+          "409": {
+            "description": "Recipe already saved to favorites"
+          }
+        }
+      }
+    },
+    "/recipes/{id}": {
+      "get": {
+        "tags": [
+          "Recipes"
+        ],
+        "summary": "Get a recipe by ID",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string",
+            "description": "Recipe ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recipe details",
+            "schema": {
+              "$ref": "#/definitions/SavedRecipe"
+            }
+          },
+          "403": {
+            "description": "Not authorized"
+          },
+          "404": {
+            "description": "Recipe not found"
+          }
+        }
+      }
+    },
+    "/user/me/recipes": {
+      "get": {
+        "tags": [
+          "Recipes"
+        ],
+        "summary": "Get user's saved recipes",
+        "description": "Get recipes saved by the authenticated user",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "type": "integer",
+            "default": 1,
+            "description": "Page number"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "type": "integer",
+            "default": 20,
+            "description": "Items per page (max 50)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of user's recipes",
+            "schema": {
+              "$ref": "#/definitions/RecipeListResponse"
+            }
+          },
+          "403": {
+            "description": "Not authorized"
+          }
+        }
+      }
+    },
+    "/user/me/recipes/{id}": {
+      "delete": {
+        "tags": [
+          "Recipes"
+        ],
+        "summary": "Remove a recipe from favorites",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string",
+            "description": "Recipe ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recipe removed from favorites",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "example": "Recipe removed from favorites"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not authorized"
+          },
+          "404": {
+            "description": "Recipe not found or not owned by user"
           }
         }
       }
@@ -526,6 +779,94 @@
           "type": "string"
         },
         "participants": {
+    "GenerateRecipesRequest": {
+      "type": "object",
+      "required": [
+        "ingredients"
+      ],
+      "properties": {
+        "ingredients": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "example": [
+            "eggs",
+            "tomatoes",
+            "cheese",
+            "bread"
+          ]
+        },
+        "allergies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "example": [
+            "peanuts",
+            "shellfish"
+          ]
+        },
+        "dietPreference": {
+          "type": "string",
+          "enum": [
+            "NONE",
+            "VEGETARIAN",
+            "VEGAN",
+            "PESCATARIAN"
+          ],
+          "example": "VEGETARIAN"
+        },
+        "count": {
+          "type": "integer",
+          "example": 3,
+          "description": "Number of recipes to generate (default: 3)"
+        }
+      }
+    },
+    "GenerateRecipesResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "example": "Recipes generated successfully"
+        },
+        "count": {
+          "type": "integer",
+          "example": 3
+        },
+        "recipes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Recipe"
+          }
+        }
+      }
+    },
+    "Recipe": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "example": "Tomato Omelette"
+        },
+        "description": {
+          "type": "string",
+          "example": "A fluffy omelette with fresh tomatoes"
+        },
+        "cookingTime": {
+          "type": "string",
+          "example": "15 minutes"
+        },
+        "difficulty": {
+          "type": "string",
+          "enum": [
+            "Easy",
+            "Medium",
+            "Hard"
+          ]
+        },
+        "ingredients": {
           "type": "array",
           "items": {
             "type": "object",
@@ -537,6 +878,70 @@
                 "type": "string"
               },
               "profileImage": {
+              "name": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nutrition": {
+          "type": "object",
+          "properties": {
+            "calories": {
+              "type": "string"
+            },
+            "protein": {
+              "type": "string"
+            },
+            "carbs": {
+              "type": "string"
+            },
+            "fat": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "AskAIRequest": {
+      "type": "object",
+      "required": [
+        "query"
+      ],
+      "properties": {
+        "query": {
+          "type": "string",
+          "example": "What can I make with eggs and cheese?"
+        },
+        "recipeId": {
+          "type": "string",
+          "description": "ID of a saved recipe to ask about (alternative to inline recipe)"
+        },
+        "recipe": {
+          "type": "object",
+          "description": "Inline recipe object for context",
+          "properties": {
+            "title": {
+              "type": "string"
+            },
+            "ingredients": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "steps": {
+              "type": "array",
+              "items": {
                 "type": "string"
               }
             }
@@ -553,6 +958,176 @@
         "messageCount": {
           "type": "integer",
           "example": 5
+        "ingredients": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "example": [
+            "eggs",
+            "cheese",
+            "milk"
+          ],
+          "description": "Available ingredients for context"
+        }
+      }
+    },
+    "AskAIResponse": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string"
+        },
+        "answer": {
+          "type": "string"
+        },
+        "recipeContext": {
+          "type": "string",
+          "description": "Title of recipe used for context"
+        },
+        "ingredientsConsidered": {
+          "type": "integer"
+        }
+      }
+    },
+    "SaveRecipeRequest": {
+      "type": "object",
+      "required": [
+        "title"
+      ],
+      "properties": {
+        "title": {
+          "type": "string",
+          "example": "Cheese Omelette"
+        },
+        "description": {
+          "type": "string",
+          "example": "A fluffy cheese omelette"
+        },
+        "cookingTime": {
+          "type": "string",
+          "example": "15 minutes"
+        },
+        "difficulty": {
+          "type": "string",
+          "enum": [
+            "Easy",
+            "Medium",
+            "Hard"
+          ]
+        },
+        "ingredients": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "amount": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nutrition": {
+          "type": "object",
+          "properties": {
+            "calories": {
+              "type": "string"
+            },
+            "protein": {
+              "type": "string"
+            },
+            "carbs": {
+              "type": "string"
+            },
+            "fat": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "SaveRecipeResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "example": "Recipe saved to favorites"
+        },
+        "recipe": {
+          "$ref": "#/definitions/SavedRecipe"
+        }
+      }
+    },
+    "SavedRecipe": {
+      "type": "object",
+      "properties": {
+        "_id": {
+          "type": "string"
+        },
+        "userId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "cookingTime": {
+          "type": "string"
+        },
+        "difficulty": {
+          "type": "string"
+        },
+        "ingredients": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nutrition": {
+          "type": "object"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      }
+    },
+    "RecipeListResponse": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SavedRecipe"
+          }
+        },
+        "total": {
+          "type": "integer"
+        },
+        "page": {
+          "type": "integer"
+        },
+        "limit": {
+          "type": "integer"
         }
       }
     }

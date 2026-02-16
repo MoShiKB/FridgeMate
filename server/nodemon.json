@@ -1,6 +1,12 @@
 {
-  "watch": ["./"],
+  "watch": [
+    "./"
+  ],
   "ext": "ts,json",
-  "ignore": ["./tests", "./node_modules", "./dist"],
+  "ignore": [
+    "./tests",
+    "./node_modules",
+    "./dist"
+  ],
   "exec": "ts-node --project tsconfig.json --files ./index.ts"
 }

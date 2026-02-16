@@ -1,0 +1,59 @@
+@token = Bearer YOUR_ACCESS_TOKEN_HERE
+
+### Save a recipe to favorites
+POST http://localhost:3001/recipes/save
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+    "title": "Cheese Omelette",
+    "description": "A fluffy omelette with melted cheese",
+    "cookingTime": "15 minutes",
+    "difficulty": "Easy",
+    "ingredients": [
+        { "name": "eggs", "amount": "3" },
+        { "name": "cheddar cheese", "amount": "50g" },
+        { "name": "butter", "amount": "1 tbsp" },
+        { "name": "salt", "amount": "pinch" }
+    ],
+    "steps": [
+        "Beat eggs with salt",
+        "Melt butter in pan over medium heat",
+        "Pour eggs and let set slightly",
+        "Add cheese and fold",
+        "Serve immediately"
+    ],
+    "nutrition": {
+        "calories": "320 kcal",
+        "protein": "22g",
+        "carbs": "2g",
+        "fat": "25g"
+    }
+}
+
+### Get a recipe by ID
+GET http://localhost:3001/recipes/YOUR_RECIPE_ID_HERE
+Authorization: {{token}}
+
+### Get my saved recipes
+GET http://localhost:3001/user/me/recipes
+Authorization: {{token}}
+
+### Get my saved recipes (with pagination)
+GET http://localhost:3001/user/me/recipes?page=1&limit=10
+Authorization: {{token}}
+
+### Delete a recipe from favorites
+DELETE http://localhost:3001/user/me/recipes/YOUR_RECIPE_ID_HERE
+Authorization: {{token}}
+
+### Ask AI about a saved recipe (using recipeId)
+POST http://localhost:3001/ai/ask
+Content-Type: application/json
+Authorization: {{token}}
+
+{
+    "query": "How can I make this recipe healthier?",
+    "recipeId": "YOUR_RECIPE_ID_HERE"
+}
+

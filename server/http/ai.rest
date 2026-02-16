@@ -1,0 +1,75 @@
+### Generate Recipes
+POST http://localhost:3001/ai/recipes/generate
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
+
+{
+    "ingredients": ["eggs", "tomatoes", "cheese", "bread", "milk", "butter"],
+    "allergies": ["peanuts"],
+    "dietPreference": "VEGETARIAN",
+    "count": 3
+}
+
+### Generate Recipes (minimal - just ingredients)
+POST http://localhost:3001/ai/recipes/generate
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
+
+{
+    "ingredients": ["chicken", "rice", "onion", "garlic"]
+}
+
+### Ask AI a general question
+POST http://localhost:3001/ai/ask
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
+
+{
+    "query": "What can I make with eggs and cheese for breakfast?",
+    "ingredients": ["eggs", "cheese", "milk", "bread", "butter"]
+}
+
+### Ask AI about a specific recipe (substitutions)
+POST http://localhost:3001/ai/ask
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
+
+{
+    "query": "How can I make this recipe vegan?",
+    "recipe": {
+        "title": "Cheese Omelette",
+        "ingredients": [
+            { "name": "eggs", "amount": "3" },
+            { "name": "cheddar cheese", "amount": "50g" },
+            { "name": "butter", "amount": "1 tbsp" }
+        ],
+        "steps": ["Beat eggs", "Melt butter in pan", "Pour eggs", "Add cheese", "Fold and serve"]
+    }
+}
+
+### Ask AI about a recipe (variations)
+POST http://localhost:3001/ai/ask
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
+
+{
+    "query": "What spices would make this more interesting?",
+    "recipe": {
+        "title": "Scrambled Eggs",
+        "ingredients": [
+            { "name": "eggs", "amount": "2" },
+            { "name": "salt", "amount": "pinch" }
+        ]
+    },
+    "ingredients": ["paprika", "cumin", "oregano", "chili flakes", "turmeric"]
+}
+
+### Ask AI (simple question, no context)
+POST http://localhost:3001/ai/ask
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN_HERE
+
+{
+    "query": "How do I make a perfect omelette?"
+}
+
