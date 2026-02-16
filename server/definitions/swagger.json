@@ -27,7 +27,9 @@
   "paths": {
     "/auth/register": {
       "post": {
-        "tags": ["Auth"],
+        "tags": [
+          "Auth"
+        ],
         "summary": "Register a new user",
         "description": "This endpoint registers a new user with username, email and password",
         "parameters": [
@@ -59,7 +61,9 @@
     },
     "/auth/login": {
       "post": {
-        "tags": ["Auth"],
+        "tags": [
+          "Auth"
+        ],
         "summary": "Log in a user",
         "description": "This endpoint logs in a user and returns access and refresh tokens",
         "parameters": [
@@ -91,7 +95,9 @@
     },
     "/auth/logout": {
       "post": {
-        "tags": ["Auth"],
+        "tags": [
+          "Auth"
+        ],
         "summary": "Log out a user",
         "description": "Logs out the authenticated user and invalidates their refresh token, user is identified from the access token.",
         "parameters": [],
@@ -118,7 +124,9 @@
     },
     "/auth/refresh-token": {
       "post": {
-        "tags": ["Auth"],
+        "tags": [
+          "Auth"
+        ],
         "summary": "Refresh access token",
         "description": "This endpoint refreshes the access token using a valid refresh token",
         "parameters": [
@@ -150,7 +158,9 @@
     },
     "/auth/login/google": {
       "get": {
-        "tags": ["Auth"],
+        "tags": [
+          "Auth"
+        ],
         "summary": "Login with Google",
         "description": "Redirects to Google OAuth login page",
         "responses": {
@@ -162,7 +172,9 @@
     },
     "/auth/login/google/callback": {
       "get": {
-        "tags": ["Auth"],
+        "tags": [
+          "Auth"
+        ],
         "summary": "Google OAuth callback",
         "description": "Handles Google OAuth callback and redirects with tokens",
         "responses": {
@@ -177,7 +189,9 @@
     },
     "/health": {
       "get": {
-        "tags": ["Health"],
+        "tags": [
+          "Health"
+        ],
         "summary": "Health check",
         "description": "Check if the server is running",
         "responses": {
@@ -192,28 +206,44 @@
     },
     "/user": {
       "get": {
-        "tags": ["User"],
+        "tags": [
+          "User"
+        ],
         "summary": "Get all users",
         "description": "Returns a list of all users",
-        "security": [{ "bearerAuth": [] }],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "List of users",
             "schema": {
               "type": "array",
-              "items": { "$ref": "#/definitions/UserProfile" }
+              "items": {
+                "$ref": "#/definitions/UserProfile"
+              }
             }
           },
-          "403": { "description": "Not authorized" }
+          "403": {
+            "description": "Not authorized"
+          }
         }
       }
     },
     "/user/{id}": {
       "get": {
-        "tags": ["User"],
+        "tags": [
+          "User"
+        ],
         "summary": "Get user by ID",
         "description": "Returns user profile details",
-        "security": [{ "bearerAuth": [] }],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "in": "path",
@@ -226,17 +256,29 @@
         "responses": {
           "200": {
             "description": "User profile",
-            "schema": { "$ref": "#/definitions/UserProfile" }
+            "schema": {
+              "$ref": "#/definitions/UserProfile"
+            }
           },
-          "404": { "description": "User not found" },
-          "403": { "description": "Not authorized" }
+          "404": {
+            "description": "User not found"
+          },
+          "403": {
+            "description": "Not authorized"
+          }
         }
       },
       "put": {
-        "tags": ["User"],
+        "tags": [
+          "User"
+        ],
         "summary": "Update user profile",
         "description": "Update userName and profileImage (only for the logged-in user)",
-        "security": [{ "bearerAuth": [] }],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "in": "path",
@@ -249,16 +291,49 @@
             "in": "body",
             "name": "body",
             "required": true,
-            "schema": { "$ref": "#/definitions/UpdateProfile" }
+            "schema": {
+              "$ref": "#/definitions/UpdateProfile"
+            }
           }
         ],
         "responses": {
           "200": {
             "description": "Profile updated successfully",
-            "schema": { "$ref": "#/definitions/UserProfile" }
+            "schema": {
+              "$ref": "#/definitions/UserProfile"
+            }
           },
-          "404": { "description": "User not found" },
-          "403": { "description": "Not authorized" }
+          "404": {
+            "description": "User not found"
+          },
+          "403": {
+            "description": "Not authorized"
+          }
+        }
+      }
+    },
+    "/chats": {
+      "get": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "List user's chats",
+        "description": "Returns all chats for the authenticated user, sorted by most recent activity",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of chats",
+            "schema": {
+              "$ref": "#/definitions/ChatListResponse"
+            }
+          },
+          "401": {
+            "description": "Not authorized"
+          }
         }
       }
     }
@@ -266,7 +341,11 @@
   "definitions": {
     "UserRegistration": {
       "type": "object",
-      "required": ["userName", "email", "password"],
+      "required": [
+        "userName",
+        "email",
+        "password"
+      ],
       "properties": {
         "userName": {
           "type": "string",
@@ -285,7 +364,10 @@
     },
     "UserLogin": {
       "type": "object",
-      "required": ["email", "password"],
+      "required": [
+        "email",
+        "password"
+      ],
       "properties": {
         "email": {
           "type": "string",
@@ -299,7 +381,9 @@
     },
     "RefreshToken": {
       "type": "object",
-      "required": ["refreshToken"],
+      "required": [
+        "refreshToken"
+      ],
       "properties": {
         "refreshToken": {
           "type": "string",
@@ -381,20 +465,95 @@
     "UserProfile": {
       "type": "object",
       "properties": {
-        "_id": { "type": "string" },
-        "userName": { "type": "string", "example": "johndoe" },
-        "email": { "type": "string", "example": "john@example.com" },
-        "profileImage": { "type": "string", "example": "https://example.com/image.jpg" },
-        "role": { "type": "string", "example": "user" },
-        "createdAt": { "type": "string" },
-        "updatedAt": { "type": "string" }
+        "_id": {
+          "type": "string"
+        },
+        "userName": {
+          "type": "string",
+          "example": "johndoe"
+        },
+        "email": {
+          "type": "string",
+          "example": "john@example.com"
+        },
+        "profileImage": {
+          "type": "string",
+          "example": "https://example.com/image.jpg"
+        },
+        "role": {
+          "type": "string",
+          "example": "user"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
       }
     },
     "UpdateProfile": {
       "type": "object",
       "properties": {
-        "userName": { "type": "string", "example": "newusername" },
-        "profileImage": { "type": "string", "example": "https://example.com/new-image.jpg" }
+        "userName": {
+          "type": "string",
+          "example": "newusername"
+        },
+        "profileImage": {
+          "type": "string",
+          "example": "https://example.com/new-image.jpg"
+        }
+      }
+    },
+    "ChatListResponse": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ChatItem"
+          }
+        },
+        "total": {
+          "type": "integer"
+        }
+      }
+    },
+    "ChatItem": {
+      "type": "object",
+      "properties": {
+        "chatId": {
+          "type": "string"
+        },
+        "participants": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "_id": {
+                "type": "string"
+              },
+              "displayName": {
+                "type": "string"
+              },
+              "profileImage": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "lastMessage": {
+          "type": "string",
+          "example": "Let's make pasta!"
+        },
+        "lastUpdated": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "messageCount": {
+          "type": "integer",
+          "example": 5
+        }
       }
     }
   },
@@ -407,4 +566,3 @@
     }
   }
 }
-

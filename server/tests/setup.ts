@@ -41,9 +41,10 @@ beforeEach(async () => {
         if (!existingUser) {
             const password = await bcrypt.hash('securePassword123', 10);
 
-            await User.create<Partial<IUser>>({
+            await User.create({
                 _id: userId,
                 userName: 'testuser',
+                displayName: 'Test User',
                 email: `testuser${Date.now()}@example.com`,
                 password,
                 refreshToken,
