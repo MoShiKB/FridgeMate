@@ -204,6 +204,23 @@
         }
       }
     },
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health check",
+        "description": "Check if the server is running",
+        "responses": {
+          "200": {
+            "description": "Server is healthy",
+            "schema": {
+              "$ref": "#/definitions/HealthResponse"
+            }
+          }
+        }
+      }
+    },
     "/user": {
       "get": {
         "tags": [
@@ -312,6 +329,13 @@
         }
       }
     },
+    "/chats": {
+      "get": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "List user's chats",
+        "description": "Returns all chats for the authenticated user, sorted by most recent activity",
     "/ai/recipes/generate": {
       "post": {
         "tags": [
@@ -324,6 +348,15 @@
             "bearerAuth": []
           }
         ],
+        "responses": {
+          "200": {
+            "description": "List of chats",
+            "schema": {
+              "$ref": "#/definitions/ChatListResponse"
+            }
+          },
+          "401": {
+            "description": "Not authorized"
         "parameters": [
           {
             "in": "body",
@@ -725,6 +758,27 @@
         }
       }
     },
+    "ChatListResponse": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ChatItem"
+          }
+        },
+        "total": {
+          "type": "integer"
+        }
+      }
+    },
+    "ChatItem": {
+      "type": "object",
+      "properties": {
+        "chatId": {
+          "type": "string"
+        },
+        "participants": {
     "GenerateRecipesRequest": {
       "type": "object",
       "required": [
@@ -817,6 +871,13 @@
           "items": {
             "type": "object",
             "properties": {
+              "_id": {
+                "type": "string"
+              },
+              "displayName": {
+                "type": "string"
+              },
+              "profileImage": {
               "name": {
                 "type": "string"
               },
@@ -886,6 +947,17 @@
             }
           }
         },
+        "lastMessage": {
+          "type": "string",
+          "example": "Let's make pasta!"
+        },
+        "lastUpdated": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "messageCount": {
+          "type": "integer",
+          "example": 5
         "ingredients": {
           "type": "array",
           "items": {

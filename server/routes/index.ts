@@ -2,6 +2,7 @@ import { Router } from "express";
 import authRoutes from "./auth.routes";
 import userRoutes from "./user.routes";
 import { fridgesRoutes } from "./fridges.routes";
+import { chatRoutes } from "./chat.routes";
 import aiRoutes from "./ai.routes";
 import recipeRoutes from "./recipe.routes";
 import { commentsRoutes } from "./comments.routes";
@@ -16,6 +17,7 @@ router.get("/health", (_req, res) => {
 router.use("/auth", authRoutes);
 router.use("/user", userRoutes);
 router.use("/fridges", fridgesRoutes);
+router.use("/chats", chatRoutes);
 router.use("/ai", aiRoutes);
 router.use("/recipes", recipeRoutes);
 router.use("/posts", commentsRoutes);
