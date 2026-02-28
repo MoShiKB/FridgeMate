@@ -19,8 +19,7 @@ describe('AuthService Tests', () => {
             const result = await AuthService.register({
                 userName,
                 email: userEmail,
-                password: 'securePassword123',
-                isGoogleUser: false
+                password: 'securePassword123'
             });
 
             expect(result.status).toBe(201);
@@ -33,6 +32,7 @@ describe('AuthService Tests', () => {
         it('should throw error if user already exists', async () => {
             await User.create<Partial<IUser>>({
                 userName,
+                displayName: 'Test User',
                 email: userEmail,
                 password: 'securePassword123',
             });
@@ -40,22 +40,20 @@ describe('AuthService Tests', () => {
             await expect(AuthService.register({
                 userName: 'anotheruser',
                 email: userEmail,
-                password: 'securePassword123',
-                isGoogleUser: false
+                password: 'securePassword123'
             })).rejects.toThrow('User already exists');
         });
 
-        it('should register a Google user without hashing password', async () => {
-            const result = await AuthService.register({
+        it('should login a Google user without hashing password', async () => {
+            const result = await AuthService.loginWithGoogle(
+                userEmail,
                 userName,
-                email: userEmail,
-                password: 'NotNeededToSignInWithGoogle',
-                isGoogleUser: true,
-                profileImage: 'https://example.com/image.jpg'
-            });
+                'https://example.com/image.jpg'
+            );
 
-            expect(result.status).toBe(201);
-            expect(result.data.message).toBe('User registered successfully');
+            expect(result.status).toBe(200);
+            expect(result.data.message).toBe('Login successful');
+            expect(result.data).toHaveProperty('accessToken');
         });
     });
 
@@ -64,14 +62,14 @@ describe('AuthService Tests', () => {
             const password = await bcrypt.hash('securePassword123', 10);
             await User.create<Partial<IUser>>({
                 userName,
+                displayName: 'Test User',
                 email: userEmail,
                 password,
             });
 
             const result = await AuthService.login({
                 email: userEmail,
-                password: 'securePassword123',
-                isGoogleUser: false
+                password: 'securePassword123'
             });
 
             expect(result.status).toBe(200);
@@ -83,8 +81,7 @@ describe('AuthService Tests', () => {
         it('should throw error for invalid email', async () => {
             await expect(AuthService.login({
                 email: 'nonexistent@example.com',
-                password: 'securePassword123',
-                isGoogleUser: false
+                password: 'securePassword123'
             })).rejects.toThrow('Invalid credentials');
         });
 
@@ -92,14 +89,14 @@ describe('AuthService Tests', () => {
             const password = await bcrypt.hash('securePassword123', 10);
             await User.create<Partial<IUser>>({
                 userName,
+                displayName: 'Test User',
                 email: userEmail,
                 password,
             });
 
             await expect(AuthService.login({
                 email: userEmail,
-                password: 'wrongPassword',
-                isGoogleUser: false
+                password: 'wrongPassword'
             })).rejects.toThrow('Invalid credentials');
         });
 
@@ -107,15 +104,14 @@ describe('AuthService Tests', () => {
             const password = await bcrypt.hash('NotNeededToSignInWithGoogle', 10);
             await User.create<Partial<IUser>>({
                 userName,
+                displayName: 'Test User',
                 email: userEmail,
                 password,
             });
 
-            const result = await AuthService.login({
-                email: userEmail,
-                password: 'NotNeededToSignInWithGoogle',
-                isGoogleUser: true
-            });
+            const result = await AuthService.loginWithGoogle(
+                userEmail
+            );
 
             expect(result.status).toBe(200);
             expect(result.data).toHaveProperty('accessToken');
@@ -127,6 +123,7 @@ describe('AuthService Tests', () => {
             const refreshToken = jwt.sign({ userId: new mongoose.Types.ObjectId() }, process.env.JWT_REFRESH_SECRET as string, { expiresIn: '7d' as jwt.SignOptions['expiresIn'] });
             const user = await User.create<Partial<IUser>>({
                 userName,
+                displayName: 'Test User',
                 email: userEmail,
                 password: 'securePassword123',
                 refreshToken,
@@ -151,14 +148,15 @@ describe('AuthService Tests', () => {
         it('should refresh token successfully', async () => {
             const userId = new mongoose.Types.ObjectId();
             const refreshToken = jwt.sign({ userId }, process.env.JWT_REFRESH_SECRET as string, { expiresIn: '7d' as jwt.SignOptions['expiresIn'] });
-            
-            await User.create<Partial<IUser>>({
+
+            await User.create({
                 _id: userId,
                 userName,
+                displayName: 'Test User',
                 email: userEmail,
                 password: 'securePassword123',
                 refreshToken,
-            });
+            } as any);
 
             const result = await AuthService.refreshToken(refreshToken);
 
@@ -175,14 +173,15 @@ describe('AuthService Tests', () => {
             const differentUserId = new mongoose.Types.ObjectId();
             const storedRefreshToken = jwt.sign({ userId }, process.env.JWT_REFRESH_SECRET as string, { expiresIn: '7d' as jwt.SignOptions['expiresIn'] });
             const differentRefreshToken = jwt.sign({ userId: differentUserId }, process.env.JWT_REFRESH_SECRET as string, { expiresIn: '7d' as jwt.SignOptions['expiresIn'] });
-            
-            await User.create<Partial<IUser>>({
+
+            await User.create({
                 _id: userId,
                 userName,
+                displayName: 'Test User',
                 email: userEmail,
                 password: 'securePassword123',
                 refreshToken: storedRefreshToken,
-            });
+            } as any);
 
             await expect(AuthService.refreshToken(differentRefreshToken)).rejects.toThrow('Invalid refresh token');
         });

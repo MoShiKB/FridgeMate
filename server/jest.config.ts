@@ -3,6 +3,7 @@ import type { Config } from 'jest';
 const config: Config = {
     preset: 'ts-jest',
     testEnvironment: 'node',
+    cacheDirectory: '<rootDir>/.jest-cache',
     setupFilesAfterEnv: ['./tests/setup.ts'],
     collectCoverage: true,
     coverageDirectory: 'coverage',

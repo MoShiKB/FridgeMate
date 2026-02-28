@@ -36,6 +36,7 @@ describe('Authentication Controller Tests', () => {
         it('should return 400 if email already exists during registration', async () => {
             await User.create<Partial<IUser>>({
                 userName,
+                displayName: 'Test User',
                 email: userEmail,
                 password: 'securePassword123',
             });
@@ -53,7 +54,7 @@ describe('Authentication Controller Tests', () => {
         });
 
         it('should return 400 if an error occurs during registration', async () => {
-            jest.spyOn(User.prototype, 'save').mockImplementationOnce(() => {
+            jest.spyOn(User, 'create').mockImplementationOnce(() => {
                 throw new Error('Database error');
             });
 
@@ -77,6 +78,7 @@ describe('Authentication Controller Tests', () => {
             const password = await bcrypt.hash('securePassword123', 10);
             await User.create<Partial<IUser>>({
                 userName,
+                displayName: 'Test User',
                 email: userEmail,
                 password,
             });
@@ -110,6 +112,7 @@ describe('Authentication Controller Tests', () => {
             const password = await bcrypt.hash('securePassword123', 10);
             await User.create<Partial<IUser>>({
                 userName,
+                displayName: 'Test User',
                 email: userEmail,
                 password,
             });

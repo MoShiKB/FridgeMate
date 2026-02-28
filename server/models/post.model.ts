@@ -28,11 +28,9 @@ const PostSchema = new Schema<IPost>(
       type: {
         type: String,
         enum: ["Point"],
-        default: "Point",
       },
       coordinates: {
         type: [Number], // [lng, lat]
-        default: undefined,
       },
       placeName: { type: String },
     },
