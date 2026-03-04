@@ -1,0 +1,293 @@
+.loginContainer {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #f1fcf5;
+  padding: 0 16px;
+}
+
+.logoContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.logo {
+  width: 140px;
+  height: 140px;
+  margin-top: 8px;
+  margin-bottom: 0px;
+  object-fit: contain;
+}
+
+.appName {
+  font-size: 40px;
+  font-weight: bold;
+  background: linear-gradient(135deg, #00bc7d 0%, #00b8db 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+  margin-top: -12px;
+  padding: 0;
+  letter-spacing: -1px;
+}
+
+.card {
+  width: 100%;
+  max-width: 500px;
+  background-color: #ffffff;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+  margin-bottom: 24px;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: bold;
+  color: #000000;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.sectionTitle {
+  font-size: 14px;
+  font-weight: bold;
+  color: #000000;
+  margin-top: 24px;
+  margin-bottom: 8px;
+}
+
+.sectionTitlePassword {
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
+.inputGroup {
+  width: 100%;
+  position: relative;
+  margin-bottom: 0;
+}
+
+.inputLabel {
+  display: flex;
+  flex-direction: column;
+}
+
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background-color: #f7f8f9;
+  border-radius: 12px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.inputWrapper:focus-within {
+  border-color: #54a096;
+}
+
+.startIcon {
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  color: #8e8e8e;
+  flex-shrink: 0;
+}
+
+.input {
+  flex: 1;
+  width: 100%;
+  height: 56px;
+  background: transparent;
+  color: #000000;
+  font-size: 16px;
+  padding: 0;
+}
+
+.input::placeholder {
+  color: #8e8e8e;
+}
+
+.endIconButton {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 8px;
+  color: #8e8e8e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.endIconButton:hover {
+  color: #54a096;
+}
+
+.error {
+  color: #d32f2f;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
+}
+
+.errorInput {
+  border-color: #d32f2f !important;
+}
+
+.forgotPasswordLink {
+  display: block;
+  text-align: right;
+  margin-top: 0;
+  margin-bottom: 16px;
+  color: #00bc90;
+  font-size: 12px;
+  font-weight: bold;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.forgotPasswordLink:hover {
+  color: #00a878;
+}
+
+.loginButton {
+  width: 100%;
+  height: 56px;
+  margin-top: 16px;
+  background: linear-gradient(135deg, #00bc7d 0%, #00b8db 100%);
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+}
+
+.loginButton:hover:not(:disabled) {
+  box-shadow: 0 4px 12px rgba(0, 188, 125, 0.3);
+  transform: translateY(-2px);
+}
+
+.loginButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.signupContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.signupText {
+  font-size: 14px;
+  font-weight: bold;
+  color: #000000;
+}
+
+.signupLink {
+  font-size: 14px;
+  font-weight: bold;
+  color: #00bc90;
+  text-decoration: none;
+  cursor: pointer;
+  margin-left: 8px;
+  transition: color 0.3s ease;
+}
+
+.signupLink:hover {
+  color: #00a878;
+}
+
+.socialButtonsContainer {
+  width: 100%;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #eeeeee;
+}
+
+.socialButtonsTitle {
+  font-size: 12px;
+  font-weight: bold;
+  color: #8e8e8e;
+  text-align: center;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.socialButtonsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+}
+
+.socialButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  border: 1px solid #eeeeee;
+  border-radius: 12px;
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  font-size: 14px;
+  color: #000000;
+}
+
+.socialButton:hover:not(:disabled) {
+  border-color: #54a096;
+  background-color: #f9fafb;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(84, 160, 150, 0.15);
+}
+
+.socialButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.socialIcon {
+  width: 20px;
+  height: 20px;
+  margin-right: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.googleButton {
+  border-color: #dadce0;
+}
+
+.googleButton:hover:not(:disabled) {
+  border-color: #dadce0;
+}
+
+.facebookButton {
+  border-color: #dadce0;
+}
+
+.facebookButton:hover:not(:disabled) {
+  border-color: #dadce0;
+}
