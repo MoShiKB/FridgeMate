@@ -1,77 +1,80 @@
 {
   "swagger": "2.0",
   "info": {
-    "description": "API documentation for FridgeMate",
+    "title": "FridgeMate API Specification",
     "version": "1.0.0",
-    "title": "FridgeMate API"
+    "description": "Welcome to the FridgeMate API! This OpenAPI document provides a complete map of our backend services. From user management and shared fridges, to social posts, real-time chats, and AI-powered recipe generation, everything you need to interface with the app is documented below.\n\n### Authentication\nMost endpoints require a JWT access token. Include it in your requests via the `Authorization` header like so: `Bearer <your_token>`."
   },
-  "components": {
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT"
-      }
-    }
-  },
-  "security": [
-    {
-      "bearerAuth": []
-    }
-  ],
   "host": "localhost:3001",
   "basePath": "/",
   "schemes": [
-    "http"
+    "http",
+    "https"
+  ],
+  "securityDefinitions": {
+    "bearerAuth": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header",
+      "description": "Enter your Bearer token in the format **Bearer &lt;token&gt;**"
+    }
+  },
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
   ],
   "paths": {
-    "/health": {
-      "get": {
-        "tags": [
-          "Health"
-        ],
-        "summary": "Health check",
-        "description": "Check if the server is running",
-        "responses": {
-          "200": {
-            "description": "Server is healthy",
-            "schema": {
-              "$ref": "#/definitions/HealthResponse"
-            }
-          }
-        }
-      }
-    },
     "/auth/register": {
       "post": {
         "tags": [
-          "Auth"
+          "Authentication"
         ],
-        "summary": "Register a new user",
-        "description": "This endpoint registers a new user with username, email and password",
+        "summary": "Register a new user account",
+        "description": "Creates a new FridgeMate account. The display name will default to the username if not provided.",
         "parameters": [
           {
             "in": "body",
             "name": "body",
-            "description": "User registration info",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/UserRegistration"
+              "type": "object",
+              "required": [
+                "email",
+                "password"
+              ],
+              "properties": {
+                "userName": {
+                  "type": "string",
+                  "example": "johndoe123"
+                },
+                "displayName": {
+                  "type": "string",
+                  "example": "John Doe"
+                },
+                "email": {
+                  "type": "string",
+                  "example": "john@example.com"
+                },
+                "password": {
+                  "type": "string",
+                  "example": "securePass123"
+                },
+                "profileImage": {
+                  "type": "string",
+                  "example": "https://example.com/avatar.jpg"
+                }
+              }
             }
           }
         ],
         "responses": {
           "201": {
-            "description": "User registered successfully",
-            "schema": {
-              "$ref": "#/definitions/RegisterResponse"
-            }
+            "description": "User registered successfully"
           },
           "400": {
-            "description": "User already exists or validation error"
-          },
-          "500": {
-            "description": "Server error"
+            "description": "Validation error or user already exists"
           }
         }
       }
@@ -79,33 +82,40 @@
     "/auth/login": {
       "post": {
         "tags": [
-          "Auth"
+          "Authentication"
         ],
-        "summary": "Log in a user",
-        "description": "This endpoint logs in a user and returns access and refresh tokens",
+        "summary": "Log in with email and password",
+        "description": "Authenticates a user and returns an access token and a refresh token.",
         "parameters": [
           {
             "in": "body",
             "name": "body",
-            "description": "User login credentials",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/UserLogin"
+              "type": "object",
+              "required": [
+                "email",
+                "password"
+              ],
+              "properties": {
+                "email": {
+                  "type": "string",
+                  "example": "john@example.com"
+                },
+                "password": {
+                  "type": "string",
+                  "example": "securePass123"
+                }
+              }
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Login successful",
-            "schema": {
-              "$ref": "#/definitions/LoginResponse"
-            }
+            "description": "Successful login, tokens provided"
           },
           "400": {
             "description": "Invalid credentials"
-          },
-          "500": {
-            "description": "Server error"
           }
         }
       }
@@ -113,11 +123,10 @@
     "/auth/logout": {
       "post": {
         "tags": [
-          "Auth"
+          "Authentication"
         ],
-        "summary": "Log out a user",
-        "description": "Logs out the authenticated user and invalidates their refresh token, user is identified from the access token.",
-        "parameters": [],
+        "summary": "Log out the current user",
+        "description": "Invalidates the user's refresh token so it can no longer be used.",
         "security": [
           {
             "bearerAuth": []
@@ -125,16 +134,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Logged out successfully",
-            "schema": {
-              "$ref": "#/definitions/LogoutResponse"
-            }
-          },
-          "403": {
-            "description": "Not authorized - missing or invalid access token"
-          },
-          "500": {
-            "description": "Server error"
+            "description": "Logged out successfully"
           }
         }
       }
@@ -142,81 +142,35 @@
     "/auth/refresh-token": {
       "post": {
         "tags": [
-          "Auth"
+          "Authentication"
         ],
         "summary": "Refresh access token",
-        "description": "This endpoint refreshes the access token using a valid refresh token",
+        "description": "Gives you a fresh access token in exchange for a valid refresh token.",
         "parameters": [
           {
             "in": "body",
             "name": "body",
-            "description": "Refresh token",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/RefreshToken"
+              "type": "object",
+              "required": [
+                "refreshToken"
+              ],
+              "properties": {
+                "refreshToken": {
+                  "type": "string",
+                  "example": "eyJhbGci..."
+                }
+              }
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Token refreshed successfully",
-            "schema": {
-              "$ref": "#/definitions/RefreshTokenResponse"
-            }
+            "description": "Token refreshed successfully"
           },
           "400": {
-            "description": "Invalid refresh token"
-          },
-          "500": {
-            "description": "Server error"
-          }
-        }
-      }
-    },
-    "/auth/login/google": {
-      "get": {
-        "tags": [
-          "Auth"
-        ],
-        "summary": "Login with Google",
-        "description": "Redirects to Google OAuth login page",
-        "responses": {
-          "302": {
-            "description": "Redirects to Google OAuth"
-          }
-        }
-      }
-    },
-    "/auth/login/google/callback": {
-      "get": {
-        "tags": [
-          "Auth"
-        ],
-        "summary": "Google OAuth callback",
-        "description": "Handles Google OAuth callback and redirects with tokens",
-        "responses": {
-          "302": {
-            "description": "Redirects to callback URL with tokens"
-          },
-          "400": {
-            "description": "Google authentication failed"
-          }
-        }
-      }
-    },
-    "/health": {
-      "get": {
-        "tags": [
-          "Health"
-        ],
-        "summary": "Health check",
-        "description": "Check if the server is running",
-        "responses": {
-          "200": {
-            "description": "Server is healthy",
-            "schema": {
-              "$ref": "#/definitions/HealthResponse"
-            }
+            "description": "Invalid or expired refresh token"
           }
         }
       }
@@ -226,8 +180,8 @@
         "tags": [
           "User"
         ],
-        "summary": "Get all users",
-        "description": "Returns a list of all users",
+        "summary": "List all users",
+        "description": "Retrieves a public list of all users in the system.",
         "security": [
           {
             "bearerAuth": []
@@ -235,16 +189,7 @@
         ],
         "responses": {
           "200": {
-            "description": "List of users",
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/UserProfile"
-              }
-            }
-          },
-          "403": {
-            "description": "Not authorized"
+            "description": "A list of user profiles"
           }
         }
       }
@@ -254,8 +199,8 @@
         "tags": [
           "User"
         ],
-        "summary": "Get user by ID",
-        "description": "Returns user profile details",
+        "summary": "Get a specific user's profile",
+        "description": "Fetches details of a user by their unique ID.",
         "security": [
           {
             "bearerAuth": []
@@ -265,23 +210,17 @@
           {
             "in": "path",
             "name": "id",
-            "required": true,
             "type": "string",
-            "description": "User ID"
+            "required": true,
+            "description": "Mongo Object ID of the user"
           }
         ],
         "responses": {
           "200": {
-            "description": "User profile",
-            "schema": {
-              "$ref": "#/definitions/UserProfile"
-            }
+            "description": "User details returned"
           },
           "404": {
             "description": "User not found"
-          },
-          "403": {
-            "description": "Not authorized"
           }
         }
       },
@@ -290,7 +229,7 @@
           "User"
         ],
         "summary": "Update user profile",
-        "description": "Update userName and profileImage (only for the logged-in user)",
+        "description": "Allows users to update their own profile details like display name and avatar.",
         "security": [
           {
             "bearerAuth": []
@@ -300,31 +239,168 @@
           {
             "in": "path",
             "name": "id",
-            "required": true,
             "type": "string",
-            "description": "User ID"
+            "required": true
           },
           {
             "in": "body",
             "name": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/UpdateProfile"
+              "type": "object",
+              "properties": {
+                "userName": {
+                  "type": "string",
+                  "example": "new_johndoe"
+                },
+                "displayName": {
+                  "type": "string",
+                  "example": "John D."
+                },
+                "profileImage": {
+                  "type": "string",
+                  "example": "https://example.com/new_avatar.png"
+                }
+              }
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Profile updated successfully",
+            "description": "Profile updated successfully"
+          }
+        }
+      }
+    },
+    "/fridges": {
+      "post": {
+        "tags": [
+          "Fridges"
+        ],
+        "summary": "Create a new shared fridge",
+        "description": "Start a new fridge. You will automatically become the first member, and an invite code will be generated.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
             "schema": {
-              "$ref": "#/definitions/UserProfile"
+              "type": "object",
+              "required": [
+                "name"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "Our Apartment Fridge"
+                }
+              }
             }
-          },
-          "404": {
-            "description": "User not found"
-          },
-          "403": {
-            "description": "Not authorized"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Fridge created"
+          }
+        }
+      }
+    },
+    "/fridges/join": {
+      "post": {
+        "tags": [
+          "Fridges"
+        ],
+        "summary": "Join a fridge via invite code",
+        "description": "Enter a 6-character code to join an existing shared fridge.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "inviteCode"
+              ],
+              "properties": {
+                "inviteCode": {
+                  "type": "string",
+                  "example": "A1B2C3"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully joined the fridge"
+          }
+        }
+      }
+    },
+    "/fridges/leave": {
+      "post": {
+        "tags": [
+          "Fridges"
+        ],
+        "summary": "Leave the current fridge",
+        "description": "Removes you from your currently active fridge. If you were the last member, the fridge is destroyed.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Left fridge successfully"
+          }
+        }
+      }
+    },
+    "/fridges/me": {
+      "get": {
+        "tags": [
+          "Fridges"
+        ],
+        "summary": "Get my active fridge",
+        "description": "Fetches details of the fridge you are currently a part of, including its invite code.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active fridge details"
+          }
+        }
+      }
+    },
+    "/fridges/members": {
+      "get": {
+        "tags": [
+          "Fridges"
+        ],
+        "summary": "Get fridge members",
+        "description": "Fetches a list of all users who are currently members of your active fridge.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of members"
           }
         }
       }
@@ -334,15 +410,8 @@
         "tags": [
           "Chat"
         ],
-        "summary": "List user's chats",
-        "description": "Returns all chats for the authenticated user, sorted by most recent activity",
-    "/ai/recipes/generate": {
-      "post": {
-        "tags": [
-          "AI"
-        ],
-        "summary": "Generate recipes using AI",
-        "description": "Generate personalized recipes based on available ingredients, allergies, and dietary preferences",
+        "summary": "List my chats",
+        "description": "Returns all your active messaging threads, sorted by recent activity.",
         "security": [
           {
             "bearerAuth": []
@@ -350,38 +419,423 @@
         ],
         "responses": {
           "200": {
-            "description": "List of chats",
-            "schema": {
-              "$ref": "#/definitions/ChatListResponse"
-            }
-          },
-          "401": {
-            "description": "Not authorized"
+            "description": "List of chats"
+          }
+        }
+      }
+    },
+    "/chats/{chatId}/messages": {
+      "get": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "Get messages for a specific chat",
+        "description": "Retrieves message history for a conversation.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chatId",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of messages"
+          }
+        }
+      }
+    },
+    "/chats/private/{userId}": {
+      "post": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "Start or find a private chat",
+        "description": "Creates a new 1-on-1 chat with another user, or returns the existing chat if one already exists.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "type": "string",
+            "required": true,
+            "description": "ID of the target user"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chat session details"
+          }
+        }
+      }
+    },
+    "/posts": {
+      "post": {
+        "tags": [
+          "Social Feed (Posts)"
+        ],
+        "summary": "Create a new post",
+        "description": "Publish a post to the social feed. You can include media URLs and an optional location tag.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "in": "body",
             "name": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/GenerateRecipesRequest"
+              "type": "object",
+              "required": [
+                "text"
+              ],
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "example": "Look at this amazing cake I made!"
+                },
+                "mediaUrls": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "example": [
+                    "https://example.com/cake.jpg"
+                  ]
+                },
+                "location": {
+                  "type": "object",
+                  "properties": {
+                    "lat": {
+                      "type": "number",
+                      "example": 34.0522
+                    },
+                    "lng": {
+                      "type": "number",
+                      "example": -118.2437
+                    },
+                    "placeName": {
+                      "type": "string",
+                      "example": "Los Angeles, CA"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Post successfully created"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Social Feed (Posts)"
+        ],
+        "summary": "List posts in the feed",
+        "description": "Browse posts from all users. Can optionally be filtered by geographical proximity.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "lat",
+            "type": "number",
+            "description": "Latitude for location-based search"
+          },
+          {
+            "in": "query",
+            "name": "lng",
+            "type": "number",
+            "description": "Longitude for location-based search"
+          },
+          {
+            "in": "query",
+            "name": "radiusKm",
+            "type": "number",
+            "description": "Radius in kilometers for search (default 50)"
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "type": "integer",
+            "default": 1
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "type": "integer",
+            "default": 20
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of posts"
+          }
+        }
+      }
+    },
+    "/posts/{post_id}": {
+      "put": {
+        "tags": [
+          "Social Feed (Posts)"
+        ],
+        "summary": "Edit your post",
+        "description": "Modify the text, media, or location of one of your existing posts.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "post_id",
+            "type": "string",
+            "required": true
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string"
+                },
+                "mediaUrls": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "location": {
+                  "type": "object",
+                  "properties": {
+                    "lat": {
+                      "type": "number"
+                    },
+                    "lng": {
+                      "type": "number"
+                    },
+                    "placeName": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Recipes generated successfully",
-            "schema": {
-              "$ref": "#/definitions/GenerateRecipesResponse"
-            }
-          },
-          "400": {
-            "description": "Invalid request - ingredients required"
+            "description": "Post updated successfully"
           },
           "403": {
-            "description": "Not authorized"
+            "description": "Not the author of this post"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Social Feed (Posts)"
+        ],
+        "summary": "Delete your post",
+        "description": "Permanently delete a post from the feed.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "post_id",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Post deleted"
           },
-          "429": {
-            "description": "Rate limit exceeded"
+          "403": {
+            "description": "Not the author of this post"
+          }
+        }
+      }
+    },
+    "/posts/{postId}/comments": {
+      "get": {
+        "tags": [
+          "Comments"
+        ],
+        "summary": "Get comments for a post",
+        "description": "Fetches all comments on a specific post.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "postId",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of comments"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Comments"
+        ],
+        "summary": "Add a comment to a post",
+        "description": "Publish a new comment under a specific post.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "postId",
+            "type": "string",
+            "required": true
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "text"
+              ],
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "example": "Looks delicious!"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Comment added"
+          }
+        }
+      }
+    },
+    "/posts/{postId}/comments/{commentId}": {
+      "delete": {
+        "tags": [
+          "Comments"
+        ],
+        "summary": "Delete your comment",
+        "description": "Remove your comment from a post.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "postId",
+            "type": "string",
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "commentId",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Comment deleted"
+          },
+          "403": {
+            "description": "Not the author of this comment"
+          }
+        }
+      }
+    },
+    "/ai/recipes/generate": {
+      "post": {
+        "tags": [
+          "AI Assistant"
+        ],
+        "summary": "Generate recipes from ingredients",
+        "description": "Provide the AI with a list of ingredients, and get back tailored, creative recipe ideas.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "ingredients"
+              ],
+              "properties": {
+                "ingredients": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "example": [
+                    "chicken",
+                    "rice",
+                    "broccoli"
+                  ]
+                },
+                "allergies": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "example": [
+                    "peanuts"
+                  ]
+                },
+                "dietPreference": {
+                  "type": "string",
+                  "example": "NONE"
+                },
+                "count": {
+                  "type": "integer",
+                  "example": 3
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of AI-generated recipes"
           }
         }
       }
@@ -389,10 +843,10 @@
     "/ai/ask": {
       "post": {
         "tags": [
-          "AI"
+          "AI Assistant"
         ],
-        "summary": "Ask AI about cooking",
-        "description": "Free-form query to ask the AI about cooking, recipes, or ingredient usage. Can optionally include a recipe (inline or by ID) for context.",
+        "summary": "Ask cooking questions",
+        "description": "A free-form conversational prompt to ask the Culinary AI assistant any culinary questions.",
         "security": [
           {
             "bearerAuth": []
@@ -404,28 +858,32 @@
             "name": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/AskAIRequest"
+              "type": "object",
+              "required": [
+                "query"
+              ],
+              "properties": {
+                "query": {
+                  "type": "string",
+                  "example": "How long should I boil eggs for a soft yolk?"
+                },
+                "ingredients": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "example": [
+                    "eggs",
+                    "water"
+                  ]
+                }
+              }
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "AI response",
-            "schema": {
-              "$ref": "#/definitions/AskAIResponse"
-            }
-          },
-          "400": {
-            "description": "Invalid request - query required"
-          },
-          "403": {
-            "description": "Not authorized"
-          },
-          "404": {
-            "description": "Recipe not found (when using recipeId)"
-          },
-          "429": {
-            "description": "Rate limit exceeded"
+            "description": "AI's helpful answer"
           }
         }
       }
@@ -433,10 +891,10 @@
     "/recipes/save": {
       "post": {
         "tags": [
-          "Recipes"
+          "Saved Recipes"
         ],
         "summary": "Save a recipe to favorites",
-        "description": "Save a generated recipe to the user's favorites",
+        "description": "Save an AI-generated recipe to your personal recipe box.",
         "security": [
           {
             "bearerAuth": []
@@ -448,25 +906,54 @@
             "name": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/SaveRecipeRequest"
+              "type": "object",
+              "required": [
+                "title"
+              ],
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "example": "Chicken Fried Rice"
+                },
+                "description": {
+                  "type": "string",
+                  "example": "Quick and easy chicken fried rice"
+                },
+                "cookingTime": {
+                  "type": "string",
+                  "example": "20m"
+                },
+                "difficulty": {
+                  "type": "string",
+                  "example": "Easy"
+                },
+                "steps": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "ingredients": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "amount": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
             }
           }
         ],
         "responses": {
           "201": {
-            "description": "Recipe saved to favorites",
-            "schema": {
-              "$ref": "#/definitions/SaveRecipeResponse"
-            }
-          },
-          "400": {
-            "description": "Recipe title is required"
-          },
-          "403": {
-            "description": "Not authorized"
-          },
-          "409": {
-            "description": "Recipe already saved to favorites"
+            "description": "Recipe saved"
           }
         }
       }
@@ -474,9 +961,10 @@
     "/recipes/{id}": {
       "get": {
         "tags": [
-          "Recipes"
+          "Saved Recipes"
         ],
-        "summary": "Get a recipe by ID",
+        "summary": "Get a specific saved recipe",
+        "description": "View the details of a recipe saved to favorites.",
         "security": [
           {
             "bearerAuth": []
@@ -486,23 +974,13 @@
           {
             "in": "path",
             "name": "id",
-            "required": true,
             "type": "string",
-            "description": "Recipe ID"
+            "required": true
           }
         ],
         "responses": {
           "200": {
-            "description": "Recipe details",
-            "schema": {
-              "$ref": "#/definitions/SavedRecipe"
-            }
-          },
-          "403": {
-            "description": "Not authorized"
-          },
-          "404": {
-            "description": "Recipe not found"
+            "description": "Recipe details"
           }
         }
       }
@@ -510,10 +988,10 @@
     "/user/me/recipes": {
       "get": {
         "tags": [
-          "Recipes"
+          "Saved Recipes"
         ],
-        "summary": "Get user's saved recipes",
-        "description": "Get recipes saved by the authenticated user",
+        "summary": "Browse my saved recipes",
+        "description": "Browse all the delicious recipes you've saved to your profile.",
         "security": [
           {
             "bearerAuth": []
@@ -524,26 +1002,18 @@
             "in": "query",
             "name": "page",
             "type": "integer",
-            "default": 1,
-            "description": "Page number"
+            "default": 1
           },
           {
             "in": "query",
             "name": "limit",
             "type": "integer",
-            "default": 20,
-            "description": "Items per page (max 50)"
+            "default": 20
           }
         ],
         "responses": {
           "200": {
-            "description": "List of user's recipes",
-            "schema": {
-              "$ref": "#/definitions/RecipeListResponse"
-            }
-          },
-          "403": {
-            "description": "Not authorized"
+            "description": "List of your saved recipes"
           }
         }
       }
@@ -551,9 +1021,10 @@
     "/user/me/recipes/{id}": {
       "delete": {
         "tags": [
-          "Recipes"
+          "Saved Recipes"
         ],
-        "summary": "Remove a recipe from favorites",
+        "summary": "Remove from favorites",
+        "description": "Remove a saved recipe from your personal recipe box.",
         "security": [
           {
             "bearerAuth": []
@@ -563,581 +1034,17 @@
           {
             "in": "path",
             "name": "id",
-            "required": true,
             "type": "string",
-            "description": "Recipe ID"
+            "required": true
           }
         ],
         "responses": {
           "200": {
-            "description": "Recipe removed from favorites",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "message": {
-                  "type": "string",
-                  "example": "Recipe removed from favorites"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Not authorized"
-          },
-          "404": {
-            "description": "Recipe not found or not owned by user"
+            "description": "Recipe removed"
           }
         }
       }
     }
   },
-  "definitions": {
-    "UserRegistration": {
-      "type": "object",
-      "required": [
-        "userName",
-        "email",
-        "password"
-      ],
-      "properties": {
-        "userName": {
-          "type": "string",
-          "example": "johndoe"
-        },
-        "email": {
-          "type": "string",
-          "example": "john.doe@example.com"
-        },
-        "password": {
-          "type": "string",
-          "example": "securePassword123",
-          "minLength": 6
-        }
-      }
-    },
-    "UserLogin": {
-      "type": "object",
-      "required": [
-        "email",
-        "password"
-      ],
-      "properties": {
-        "email": {
-          "type": "string",
-          "example": "john.doe@example.com"
-        },
-        "password": {
-          "type": "string",
-          "example": "securePassword123"
-        }
-      }
-    },
-    "RefreshToken": {
-      "type": "object",
-      "required": [
-        "refreshToken"
-      ],
-      "properties": {
-        "refreshToken": {
-          "type": "string",
-          "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-        }
-      }
-    },
-    "RegisterResponse": {
-      "type": "object",
-      "properties": {
-        "message": {
-          "type": "string",
-          "example": "User registered successfully"
-        },
-        "user": {
-          "type": "object",
-          "properties": {
-            "_id": {
-              "type": "string"
-            },
-            "userName": {
-              "type": "string"
-            },
-            "email": {
-              "type": "string"
-            },
-            "role": {
-              "type": "string"
-            }
-          }
-        }
-      }
-    },
-    "LoginResponse": {
-      "type": "object",
-      "properties": {
-        "message": {
-          "type": "string",
-          "example": "Login successful"
-        },
-        "accessToken": {
-          "type": "string"
-        },
-        "refreshToken": {
-          "type": "string"
-        }
-      }
-    },
-    "LogoutResponse": {
-      "type": "object",
-      "properties": {
-        "message": {
-          "type": "string",
-          "example": "Logged out successfully"
-        }
-      }
-    },
-    "RefreshTokenResponse": {
-      "type": "object",
-      "properties": {
-        "accessToken": {
-          "type": "string"
-        }
-      }
-    },
-    "HealthResponse": {
-      "type": "object",
-      "properties": {
-        "status": {
-          "type": "string",
-          "example": "ok"
-        },
-        "timestamp": {
-          "type": "string",
-          "example": "2024-01-01T00:00:00.000Z"
-        }
-      }
-    },
-    "UserProfile": {
-      "type": "object",
-      "properties": {
-        "_id": {
-          "type": "string"
-        },
-        "userName": {
-          "type": "string",
-          "example": "johndoe"
-        },
-        "email": {
-          "type": "string",
-          "example": "john@example.com"
-        },
-        "profileImage": {
-          "type": "string",
-          "example": "https://example.com/image.jpg"
-        },
-        "role": {
-          "type": "string",
-          "example": "user"
-        },
-        "createdAt": {
-          "type": "string"
-        },
-        "updatedAt": {
-          "type": "string"
-        }
-      }
-    },
-    "UpdateProfile": {
-      "type": "object",
-      "properties": {
-        "userName": {
-          "type": "string",
-          "example": "newusername"
-        },
-        "profileImage": {
-          "type": "string",
-          "example": "https://example.com/new-image.jpg"
-        }
-      }
-    },
-    "ChatListResponse": {
-      "type": "object",
-      "properties": {
-        "items": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ChatItem"
-          }
-        },
-        "total": {
-          "type": "integer"
-        }
-      }
-    },
-    "ChatItem": {
-      "type": "object",
-      "properties": {
-        "chatId": {
-          "type": "string"
-        },
-        "participants": {
-    "GenerateRecipesRequest": {
-      "type": "object",
-      "required": [
-        "ingredients"
-      ],
-      "properties": {
-        "ingredients": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "example": [
-            "eggs",
-            "tomatoes",
-            "cheese",
-            "bread"
-          ]
-        },
-        "allergies": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "example": [
-            "peanuts",
-            "shellfish"
-          ]
-        },
-        "dietPreference": {
-          "type": "string",
-          "enum": [
-            "NONE",
-            "VEGETARIAN",
-            "VEGAN",
-            "PESCATARIAN"
-          ],
-          "example": "VEGETARIAN"
-        },
-        "count": {
-          "type": "integer",
-          "example": 3,
-          "description": "Number of recipes to generate (default: 3)"
-        }
-      }
-    },
-    "GenerateRecipesResponse": {
-      "type": "object",
-      "properties": {
-        "message": {
-          "type": "string",
-          "example": "Recipes generated successfully"
-        },
-        "count": {
-          "type": "integer",
-          "example": 3
-        },
-        "recipes": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Recipe"
-          }
-        }
-      }
-    },
-    "Recipe": {
-      "type": "object",
-      "properties": {
-        "title": {
-          "type": "string",
-          "example": "Tomato Omelette"
-        },
-        "description": {
-          "type": "string",
-          "example": "A fluffy omelette with fresh tomatoes"
-        },
-        "cookingTime": {
-          "type": "string",
-          "example": "15 minutes"
-        },
-        "difficulty": {
-          "type": "string",
-          "enum": [
-            "Easy",
-            "Medium",
-            "Hard"
-          ]
-        },
-        "ingredients": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "_id": {
-                "type": "string"
-              },
-              "displayName": {
-                "type": "string"
-              },
-              "profileImage": {
-              "name": {
-                "type": "string"
-              },
-              "amount": {
-                "type": "string"
-              }
-            }
-          }
-        },
-        "steps": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "nutrition": {
-          "type": "object",
-          "properties": {
-            "calories": {
-              "type": "string"
-            },
-            "protein": {
-              "type": "string"
-            },
-            "carbs": {
-              "type": "string"
-            },
-            "fat": {
-              "type": "string"
-            }
-          }
-        }
-      }
-    },
-    "AskAIRequest": {
-      "type": "object",
-      "required": [
-        "query"
-      ],
-      "properties": {
-        "query": {
-          "type": "string",
-          "example": "What can I make with eggs and cheese?"
-        },
-        "recipeId": {
-          "type": "string",
-          "description": "ID of a saved recipe to ask about (alternative to inline recipe)"
-        },
-        "recipe": {
-          "type": "object",
-          "description": "Inline recipe object for context",
-          "properties": {
-            "title": {
-              "type": "string"
-            },
-            "ingredients": {
-              "type": "array",
-              "items": {
-                "type": "object"
-              }
-            },
-            "steps": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          }
-        },
-        "lastMessage": {
-          "type": "string",
-          "example": "Let's make pasta!"
-        },
-        "lastUpdated": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "messageCount": {
-          "type": "integer",
-          "example": 5
-        "ingredients": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "example": [
-            "eggs",
-            "cheese",
-            "milk"
-          ],
-          "description": "Available ingredients for context"
-        }
-      }
-    },
-    "AskAIResponse": {
-      "type": "object",
-      "properties": {
-        "query": {
-          "type": "string"
-        },
-        "answer": {
-          "type": "string"
-        },
-        "recipeContext": {
-          "type": "string",
-          "description": "Title of recipe used for context"
-        },
-        "ingredientsConsidered": {
-          "type": "integer"
-        }
-      }
-    },
-    "SaveRecipeRequest": {
-      "type": "object",
-      "required": [
-        "title"
-      ],
-      "properties": {
-        "title": {
-          "type": "string",
-          "example": "Cheese Omelette"
-        },
-        "description": {
-          "type": "string",
-          "example": "A fluffy cheese omelette"
-        },
-        "cookingTime": {
-          "type": "string",
-          "example": "15 minutes"
-        },
-        "difficulty": {
-          "type": "string",
-          "enum": [
-            "Easy",
-            "Medium",
-            "Hard"
-          ]
-        },
-        "ingredients": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string"
-              },
-              "amount": {
-                "type": "string"
-              }
-            }
-          }
-        },
-        "steps": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "nutrition": {
-          "type": "object",
-          "properties": {
-            "calories": {
-              "type": "string"
-            },
-            "protein": {
-              "type": "string"
-            },
-            "carbs": {
-              "type": "string"
-            },
-            "fat": {
-              "type": "string"
-            }
-          }
-        }
-      }
-    },
-    "SaveRecipeResponse": {
-      "type": "object",
-      "properties": {
-        "message": {
-          "type": "string",
-          "example": "Recipe saved to favorites"
-        },
-        "recipe": {
-          "$ref": "#/definitions/SavedRecipe"
-        }
-      }
-    },
-    "SavedRecipe": {
-      "type": "object",
-      "properties": {
-        "_id": {
-          "type": "string"
-        },
-        "userId": {
-          "type": "string"
-        },
-        "title": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "cookingTime": {
-          "type": "string"
-        },
-        "difficulty": {
-          "type": "string"
-        },
-        "ingredients": {
-          "type": "array",
-          "items": {
-            "type": "object"
-          }
-        },
-        "steps": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "nutrition": {
-          "type": "object"
-        },
-        "createdAt": {
-          "type": "string"
-        },
-        "updatedAt": {
-          "type": "string"
-        }
-      }
-    },
-    "RecipeListResponse": {
-      "type": "object",
-      "properties": {
-        "items": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/SavedRecipe"
-          }
-        },
-        "total": {
-          "type": "integer"
-        },
-        "page": {
-          "type": "integer"
-        },
-        "limit": {
-          "type": "integer"
-        }
-      }
-    }
-  },
-  "securityDefinitions": {
-    "bearerAuth": {
-      "type": "apiKey",
-      "name": "Authorization",
-      "in": "header",
-      "description": "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\""
-    }
-  }
+  "definitions": {}
 }
