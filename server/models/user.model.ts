@@ -31,6 +31,9 @@ export interface IUser {
 
   refreshToken?: string | null;
 
+  resetPasswordToken?: string | null;
+  resetPasswordExpires?: Date | null;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -67,6 +70,9 @@ const UserSchema = new Schema<IUser>(
     activeFridgeId: { type: Schema.Types.ObjectId, ref: "Fridge", default: null },
 
     refreshToken: { type: String, select: false, default: null },
+
+    resetPasswordToken: { type: String, select: false, default: null },
+    resetPasswordExpires: { type: Date, select: false, default: null },
   },
   { timestamps: true }
 );
@@ -80,6 +86,8 @@ UserSchema.set("toJSON", {
     delete ret.__v;
     delete ret.password;
     delete ret.refreshToken;
+    delete ret.resetPasswordToken;
+    delete ret.resetPasswordExpires;
     return ret;
   },
 });

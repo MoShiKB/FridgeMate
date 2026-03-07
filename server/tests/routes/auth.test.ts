@@ -201,6 +201,127 @@ describe('Authentication Controller Tests', () => {
         });
     });
 
+    describe('POST /auth/forgot-password', () => {
+        it('should send a reset code for a valid email', async () => {
+            const password = await bcrypt.hash('securePassword123', 10);
+            await User.create<Partial<IUser>>({
+                userName,
+                displayName: 'Test User',
+                email: userEmail,
+                password,
+            });
+
+            const res = await request(app)
+                .post('/auth/forgot-password')
+                .send({ email: userEmail });
+
+            expect(res.statusCode).toBe(200);
+            expect(res.body.message).toBe('Reset code sent to your email');
+
+            const updatedUser = await User.findOne({ email: userEmail })
+                .select('+resetPasswordToken +resetPasswordExpires');
+            expect(updatedUser?.resetPasswordToken).toBeTruthy();
+            expect(updatedUser?.resetPasswordExpires).toBeTruthy();
+        });
+
+        it('should return 400 for a non-existent email', async () => {
+            const res = await request(app)
+                .post('/auth/forgot-password')
+                .send({ email: 'nonexistent@example.com' });
+
+            expect(res.statusCode).toBe(400);
+            expect(res.text).toBe('No account found with this email');
+        });
+    });
+
+    describe('POST /auth/reset-password', () => {
+        it('should reset password with a valid code', async () => {
+            const password = await bcrypt.hash('oldPassword123', 10);
+            const code = '123456';
+            const hashedCode = await bcrypt.hash(code, 10);
+
+            await User.create<Partial<IUser>>({
+                userName,
+                displayName: 'Test User',
+                email: userEmail,
+                password,
+                resetPasswordToken: hashedCode,
+                resetPasswordExpires: new Date(Date.now() + 15 * 60 * 1000),
+            } as any);
+
+            const res = await request(app)
+                .post('/auth/reset-password')
+                .send({ email: userEmail, code, newPassword: 'newPassword123' });
+
+            expect(res.statusCode).toBe(200);
+            expect(res.body.message).toBe('Password reset successfully');
+
+            const loginRes = await request(app)
+                .post('/auth/login')
+                .send({ email: userEmail, password: 'newPassword123' });
+            expect(loginRes.statusCode).toBe(200);
+        });
+
+        it('should return 400 for an invalid code', async () => {
+            const password = await bcrypt.hash('oldPassword123', 10);
+            const hashedCode = await bcrypt.hash('123456', 10);
+
+            await User.create<Partial<IUser>>({
+                userName,
+                displayName: 'Test User',
+                email: userEmail,
+                password,
+                resetPasswordToken: hashedCode,
+                resetPasswordExpires: new Date(Date.now() + 15 * 60 * 1000),
+            } as any);
+
+            const res = await request(app)
+                .post('/auth/reset-password')
+                .send({ email: userEmail, code: '000000', newPassword: 'newPassword123' });
+
+            expect(res.statusCode).toBe(400);
+            expect(res.text).toBe('Invalid reset code');
+        });
+
+        it('should return 400 for an expired code', async () => {
+            const password = await bcrypt.hash('oldPassword123', 10);
+            const hashedCode = await bcrypt.hash('123456', 10);
+
+            await User.create<Partial<IUser>>({
+                userName,
+                displayName: 'Test User',
+                email: userEmail,
+                password,
+                resetPasswordToken: hashedCode,
+                resetPasswordExpires: new Date(Date.now() - 1000),
+            } as any);
+
+            const res = await request(app)
+                .post('/auth/reset-password')
+                .send({ email: userEmail, code: '123456', newPassword: 'newPassword123' });
+
+            expect(res.statusCode).toBe(400);
+            expect(res.text).toBe('Reset code has expired. Please request a new one.');
+        });
+
+        it('should return 400 when no reset was requested', async () => {
+            const password = await bcrypt.hash('oldPassword123', 10);
+            await User.create<Partial<IUser>>({
+                userName,
+                displayName: 'Test User',
+                email: userEmail,
+                password,
+            });
+
+            const res = await request(app)
+                .post('/auth/reset-password')
+                .send({ email: userEmail, code: '123456', newPassword: 'newPassword123' });
+
+            expect(res.statusCode).toBe(400);
+            expect(res.text).toBe('No reset request found. Please request a new code.');
+        });
+    });
+
     describe('GET /health', () => {
         it('should return health status', async () => {
             const res = await request(app).get('/health');

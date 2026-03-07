@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { AuthService } from '../../services/auth.service';
 import User, { IUser } from '../../models/user.model';
 import mongoose from 'mongoose';
+import * as emailConfig from '../../config/email';
 
 describe('AuthService Tests', () => {
     let userName: string;
@@ -141,6 +142,117 @@ describe('AuthService Tests', () => {
         it('should throw error for invalid user id', async () => {
             const invalidUserId = new mongoose.Types.ObjectId().toString();
             await expect(AuthService.logout(invalidUserId)).rejects.toThrow('Invalid token');
+        });
+    });
+
+    describe('forgotPassword', () => {
+        beforeEach(() => {
+            jest.spyOn(emailConfig, 'sendResetCodeEmail').mockResolvedValue();
+        });
+
+        afterEach(() => {
+            jest.restoreAllMocks();
+        });
+
+        it('should generate a reset code and send email', async () => {
+            const password = await bcrypt.hash('securePassword123', 10);
+            await User.create<Partial<IUser>>({
+                userName,
+                displayName: 'Test User',
+                email: userEmail,
+                password,
+            });
+
+            const result = await AuthService.forgotPassword(userEmail);
+
+            expect(result.status).toBe(200);
+            expect(result.data.message).toBe('Reset code sent to your email');
+            expect(emailConfig.sendResetCodeEmail).toHaveBeenCalledWith(
+                userEmail.toLowerCase(),
+                expect.stringMatching(/^\d{6}$/)
+            );
+
+            const updatedUser = await User.findOne({ email: userEmail })
+                .select('+resetPasswordToken +resetPasswordExpires');
+            expect(updatedUser?.resetPasswordToken).toBeTruthy();
+            expect(updatedUser?.resetPasswordExpires).toBeTruthy();
+        });
+
+        it('should throw error for non-existent email', async () => {
+            await expect(AuthService.forgotPassword('nonexistent@example.com'))
+                .rejects.toThrow('No account found with this email');
+        });
+    });
+
+    describe('resetPassword', () => {
+        it('should reset password with valid code', async () => {
+            const password = await bcrypt.hash('oldPassword123', 10);
+            const code = '654321';
+            const hashedCode = await bcrypt.hash(code, 10);
+
+            await User.create<Partial<IUser>>({
+                userName,
+                displayName: 'Test User',
+                email: userEmail,
+                password,
+                resetPasswordToken: hashedCode,
+                resetPasswordExpires: new Date(Date.now() + 15 * 60 * 1000),
+            } as any);
+
+            const result = await AuthService.resetPassword(userEmail, code, 'newPassword123');
+
+            expect(result.status).toBe(200);
+            expect(result.data.message).toBe('Password reset successfully');
+
+            const loginResult = await AuthService.login({ email: userEmail, password: 'newPassword123' });
+            expect(loginResult.status).toBe(200);
+        });
+
+        it('should throw error for invalid code', async () => {
+            const password = await bcrypt.hash('oldPassword123', 10);
+            const hashedCode = await bcrypt.hash('123456', 10);
+
+            await User.create<Partial<IUser>>({
+                userName,
+                displayName: 'Test User',
+                email: userEmail,
+                password,
+                resetPasswordToken: hashedCode,
+                resetPasswordExpires: new Date(Date.now() + 15 * 60 * 1000),
+            } as any);
+
+            await expect(AuthService.resetPassword(userEmail, '000000', 'newPassword123'))
+                .rejects.toThrow('Invalid reset code');
+        });
+
+        it('should throw error for expired code', async () => {
+            const password = await bcrypt.hash('oldPassword123', 10);
+            const hashedCode = await bcrypt.hash('123456', 10);
+
+            await User.create<Partial<IUser>>({
+                userName,
+                displayName: 'Test User',
+                email: userEmail,
+                password,
+                resetPasswordToken: hashedCode,
+                resetPasswordExpires: new Date(Date.now() - 1000),
+            } as any);
+
+            await expect(AuthService.resetPassword(userEmail, '123456', 'newPassword123'))
+                .rejects.toThrow('Reset code has expired. Please request a new one.');
+        });
+
+        it('should throw error when no reset was requested', async () => {
+            const password = await bcrypt.hash('oldPassword123', 10);
+            await User.create<Partial<IUser>>({
+                userName,
+                displayName: 'Test User',
+                email: userEmail,
+                password,
+            });
+
+            await expect(AuthService.resetPassword(userEmail, '123456', 'newPassword123'))
+                .rejects.toThrow('No reset request found. Please request a new code.');
         });
     });
 
