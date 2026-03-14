@@ -15,58 +15,56 @@ CLIENT_DIR = client
 # ── Install ──────────────────────────────────────────────────────────────────
 
 install:
-	@echo "📦 Installing server dependencies..."
+	@echo "Installing server dependencies..."
 	cd $(SERVER_DIR) && npm ci
-	@echo "📦 Installing client dependencies..."
+	@echo "Installing client dependencies..."
 	cd $(CLIENT_DIR) && npm ci --legacy-peer-deps
-	@echo "✅ Dependencies installed"
+	@echo "Done."
 
 # ── Build ────────────────────────────────────────────────────────────────────
 
 build-server:
-	@echo "🔨 Building server..."
+	@echo "Building server..."
 	cd $(SERVER_DIR) && npm run build
-	@echo "✅ Server built → $(SERVER_DIR)/dist/"
 
 build-client:
-	@echo "🔨 Building client..."
+	@echo "Building client..."
 	cd $(CLIENT_DIR) && npm run build
-	@echo "✅ Client built → $(CLIENT_DIR)/build/"
 
 build: build-server build-client
 
 # ── Deploy ───────────────────────────────────────────────────────────────────
 
 deploy-client:
-	@echo "🚀 Deploying client to $(DEPLOY_DIR)/client/..."
+	@echo "Deploying client to $(DEPLOY_DIR)/client/..."
 	sudo mkdir -p $(DEPLOY_DIR)/client
 	sudo rm -rf $(DEPLOY_DIR)/client/build
 	sudo cp -r $(CLIENT_DIR)/build $(DEPLOY_DIR)/client/build
-	@echo "✅ Client deployed"
+	@echo "Client deployed."
 
 deploy: install build deploy-client start
 	@echo ""
-	@echo "🎉 FridgeMate deployed successfully!"
-	@echo "   Frontend: https://node51.cs.colman.ac.il"
-	@echo "   Backend:  https://node51.cs.colman.ac.il/api/"
-	@echo "   Swagger:  https://node51.cs.colman.ac.il/api/api-docs"
+	@echo "FridgeMate deployed successfully."
+	@echo "  Frontend: https://node51.cs.colman.ac.il"
+	@echo "  Backend:  https://node51.cs.colman.ac.il/api/"
+	@echo "  Swagger:  https://node51.cs.colman.ac.il/api/api-docs"
 
 # ── PM2 ──────────────────────────────────────────────────────────────────────
 
 start:
-	@echo "🚀 Starting server with PM2..."
+	@echo "Starting server with PM2..."
 	-pm2 delete fridgemate-api 2>/dev/null
 	cd $(SERVER_DIR) && pm2 start dist/index.js --name "fridgemate-api"
 	pm2 save
-	@echo "✅ Server running"
+	@echo "Server running."
 
 stop:
 	pm2 stop fridgemate-api || true
-	@echo "🛑 Server stopped"
+	@echo "Server stopped."
 
 restart:
 	pm2 restart fridgemate-api
-	@echo "🔄 Server restarted"
+	@echo "Server restarted."
 
 logs:
 	pm2 logs fridgemate-api
@@ -77,18 +75,18 @@ status:
 # ── Utilities ────────────────────────────────────────────────────────────────
 
 test:
-	@echo "🧪 Running server tests..."
+	@echo "Running server tests..."
 	cd $(SERVER_DIR) && npm test
 
 clean:
-	@echo "🧹 Cleaning build artifacts..."
+	@echo "Cleaning build artifacts..."
 	rm -rf $(SERVER_DIR)/dist
 	rm -rf $(CLIENT_DIR)/build
-	@echo "✅ Clean"
+	@echo "Clean."
 
 nginx-test:
 	sudo nginx -t
 
 nginx-reload:
 	sudo nginx -t && sudo systemctl reload nginx
-	@echo "✅ Nginx reloaded"
+	@echo "Nginx reloaded."
