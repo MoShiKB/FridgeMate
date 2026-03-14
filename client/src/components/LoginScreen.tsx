@@ -227,7 +227,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                   type="button"
                   className={`${styles.socialButton} ${styles.googleButton}`}
                   onClick={() => {
-                    window.location.href = 'http://localhost:3001/auth/login/google';
+                    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+                    window.location.href = `${apiUrl}/auth/login/google`;
                   }}
                   disabled={isLoading}
                   aria-label="Login with Google"
