@@ -32,7 +32,7 @@ export const AuthController = {
   },
 
   async handleGoogleCallback(req: Request, res: Response, next: NextFunction) {
-    const redirectRoute = `/auth/google/callback`;
+    const redirectRoute = `http://localhost:3000/auth/google/callback`;
     const googleUser = req.user as { email?: string; userName?: string; profileImage?: string };
 
     if (!googleUser?.email) {

@@ -96,14 +96,12 @@ export const AuthService = {
     let user = await UserModel.findOne({ email: normalizedEmail }).exec();
 
     if (!user) {
-      const uname = userName?.trim().toLowerCase();
       const displayName = userName?.trim() || normalizedEmail.split("@")[0];
-
       const randomPass = await bcrypt.hash(String(Date.now()) + normalizedEmail, 10);
 
       user = await UserModel.create({
         email: normalizedEmail,
-        userName: uname,
+        userName: null, // Google users don't have a username initially
         displayName,
         password: randomPass,
         profileImage,
@@ -113,7 +111,6 @@ export const AuthService = {
       });
     } else {
       const updates: any = {};
-      if (userName && user.userName !== userName.trim().toLowerCase()) updates.userName = userName.trim().toLowerCase();
       if (profileImage && user.profileImage !== profileImage) updates.profileImage = profileImage;
       if (Object.keys(updates).length) {
         await UserModel.updateOne({ _id: user._id }, { $set: updates });

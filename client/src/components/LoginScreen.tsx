@@ -71,6 +71,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
     setShowPassword(!showPassword);
   };
 
+  const handleScreenSwitch = (screen: AuthScreenType) => {
+    // Clear all errors before switching screens
+    setEmailError(null);
+    setPasswordError(null);
+    setGeneralError(null);
+    setCurrentScreen(screen);
+  };
+
   return (
     <div className={styles.loginContainer}>
       <div className={styles.logoContainer}>
@@ -182,7 +190,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               <button
                 type="button"
                 className={styles.forgotPasswordLink}
-                onClick={() => setCurrentScreen('forgotPassword')}
+                onClick={() => handleScreenSwitch('forgotPassword')}
                 disabled={isLoading}
               >
                 Forgot Password?
@@ -204,7 +212,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
               <button
                 type="button"
                 className={styles.signupLink}
-                onClick={() => setCurrentScreen('register')}
+                onClick={() => handleScreenSwitch('register')}
                 disabled={isLoading}
               >
                 Sign Up
@@ -218,6 +226,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                 <button
                   type="button"
                   className={`${styles.socialButton} ${styles.googleButton}`}
+                  onClick={() => {
+                    window.location.href = 'http://localhost:3001/auth/login/google';
+                  }}
                   disabled={isLoading}
                   aria-label="Login with Google"
                 >
@@ -246,32 +257,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                   </svg>
                   Google
                 </button>
-                <button
-                  type="button"
-                  className={`${styles.socialButton} ${styles.facebookButton}`}
-                  disabled={isLoading}
-                  aria-label="Login with Facebook"
-                >
-                  <svg
-                    className={styles.socialIcon}
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
-                    <path
-                      fill="#1877F2"
-                      d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
-                    />
-                  </svg>
-                  Facebook
-                </button>
               </div>
             </div>
           </>
         ) : currentScreen === 'forgotPassword' ? (
           <ForgotPasswordScreen
-            onBackToLogin={() => setCurrentScreen('login')}
+            onBackToLogin={() => handleScreenSwitch('login')}
             onResetSuccess={() => {
-              setCurrentScreen('login');
+              handleScreenSwitch('login');
               // Reset form
               setEmail('');
               setPassword('');
@@ -279,9 +272,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
           />
         ) : (
           <RegisterScreen
-            onBackToLogin={() => setCurrentScreen('login')}
+            onBackToLogin={() => handleScreenSwitch('login')}
             onSignUpSuccess={() => {
-              setCurrentScreen('login');
+              handleScreenSwitch('login');
               // Reset form
               setEmail('');
               setPassword('');

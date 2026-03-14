@@ -26,11 +26,21 @@ interface ApiError {
 
 class ApiService {
   private async handleResponse(response: Response) {
-    const data = await response.json();
+    // Read the body once as text
+    const text = await response.text();
+    
+    let data;
+    try {
+      // Try to parse as JSON
+      data = JSON.parse(text);
+    } catch {
+      // If parsing fails, treat as plain text
+      data = { message: text };
+    }
 
     if (!response.ok) {
       throw {
-        message: data.message || 'An error occurred',
+        message: data.message || text || 'An error occurred',
         status: response.status,
       } as ApiError;
     }
@@ -93,7 +103,7 @@ class ApiService {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email, code, password }),
+      body: JSON.stringify({ email, code, newPassword: password }),
     });
 
     return this.handleResponse(response);
