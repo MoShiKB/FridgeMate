@@ -79,6 +79,11 @@ web_modules/
 .env.production.local
 .env.local
 
+# Jest cache
+.jest-cache/
+jest_cache/
+tmp/jest*
+
 # Misc
 .DS_Store
 

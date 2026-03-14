@@ -1,6 +1,8 @@
+import crypto from "crypto";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import UserModel, { IUser } from "../models/user.model";
+import { sendResetCodeEmail } from "../config/email";
 
 export interface RegisterData {
   userName?: string;
@@ -144,5 +146,54 @@ export const AuthService = {
 
     const newAccessToken = signAccessToken(user);
     return { status: 200, data: { accessToken: newAccessToken } };
+  },
+
+  async forgotPassword(email: string) {
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await UserModel.findOne({ email: normalizedEmail })
+      .select("+resetPasswordToken +resetPasswordExpires")
+      .exec();
+
+    if (!user) throw new Error("No account found with this email");
+
+    const code = crypto.randomInt(100_000, 999_999).toString();
+    const hashedCode = await bcrypt.hash(code, 10);
+
+    user.resetPasswordToken = hashedCode;
+    user.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000);
+    await user.save({ validateModifiedOnly: true });
+
+    await sendResetCodeEmail(normalizedEmail, code);
+
+    return { status: 200, data: { message: "Reset code sent to your email" } };
+  },
+
+  async resetPassword(email: string, code: string, newPassword: string) {
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await UserModel.findOne({ email: normalizedEmail })
+      .select("+resetPasswordToken +resetPasswordExpires +password")
+      .exec();
+
+    if (!user || !user.resetPasswordToken || !user.resetPasswordExpires) {
+      throw new Error("No reset request found. Please request a new code.");
+    }
+
+    if (user.resetPasswordExpires < new Date()) {
+      user.resetPasswordToken = null;
+      user.resetPasswordExpires = null;
+      await user.save({ validateModifiedOnly: true });
+      throw new Error("Reset code has expired. Please request a new one.");
+    }
+
+    const isMatch = await bcrypt.compare(code, user.resetPasswordToken);
+    if (!isMatch) throw new Error("Invalid reset code");
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+    await user.save({ validateModifiedOnly: true });
+
+    return { status: 200, data: { message: "Password reset successfully" } };
   },
 };
