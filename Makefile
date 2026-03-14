@@ -1,7 +1,5 @@
 # FridgeMate - Deployment Makefile
 # Usage:
-#   make install    - Install all dependencies
-#   make build      - Build both server and client
 #   make deploy     - Full deploy (install + build + start with PM2)
 #   make start      - Start/restart with PM2
 #   make stop       - Stop PM2 processes
@@ -57,10 +55,8 @@ deploy: install build deploy-client start
 
 start:
 	@echo "🚀 Starting server with PM2..."
-	cd $(SERVER_DIR) && NODE_ENV=production pm2 start dist/index.js \
-		--name "fridgemate-api" \
-		--update-env \
-		|| cd $(SERVER_DIR) && pm2 restart fridgemate-api --update-env
+	-pm2 delete fridgemate-api 2>/dev/null
+	cd $(SERVER_DIR) && pm2 start dist/index.js --name "fridgemate-api"
 	pm2 save
 	@echo "✅ Server running"
 
@@ -69,7 +65,7 @@ stop:
 	@echo "🛑 Server stopped"
 
 restart:
-	cd $(SERVER_DIR) && pm2 restart fridgemate-api --update-env
+	pm2 restart fridgemate-api
 	@echo "🔄 Server restarted"
 
 logs:
