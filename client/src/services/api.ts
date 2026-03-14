@@ -103,7 +103,7 @@ class ApiService {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email, code, password }),
+      body: JSON.stringify({ email, code, newPassword: password }),
     });
 
     return this.handleResponse(response);
