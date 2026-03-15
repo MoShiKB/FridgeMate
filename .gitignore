@@ -139,3 +139,6 @@ dist
 
 ./public
 ./uploads
+
+# Local prompt file
+prompt.txt
