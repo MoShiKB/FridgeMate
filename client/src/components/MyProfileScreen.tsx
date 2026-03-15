@@ -25,6 +25,8 @@ function MyProfileScreen() {
   const [selectedAllergies, setSelectedAllergies] = useState<string[]>([]);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [fullName, setFullName] = useState("");
+  const [location, setLocation] = useState("");
 
 const onImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   const file = e.target.files?.[0];
@@ -81,12 +83,26 @@ const onAllergyClick = (label: string) => {
 
   </div>
 </div>
+{/* Personal Information Card */}
+<div style={styles.card}>
+  <h2 style={styles.cardTitle}>Personal Information</h2>
 
-      {/* Personal Information Card */}
-      <div style={styles.card}>
-        <h2 style={styles.cardTitle}>Personal Information</h2>
-      </div>
+  <label style={styles.label}>Full Name</label>
+  <input
+    style={styles.input}
+    value={fullName}
+    onChange={(e) => setFullName(e.target.value)}
+    placeholder="Enter your name"
+  />
 
+  <label style={styles.label}>📍 Location</label>
+  <input
+    style={styles.input}
+    value={location}
+    onChange={(e) => setLocation(e.target.value)}
+    placeholder="Enter your location"
+  />
+</div>
       {/* Dietary Preferences Card */}
       <div style={styles.card}>
         <h2 style={styles.cardTitle}>Dietary Preferences</h2>

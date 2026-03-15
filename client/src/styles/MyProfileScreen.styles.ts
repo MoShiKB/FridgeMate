@@ -108,6 +108,25 @@ cameraBtn: {
   alignItems: "center",
   justifyContent: "center",
 },
+label: {
+  fontSize: 13,
+  fontWeight: 500,
+  color: colors.grayText,
+  marginBottom: 6,
+  marginTop: 12,
+  display: "block",
+},
+input: {
+  width: "100%",
+  padding: "12px 14px",
+  borderRadius: 10,
+  border: "1px solid #e0e0e0",
+  fontSize: 15,
+  color: colors.black,
+  background: colors.white,
+  boxSizing: "border-box" as const,
+  outline: "none",
+},
 };
 
 export const iconProps = {
