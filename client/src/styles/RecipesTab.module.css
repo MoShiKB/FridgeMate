@@ -1,0 +1,34 @@
+.recipesTab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background-color: #f7f8f9;
+}
+
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.icon {
+  font-size: 64px;
+  line-height: 1;
+}
+
+.placeholder h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #000000;
+  margin: 0;
+}
+
+.placeholder p {
+  font-size: 16px;
+  color: #8e8e8e;
+  margin: 0;
+}

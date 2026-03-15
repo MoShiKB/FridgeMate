@@ -1,0 +1,241 @@
+.myFridgeTab {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 16px;
+  gap: 12px;
+  background-color: #f0f1f3;
+}
+
+/* Running Low Section */
+.runningLowSection {
+  background-color: #fff8e1;
+  border: 1px solid #ffe082;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 8px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #856404;
+  margin: 0;
+}
+
+.runningLowList {
+  display: block;
+}
+
+.runningLowText {
+  font-size: 14px;
+  color: #856404;
+  margin: 0;
+  margin-left: 36px;
+  line-height: 1.5;
+}
+
+.itemsList {
+  font-weight: 400;
+  color: #856404;
+  display: inline;
+}
+
+/* Items Section */
+.itemsSection {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.categorySection {
+  margin-bottom: 24px;
+}
+
+.categoryHeader {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin: 0;
+  padding: 8px 16px;
+  background-color: #00bc90;
+  border-radius: 12px 12px 0 0;
+}
+
+.categoryItemsList {
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.itemCard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+}
+
+.itemCard.lowStock {
+  background-color: #fffacd;
+}
+
+.warningIcon {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f57c00;
+  flex-shrink: 0;
+}
+
+.warningIcon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.itemInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.itemNameWrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.itemWarningIcon {
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f57c00;
+  flex-shrink: 0;
+}
+
+.itemWarningIcon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.itemName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #000000;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(100vw - 100px);
+}
+
+.itemQuantity {
+  font-size: 12px;
+  color: #8e8e8e;
+  margin: 0;
+}
+
+
+
+.divider {
+  height: 1px;
+  background-color: #eeeeee;
+  margin: 0 16px;
+}
+
+/* Empty State */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.emptyStateIcon {
+  font-size: 64px;
+  line-height: 1;
+}
+
+.emptyStateTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #000000;
+  margin: 0;
+}
+
+.emptyStateDescription {
+  font-size: 14px;
+  color: #8e8e8e;
+  margin: 0;
+  line-height: 1.5;
+  max-width: 280px;
+}
+
+
+
+@media (max-width: 480px) {
+  .myFridgeTab {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .runningLowSection {
+    padding: 12px;
+  }
+
+  .categorySection {
+    margin-bottom: 16px;
+  }
+
+  .itemCard {
+    padding: 10px 12px;
+  }
+
+  .itemName {
+    font-size: 13px;
+    max-width: calc(100vw - 90px);
+  }
+
+  .itemQuantity {
+    font-size: 11px;
+  }
+
+  .emptyState {
+    padding: 24px 12px;
+  }
+
+  .emptyStateIcon {
+    font-size: 48px;
+  }
+
+  .emptyStateTitle {
+    font-size: 16px;
+  }
+
+  .emptyStateDescription {
+    font-size: 13px;
+  }
+}
