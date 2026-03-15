@@ -68,6 +68,46 @@ page: {
   fontWeight: 600,
   cursor: "pointer",
 },
+avatarWrapper: {
+  position: "relative" as const,
+  width: 100,
+  height: 100,
+  margin: "0 auto",
+},
+avatarCircle: {
+  width: 100,
+  height: 100,
+  borderRadius: "50%",
+  border: colors.tealPrimary + " 3px solid",
+  overflow: "hidden",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: colors.white,
+},
+avatarImg: {
+  width: "100%",
+  height: "100%",
+  objectFit: "cover" as const,
+},
+avatarInitials: {
+  fontSize: 60,
+},
+cameraBtn: {
+  position: "absolute" as const,
+  bottom: 2,
+  right: 2,
+  width: 32,
+  height: 32,
+  borderRadius: "50%",
+  background: colors.lightTeal,
+  border: colors.tealPrimary + " 2px solid",
+  cursor: "pointer",
+  fontSize: 18,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+},
 };
 
 export const iconProps = {

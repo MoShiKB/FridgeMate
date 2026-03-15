@@ -1,6 +1,6 @@
 import { iconProps, styles } from "../styles/MyProfileScreen.styles";
-import { IoArrowBack } from "./icons";
-import { useState } from "react";
+import { IoArrowBack, IoPersonOutline } from "./icons";
+import { useRef, useState } from "react";
 
 const dietOptions = [
   { label: "None", emoji: "" },
@@ -23,6 +23,16 @@ const allergyOptions = [
 function MyProfileScreen() {
   const [selectedDiet, setSelectedDiet] = useState(0);
   const [selectedAllergies, setSelectedAllergies] = useState<string[]>([]);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+const onImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (file) {
+    const url = URL.createObjectURL(file);
+    setAvatarUrl(url);
+  }
+};
 
   const onClick = (index: number) => {
     console.log("clicked index:", index);
@@ -46,10 +56,31 @@ const onAllergyClick = (label: string) => {
         <h1 style={styles.title}>My Profile</h1>
       </div>
 
-      {/* Profile Picture Card */}
-      <div style={styles.card}>
-        <h2 style={styles.cardTitle}>Profile Picture</h2>
-      </div>
+    {/* Profile Picture Card */}
+<div style={styles.card}>
+  <div style={styles.avatarWrapper}>
+
+    <div style={styles.avatarCircle}>
+     {avatarUrl
+  ? <img src={avatarUrl} alt="profile" style={styles.avatarImg} />
+  : <IoPersonOutline size={80} color="#bbb" />
+}
+    </div>
+
+    <button style={styles.cameraBtn} onClick={() => fileInputRef.current?.click()}>
+      📷
+    </button>
+
+    <input
+      ref={fileInputRef}
+      type="file"
+      accept="image/*"
+      style={{ display: "none" }}
+      onChange={onImageChange}
+    />
+
+  </div>
+</div>
 
       {/* Personal Information Card */}
       <div style={styles.card}>
