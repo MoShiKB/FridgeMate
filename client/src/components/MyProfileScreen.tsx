@@ -8,15 +8,33 @@ const dietOptions = [
   { label: "Vegan", emoji: "🌱" },
   { label: "Pescatarian", emoji: "🐟" },
 ];
+const allergyOptions = [
+  "Peanuts",
+  "Tree Nuts", 
+  "Dairy",
+  "Eggs",
+  "Soy",
+  "Wheat/Gluten",
+  "Fish",
+  "Shellfish",
+  "Sesame",
+];
 
 function MyProfileScreen() {
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [selectedDiet, setSelectedDiet] = useState(0);
+  const [selectedAllergies, setSelectedAllergies] = useState<string[]>([]);
 
   const onClick = (index: number) => {
     console.log("clicked index:", index);
-    setSelectedIndex(index);
+    setSelectedDiet(index);
   };
-
+const onAllergyClick = (label: string) => {
+  setSelectedAllergies((prev) =>
+    prev.includes(label)
+      ? prev.filter((a) => a !== label)  
+      : [...prev, label]             
+  );
+};
   return (
     <div style={styles.page}>
 
@@ -50,7 +68,7 @@ function MyProfileScreen() {
             <input
               type="radio"
               name="diet"
-              checked={selectedIndex === index}
+              checked={selectedDiet === index}
               onChange={() => onClick(index)}
             />
             <span style={styles.radioLabel}>
@@ -60,11 +78,24 @@ function MyProfileScreen() {
         ))}
       </div>
 
-      {/* Allergies and Restrictions Card */}
-      <div style={styles.card}>
-        <h2 style={styles.cardTitle}>Allergies and Restrictions</h2>
-      </div>
-
+{/* Allergies and Restrictions Card */}
+<div style={styles.card}>
+  <h2 style={styles.cardTitle}>Allergies & Restrictions</h2>
+  {allergyOptions.map((label) => (
+    <div
+      key={label}
+      style={styles.radioRow}
+      onClick={() => onAllergyClick(label)}
+    >
+      <input
+        type="checkbox"
+        checked={selectedAllergies.includes(label)}
+        onChange={() => onAllergyClick(label)}
+      />
+      <span style={styles.radioLabel}>{label}</span>
+    </div>
+  ))}
+</div>
     </div>
   );
 }
