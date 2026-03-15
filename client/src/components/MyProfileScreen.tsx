@@ -96,6 +96,12 @@ const onAllergyClick = (label: string) => {
     </div>
   ))}
 </div>
+
+{/* Save Button */}
+      <button style={styles.saveBtn} onClick={() => console.log("saving...")}>
+        Save Changes
+      </button>
+
     </div>
   );
 }

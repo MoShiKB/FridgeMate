@@ -41,7 +41,7 @@ page: {
   cardTitle: {
     fontSize: 16,
     fontWeight: 600,
-    color: "#1a1a1a",
+    color: colors.black,
     marginBottom: 16,
     margin: "0 0 16px 0",
   },
@@ -55,13 +55,24 @@ page: {
   },
   radioLabel: {
     fontSize: 15,
-    color: "#1a1a1a",
+    color: colors.black,
   },
+  saveBtn: {
+  width: "100%",
+  padding: "16px",
+  borderRadius: 12,
+  border: "none",
+  background: colors.darkTeal,
+  color: colors.white,
+  fontSize: 16,
+  fontWeight: 600,
+  cursor: "pointer",
+},
 };
 
 export const iconProps = {
   backIcon: {
     size: 24,
-    color: "#333",
+    color: colors.grayText,
   },
 };
