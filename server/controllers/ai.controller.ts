@@ -20,10 +20,17 @@ export const AIController = {
                 count: count || 3
             });
 
+            const recipesWithImages = await Promise.all(
+                result.recipes.map(async (recipe) => {
+                    const imageUrl = await AIService.generateRecipeImage(recipe.title);
+                    return { ...recipe, imageUrl };
+                })
+            );
+
             res.json({
                 message: 'Recipes generated successfully',
-                recipes: result.recipes,
-                count: result.recipes.length
+                recipes: recipesWithImages,
+                count: recipesWithImages.length
             });
         } catch (err: any) {
             next(err);

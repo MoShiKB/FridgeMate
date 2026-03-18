@@ -1,10 +1,14 @@
+const mockGenerateContent = jest.fn();
+
+jest.mock('@google/genai', () => ({
+    GoogleGenAI: jest.fn().mockImplementation(() => ({
+        models: { generateContent: mockGenerateContent }
+    }))
+}));
+
 import request from 'supertest';
 import app from '../../index';
 import { token } from '../setup';
-
-jest.mock('axios');
-import axios from 'axios';
-const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 describe('AI Controller Tests', () => {
     beforeEach(() => {
@@ -12,33 +16,33 @@ describe('AI Controller Tests', () => {
     });
 
     describe('POST /ai/recipes/generate', () => {
-        const mockGeminiResponse = {
-            data: {
-                candidates: [{
-                    content: {
-                        parts: [{
-                            text: JSON.stringify([
-                                {
-                                    title: "Test Recipe",
-                                    description: "A test recipe",
-                                    cookingTime: "30 minutes",
-                                    difficulty: "Easy",
-                                    ingredients: [
-                                        { name: "eggs", amount: "2" },
-                                        { name: "cheese", amount: "100g" }
-                                    ],
-                                    steps: ["Step 1", "Step 2"],
-                                    nutrition: { calories: "300 kcal" }
-                                }
-                            ])
-                        }]
-                    }
-                }]
+        const mockRecipeArray = [
+            {
+                title: "Test Recipe",
+                description: "A test recipe",
+                cookingTime: "30 minutes",
+                difficulty: "Easy",
+                ingredients: [
+                    { name: "eggs", amount: "2" },
+                    { name: "cheese", amount: "100g" }
+                ],
+                steps: ["Step 1", "Step 2"],
+                nutrition: { calories: "300 kcal" }
             }
-        };
+        ];
+
+        function mockRecipeGeneration() {
+            mockGenerateContent.mockResolvedValue({
+                text: JSON.stringify(mockRecipeArray)
+            });
+        }
+
+        afterEach(() => {
+            mockGenerateContent.mockReset();
+        });
 
         it('should generate recipes successfully', async () => {
-            mockedAxios.post.mockResolvedValueOnce(mockGeminiResponse);
+            mockRecipeGeneration();
 
             const res = await request(app)
                 .post('/ai/recipes/generate')
@@ -55,7 +59,7 @@ describe('AI Controller Tests', () => {
         });
 
         it('should generate recipes with allergies and diet preference', async () => {
-            mockedAxios.post.mockResolvedValueOnce(mockGeminiResponse);
+            mockRecipeGeneration();
 
             const res = await request(app)
                 .post('/ai/recipes/generate')
@@ -69,11 +73,11 @@ describe('AI Controller Tests', () => {
 
             expect(res.statusCode).toBe(200);
             expect(res.body.recipes).toBeDefined();
-            expect(mockedAxios.post).toHaveBeenCalled();
-            const callArgs = mockedAxios.post.mock.calls[0];
-            const requestBody = callArgs[1] as any;
-            expect(requestBody.contents[0].parts[0].text).toContain('peanuts');
-            expect(requestBody.contents[0].parts[0].text).toContain('VEGETARIAN');
+            expect(mockGenerateContent).toHaveBeenCalled();
+
+            const callArgs = mockGenerateContent.mock.calls[0][0];
+            expect(callArgs.contents).toContain('peanuts');
+            expect(callArgs.contents).toContain('VEGETARIAN');
         });
 
         it('should return 400 if ingredients is missing', async () => {
@@ -105,9 +109,9 @@ describe('AI Controller Tests', () => {
         });
 
         it('should handle AI rate limit error', async () => {
-            mockedAxios.post.mockRejectedValueOnce({
-                response: { status: 429 }
-            });
+            mockGenerateContent.mockRejectedValueOnce(
+                new Error('Resource exhausted: 429 quota exceeded')
+            );
 
             const res = await request(app)
                 .post('/ai/recipes/generate')
@@ -119,7 +123,7 @@ describe('AI Controller Tests', () => {
         });
 
         it('should handle AI service error', async () => {
-            mockedAxios.post.mockRejectedValueOnce(new Error('Network error'));
+            mockGenerateContent.mockRejectedValueOnce(new Error('Network error'));
 
             const res = await request(app)
                 .post('/ai/recipes/generate')
@@ -132,20 +136,10 @@ describe('AI Controller Tests', () => {
     });
 
     describe('POST /ai/ask', () => {
-        const mockAskResponse = {
-            data: {
-                candidates: [{
-                    content: {
-                        parts: [{
-                            text: "You can make a delicious omelette with eggs and cheese!"
-                        }]
-                    }
-                }]
-            }
-        };
-
         it('should answer a cooking question successfully', async () => {
-            mockedAxios.post.mockResolvedValueOnce(mockAskResponse);
+            mockGenerateContent.mockResolvedValueOnce({
+                text: "You can make a delicious omelette with eggs and cheese!"
+            });
 
             const res = await request(app)
                 .post('/ai/ask')
@@ -162,7 +156,9 @@ describe('AI Controller Tests', () => {
         });
 
         it('should work without ingredients', async () => {
-            mockedAxios.post.mockResolvedValueOnce(mockAskResponse);
+            mockGenerateContent.mockResolvedValueOnce({
+                text: "Boil water, add eggs for 6-7 minutes."
+            });
 
             const res = await request(app)
                 .post('/ai/ask')
@@ -194,9 +190,9 @@ describe('AI Controller Tests', () => {
         });
 
         it('should handle AI rate limit error', async () => {
-            mockedAxios.post.mockRejectedValueOnce({
-                response: { status: 429 }
-            });
+            mockGenerateContent.mockRejectedValueOnce(
+                new Error('Resource exhausted: 429 quota exceeded')
+            );
 
             const res = await request(app)
                 .post('/ai/ask')

@@ -21,6 +21,7 @@ export interface IRecipe extends Document {
     ingredients: IRecipeIngredient[];
     steps: string[];
     nutrition?: IRecipeNutrition;
+    imageUrl?: string;
 
     createdAt: Date;
     updatedAt: Date;
@@ -80,6 +81,10 @@ const RecipeSchema = new Schema<IRecipe>(
         nutrition: {
             type: RecipeNutritionSchema,
             default: {},
+        },
+        imageUrl: {
+            type: String,
+            default: null,
         },
 
     },

@@ -8,6 +8,7 @@ import recipeRoutes from "./recipe.routes";
 import { commentsRoutes } from "./comments.routes";
 import { postsRoutes } from "./posts.routes";
 import { inventoryItemRoutes } from "./inventory-item.routes";
+import uploadRoutes from "./upload.routes";
 
 const router = Router();
 
@@ -24,5 +25,6 @@ router.use("/ai", aiRoutes);
 router.use("/recipes", recipeRoutes);
 router.use("/posts", commentsRoutes);
 router.use("/posts", postsRoutes);
+router.use("/upload", uploadRoutes);
 
 export default router;
