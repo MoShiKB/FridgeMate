@@ -196,12 +196,46 @@ export const AIService = {
     },
 
     /**
-     * Uses AI to extract search keywords, then searches TheMealDB and Spoonacular
-     * for a matching dish image. Downloads the first match to /uploads/.
+     * Extracts search keywords, then searches TheMealDB and Spoonacular for a matching dish image.
      */
     async _tryAIImageSearch(recipeTitle: string): Promise<string | null> {
+        const keywords = await this._extractKeywords(recipeTitle);
+
+        for (const keyword of keywords) {
+            try {
+                const response = await axios.get(
+                    `https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(keyword)}`,
+                    { timeout: 5000 }
+                );
+                const meals = response.data?.meals;
+                if (meals?.length > 0 && meals[0].strMealThumb) {
+                    return await this._downloadImageToUploads(meals[0].strMealThumb);
+                }
+            } catch {}
+        }
+
+        const spoonacularKey = process.env.SPOONACULAR_API_KEY;
+        if (spoonacularKey) {
+            for (const keyword of keywords) {
+                try {
+                    const response = await axios.get(
+                        `https://api.spoonacular.com/recipes/complexSearch?query=${encodeURIComponent(keyword)}&number=1&apiKey=${spoonacularKey}`,
+                        { timeout: 5000 }
+                    );
+                    const results = response.data?.results;
+                    if (results?.length > 0 && results[0].image) {
+                        return await this._downloadImageToUploads(results[0].image);
+                    }
+                } catch {}
+            }
+        }
+
+        return null;
+    },
+
+    async _extractKeywords(recipeTitle: string): Promise<string[]> {
         try {
-            const keywordResponse = await ai.models.generateContent({
+            const response = await ai.models.generateContent({
                 model: MODEL_NAME,
                 contents: `From this recipe title, extract up to 3 search terms ordered from most specific to most general. Each term should be a food name likely to appear in a recipe database.
 Return ONLY a comma-separated list, nothing else.
@@ -212,48 +246,17 @@ Examples:
 Title: "${recipeTitle}"`,
                 config: { temperature: 0, maxOutputTokens: 50 }
             });
+            const raw = response.text?.trim()?.toLowerCase();
+            if (raw) return raw.split(',').map(k => k.trim()).filter(Boolean);
+        } catch { /* AI unavailable — fall through to simple extraction */ }
 
-            const raw = keywordResponse.text?.trim()?.toLowerCase();
-            if (!raw) return null;
-
-            const keywords = raw.split(',').map(k => k.trim()).filter(Boolean);
-
-            // Try TheMealDB first
-            for (const keyword of keywords) {
-                try {
-                    const response = await axios.get(
-                        `https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(keyword)}`,
-                        { timeout: 5000 }
-                    );
-                    const meals = response.data?.meals;
-                    if (meals?.length > 0 && meals[0].strMealThumb) {
-                        return await this._downloadImageToUploads(meals[0].strMealThumb);
-                    }
-                } catch {}
-            }
-
-            // Fall back to Spoonacular
-            const spoonacularKey = process.env.SPOONACULAR_API_KEY;
-            if (spoonacularKey) {
-                for (const keyword of keywords) {
-                    try {
-                        const response = await axios.get(
-                            `https://api.spoonacular.com/recipes/complexSearch?query=${encodeURIComponent(keyword)}&number=1&apiKey=${spoonacularKey}`,
-                            { timeout: 5000 }
-                        );
-                        const results = response.data?.results;
-                        if (results?.length > 0 && results[0].image) {
-                            return await this._downloadImageToUploads(results[0].image);
-                        }
-                    } catch {}
-                }
-            }
-
-            return null;
-        } catch (error: any) {
-            console.error('AI image search failed:', error.message);
-            return null;
-        }
+        const stopWords = new Set(['a', 'an', 'the', 'with', 'and', 'or', 'in', 'on', 'of', 'for', 'to', 'my',
+            'easy', 'simple', 'quick', 'best', 'classic', 'homemade', 'style', 'recipe']);
+        const words = recipeTitle.toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/)
+            .filter(w => w.length > 2 && !stopWords.has(w));
+        if (words.length === 0) return [recipeTitle.toLowerCase()];
+        if (words.length >= 2) return [words.slice(0, 2).join(' '), words[0], words[1]];
+        return [words[0]];
     },
 
     /**
