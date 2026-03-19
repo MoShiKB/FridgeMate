@@ -5,7 +5,7 @@ export const RecipeController = {
     async saveToFavorites(req: Request, res: Response, next: NextFunction) {
         try {
             const userId = req.body.userId; // From auth middleware
-            const { title, description, cookingTime, difficulty, ingredients, steps, nutrition } = req.body;
+            const { title, description, cookingTime, difficulty, ingredients, steps, nutrition, imageUrl } = req.body;
 
             if (!title) {
                 return res.status(400).json({ error: 'Recipe title is required' });
@@ -24,6 +24,7 @@ export const RecipeController = {
                 ingredients,
                 steps,
                 nutrition,
+                imageUrl,
             });
 
             res.status(201).json({

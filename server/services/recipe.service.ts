@@ -13,6 +13,7 @@ interface RecipeData {
         carbs?: string;
         fat?: string;
     };
+    imageUrl?: string;
 }
 
 export const RecipeService = {

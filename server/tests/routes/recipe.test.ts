@@ -22,6 +22,7 @@ describe('Recipe Controller Tests', () => {
             carbs: '2g',
             fat: '25g',
         },
+        imageUrl: 'https://images.food.com/cheese-omelette.jpg',
     };
 
     describe('POST /recipes/save', () => {
@@ -34,6 +35,30 @@ describe('Recipe Controller Tests', () => {
             expect(res.statusCode).toBe(201);
             expect(res.body.message).toBe('Recipe saved to favorites');
             expect(res.body.recipe.title).toBe(sampleRecipe.title);
+            expect(res.body.recipe.imageUrl).toBe(sampleRecipe.imageUrl);
+        });
+
+        it('should save a recipe with imageUrl', async () => {
+            const res = await request(app)
+                .post('/recipes/save')
+                .set('Authorization', token)
+                .send({
+                    title: 'Recipe With Image',
+                    imageUrl: '/uploads/some-generated-image.png',
+                });
+
+            expect(res.statusCode).toBe(201);
+            expect(res.body.recipe.imageUrl).toBe('/uploads/some-generated-image.png');
+        });
+
+        it('should save a recipe without imageUrl (defaults to null)', async () => {
+            const res = await request(app)
+                .post('/recipes/save')
+                .set('Authorization', token)
+                .send({ title: 'Recipe Without Image' });
+
+            expect(res.statusCode).toBe(201);
+            expect(res.body.recipe.imageUrl).toBeNull();
         });
 
         it('should return 409 for duplicate recipe', async () => {
