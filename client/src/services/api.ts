@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 interface LoginResponse {
   message: string;
@@ -118,6 +118,15 @@ class ApiService {
       },
     });
 
+    return this.handleResponse(response);
+  }
+
+  async getUsers(): Promise<any[]> {
+    const response = await fetch(`${API_BASE_URL}/user`, {
+      headers: {
+        'Authorization': `Bearer ${tokenManager.getAccessToken()}`,
+      },
+    });
     return this.handleResponse(response);
   }
 
