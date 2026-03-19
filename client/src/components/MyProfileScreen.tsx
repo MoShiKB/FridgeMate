@@ -1,6 +1,8 @@
 import { iconProps, styles } from "../styles/MyProfileScreen.styles";
 import { IoArrowBack, IoPersonOutline } from "./icons";
 import { useRef, useState } from "react";
+import { Chat, UserListPage } from "./chat";
+import { tokenManager } from "../services/api";
 
 const dietOptions = [
   { label: "None", emoji: "" },
@@ -20,6 +22,16 @@ const allergyOptions = [
   "Sesame",
 ];
 
+function getUserIdFromToken(): string | null {
+  const token = tokenManager.getAccessToken();
+  if (!token) return null;
+  try {
+    return JSON.parse(atob(token.split('.')[1])).userId || null;
+  } catch {
+    return null;
+  }
+}
+
 function MyProfileScreen() {
   const [selectedDiet, setSelectedDiet] = useState(0);
   const [selectedAllergies, setSelectedAllergies] = useState<string[]>([]);
@@ -27,6 +39,12 @@ function MyProfileScreen() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fullName, setFullName] = useState("");
   const [location, setLocation] = useState("");
+
+  const [isUserListOpen, setIsUserListOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatId, setChatId] = useState("");
+  const [chatUserName, setChatUserName] = useState("");
+  const currentUserId = getUserIdFromToken();
 
 const onImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   const file = e.target.files?.[0];
@@ -148,6 +166,47 @@ const onAllergyClick = (label: string) => {
       <button style={styles.saveBtn} onClick={() => console.log("saving...")}>
         Save Changes
       </button>
+
+{/* Chat Button */}
+      <button
+        style={{
+          ...styles.saveBtn,
+          background: '#fff',
+          color: '#54A096',
+          border: '2px solid #54A096',
+          marginTop: 12,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+        }}
+        onClick={() => setIsUserListOpen(true)}
+      >
+        💬 Open Chat with Others
+      </button>
+
+      {isUserListOpen && currentUserId && (
+        <UserListPage
+          currentUserId={currentUserId}
+          onSelectUser={(id, name) => {
+            setChatId(id);
+            setChatUserName(name);
+            setIsUserListOpen(false);
+            setIsChatOpen(true);
+          }}
+          onClose={() => setIsUserListOpen(false)}
+        />
+      )}
+
+      {isChatOpen && chatId && currentUserId && (
+        <Chat
+          chatId={chatId}
+          currentUserId={currentUserId}
+          selectedUserName={chatUserName}
+          onClose={() => setIsChatOpen(false)}
+          onGoBack={() => { setIsChatOpen(false); setIsUserListOpen(true); }}
+        />
+      )}
 
     </div>
   );
