@@ -1253,6 +1253,210 @@
         }
       }
     },
+    "/fridges/me/scans": {
+      "post": {
+        "tags": [
+          "Fridge Scans"
+        ],
+        "summary": "Upload a fridge scan image",
+        "description": "Upload a photo of your fridge contents. The AI will detect all visible food items, create or update inventory entries, and return a scan report. The user must have an active fridge. Existing items are updated (quantity), new items are created with SHARED ownership. If AI detection fails, a scan with status 'failed' is returned.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "parameters": [
+          {
+            "in": "formData",
+            "name": "image",
+            "type": "file",
+            "required": true,
+            "description": "Fridge photo to scan (JPEG, PNG, or WebP). Max 10 MB."
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Scan processed successfully",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "ok": {
+                  "type": "boolean",
+                  "example": true
+                },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "example": "665a1f2e3b4c5d6e7f8a9b0c"
+                    },
+                    "fridgeId": {
+                      "type": "string",
+                      "example": "665a1a2b3c4d5e6f7a8b9c0d"
+                    },
+                    "userId": {
+                      "type": "string",
+                      "example": "665a1a2b3c4d5e6f7a8b9c0e"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": ["completed", "failed"],
+                      "example": "completed"
+                    },
+                    "detectedItems": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "example": "egg"
+                          },
+                          "quantity": {
+                            "type": "string",
+                            "example": "6"
+                          }
+                        }
+                      }
+                    },
+                    "addedItemIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": ["665a1f2e3b4c5d6e7f8a9b1a", "665a1f2e3b4c5d6e7f8a9b1b"]
+                    },
+                    "error": {
+                      "type": "string",
+                      "description": "Error message (only present when status is 'failed')"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No image provided, invalid file type, or user has no active fridge"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Not a member of the active fridge"
+          },
+          "404": {
+            "description": "User or fridge not found"
+          }
+        }
+      }
+    },
+    "/fridges/me/scans/{scanId}": {
+      "get": {
+        "tags": [
+          "Fridge Scans"
+        ],
+        "summary": "Get a scan by ID",
+        "description": "Retrieve the details of a previously completed fridge scan. The user must be a member of the fridge the scan belongs to.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scanId",
+            "type": "string",
+            "required": true,
+            "description": "ID of the scan to retrieve"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Scan details",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "ok": {
+                  "type": "boolean",
+                  "example": true
+                },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "fridgeId": {
+                      "type": "string"
+                    },
+                    "userId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": ["completed", "failed"]
+                    },
+                    "detectedItems": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "quantity": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "addedItemIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Not a member of the fridge this scan belongs to"
+          },
+          "404": {
+            "description": "Scan not found"
+          }
+        }
+      }
+    },
     "/fridges/{fridgeId}/items": {
       "get": {
         "tags": [

@@ -316,9 +316,68 @@ Format:
         }
     },
 
+
     /**
      * Checks if a specific item is considered "running low" based on quantity and household size.
      */
+    async detectFridgeItems(imageBuffer: Buffer, mimeType: string): Promise<{ name: string; quantity: string }[]> {
+        const base64Image = imageBuffer.toString('base64');
+
+        const prompt = `You are a smart kitchen assistant. Analyze this photo of the inside of a fridge (or of food items).
+Identify every distinct food item you can see in the image. For each item, estimate its quantity in a human-friendly format (e.g. "2", "1 bag", "500ml", "half a block").
+
+Respond with ONLY a JSON array of objects. Each object must have:
+- "name": the food item name (lowercase, singular form preferred, e.g. "egg" not "eggs")
+- "quantity": estimated quantity as a string
+
+Example:
+[
+  { "name": "egg", "quantity": "6" },
+  { "name": "milk", "quantity": "1 liter" },
+  { "name": "cheddar cheese", "quantity": "1 block" }
+]
+
+If no food items are visible, return an empty array: []`;
+
+        try {
+            const response = await ai.models.generateContent({
+                model: MODEL_NAME,
+                contents: [
+                    {
+                        role: 'user',
+                        parts: [
+                            { inlineData: { mimeType, data: base64Image } },
+                            { text: prompt },
+                        ],
+                    },
+                ],
+                config: {
+                    temperature: 0.2,
+                    maxOutputTokens: 2048,
+                    responseMimeType: "application/json",
+                },
+            });
+
+            const textContent = response.text;
+            if (!textContent) throw new Error('No response from AI');
+
+            const items = JSON.parse(textContent);
+            if (!Array.isArray(items)) throw new Error('AI did not return an array');
+
+            return items
+                .filter((item: any) => item.name && item.quantity)
+                .map((item: any) => ({
+                    name: String(item.name).trim(),
+                    quantity: String(item.quantity).trim(),
+                }));
+        } catch (error: any) {
+            if (error.message?.includes('429') || error.message?.includes('quota') || error.message?.includes('rate limit')) {
+                throw new Error('AI rate limit exceeded. Please try again later.');
+            }
+            throw new Error(`AI scan service error: ${error.message}`);
+        }
+    },
+
     async checkIfRunningLow(itemName: string, quantity: string, userCount: number): Promise<{ isRunningLow: boolean; reasoning: string }> {
         const prompt = `
 You are a smart kitchen assistant. Determine if the following fridge item is running low for a household of ${userCount} people.
