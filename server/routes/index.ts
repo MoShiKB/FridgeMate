@@ -8,6 +8,8 @@ import recipeRoutes from "./recipe.routes";
 import { commentsRoutes } from "./comments.routes";
 import { postsRoutes } from "./posts.routes";
 import { inventoryItemRoutes } from "./inventory-item.routes";
+import { scanRoutes } from "./scan.routes";
+import uploadRoutes from "./upload.routes";
 
 const router = Router();
 
@@ -19,10 +21,12 @@ router.use("/auth", authRoutes);
 router.use("/user", userRoutes);
 router.use("/fridges", fridgesRoutes);
 router.use("/fridges/:fridgeId/items", inventoryItemRoutes);
+router.use("/fridges/me/scans", scanRoutes);
 router.use("/chats", chatRoutes);
 router.use("/ai", aiRoutes);
 router.use("/recipes", recipeRoutes);
 router.use("/posts", commentsRoutes);
 router.use("/posts", postsRoutes);
+router.use("/upload", uploadRoutes);
 
 export default router;
