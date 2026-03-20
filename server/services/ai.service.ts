@@ -260,6 +260,63 @@ Title: "${recipeTitle}"`,
     },
 
     /**
+     * Checks multiple items for "running low" status in a single request.
+     */
+    async checkMultipleItemsIfRunningLow(items: { id: string; name: string; quantity: string }[], userCount: number): Promise<Map<string, boolean>> {
+        if (items.length === 0) return new Map();
+
+        const itemsList = items.map(item => `- ID: ${item.id}, Name: "${item.name}", Quantity: "${item.quantity}"`).join('\n');
+
+        const prompt = `
+You are a smart kitchen assistant. Determine if each of the following fridge items is running low for a household of ${userCount} people.
+
+Context:
+Household Size: ${userCount} person(s)
+
+Items to evaluate:
+${itemsList}
+
+Task:
+- Analyze if the quantity for each item is typically considered low/insufficient for this household size.
+- Respond with ONLY a JSON array of objects.
+
+Format:
+[
+  { "id": "item_id_here", "isRunningLow": true/false }
+]
+`;
+
+        try {
+            const response = await ai.models.generateContent({
+                model: MODEL_NAME,
+                contents: prompt,
+                config: {
+                    temperature: 0.1,
+                    maxOutputTokens: 2048,
+                    responseMimeType: "application/json"
+                }
+            });
+
+            const textContent = response.text;
+            if (!textContent) throw new Error('No response from AI');
+
+            const results = JSON.parse(textContent);
+            const statusMap = new Map<string, boolean>();
+
+            if (Array.isArray(results)) {
+                results.forEach((r: any) => {
+                    if (r.id) statusMap.set(r.id, !!r.isRunningLow);
+                });
+            }
+
+            return statusMap;
+        } catch (error: any) {
+            console.error('AI checkMultipleItemsIfRunningLow error:', error);
+            return new Map(); // Return empty map on failure
+        }
+    },
+
+    /**
      * Checks if a specific item is considered "running low" based on quantity and household size.
      */
     async checkIfRunningLow(itemName: string, quantity: string, userCount: number): Promise<{ isRunningLow: boolean; reasoning: string }> {

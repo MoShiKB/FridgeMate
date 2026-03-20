@@ -209,4 +209,62 @@ export class InventoryItemService {
     await item.deleteOne();
     return { ok: true };
   }
+
+  /**
+   * Recalculates 'isRunningLow' status for all SHARED items in a fridge based on new member count.
+   * This is typically called when a user joins or leaves a fridge.
+   */
+  static async recalculateSharedItemsStatus(fridgeId: string, memberCount: number) {
+    try {
+      // Find all SHARED items in the fridge
+      const items = await InventoryItemModel.find({
+        fridgeId: new mongoose.Types.ObjectId(fridgeId),
+        ownership: 'SHARED'
+      }).select('_id name quantity isRunningLow');
+
+      if (items.length === 0) return;
+
+      // Prepare items for AI check
+      const itemsToCheck = items.map(item => ({
+        id: item._id.toString(),
+        name: item.name,
+        quantity: item.quantity
+      }));
+
+      // Process in chunks to avoid overwhelming the AI or hitting token limits
+      const CHUNK_SIZE = 20;
+      for (let i = 0; i < itemsToCheck.length; i += CHUNK_SIZE) {
+        const chunk = itemsToCheck.slice(i, i + CHUNK_SIZE);
+
+        // Call AI Service (Batch)
+        const statusMap = await AIService.checkMultipleItemsIfRunningLow(chunk, memberCount);
+
+        // Prepare bulk updates for items where status has changed
+        const updates: any[] = [];
+        for (const itemData of chunk) {
+          const newStatus = statusMap.get(itemData.id);
+
+          // Only update if we got a result and it's different from current status
+          if (newStatus !== undefined) {
+            const originalItem = items.find(it => it._id.toString() === itemData.id);
+            if (originalItem && originalItem.isRunningLow !== newStatus) {
+              updates.push({
+                updateOne: {
+                  filter: { _id: originalItem._id },
+                  update: { $set: { isRunningLow: newStatus } }
+                }
+              });
+            }
+          }
+        }
+
+        if (updates.length > 0) {
+          await InventoryItemModel.bulkWrite(updates);
+          console.log(`Updated isRunningLow status for ${updates.length} shared items in fridge ${fridgeId}`);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to recalculate shared items status:", error);
+    }
+  }
 }
