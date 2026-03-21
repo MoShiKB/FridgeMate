@@ -4,8 +4,8 @@ import { isAuthorized } from '../middlewares/authorization';
 
 const router = Router();
 
-router.post('/save', isAuthorized, RecipeController.saveToFavorites);
+router.post('/:id/favorite', isAuthorized, RecipeController.addToFavorites);
+router.delete('/:id/favorite', isAuthorized, RecipeController.removeFromFavorites);
 router.get('/:id', isAuthorized, RecipeController.getRecipeById);
 
 export default router;
-

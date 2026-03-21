@@ -12,6 +12,7 @@ export interface IPost {
   text: string;
   mediaUrls: string[];
   likes: mongoose.Types.ObjectId[];
+  recipeId?: mongoose.Types.ObjectId | null;
   location?: {
     type: "Point";
     coordinates: [number, number]; // [lng, lat]
@@ -28,6 +29,7 @@ const PostSchema = new Schema<IPost>(
     text: { type: String, required: true, trim: true },
     mediaUrls: { type: [String], default: [] },
     likes: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    recipeId: { type: Schema.Types.ObjectId, ref: "Recipe", default: null },
     location: {
       type: {
         type: String,
