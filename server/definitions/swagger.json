@@ -581,9 +581,14 @@
             "schema": {
               "type": "object",
               "required": [
+                "title",
                 "text"
               ],
               "properties": {
+                "title": {
+                  "type": "string",
+                  "example": "Amazing Chocolate Cake"
+                },
                 "text": {
                   "type": "string",
                   "example": "Look at this amazing cake I made!"
@@ -695,6 +700,9 @@
             "schema": {
               "type": "object",
               "properties": {
+                "title": {
+                  "type": "string"
+                },
                 "text": {
                   "type": "string"
                 },
@@ -756,6 +764,33 @@
           },
           "403": {
             "description": "Not the author of this post"
+          }
+        }
+      }
+    },
+    "/posts/{post_id}/like": {
+      "post": {
+        "tags": [
+          "Social Feed (Posts)"
+        ],
+        "summary": "Toggle like on a post",
+        "description": "Like or unlike a post. If already liked, it unlikes; otherwise it likes.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "post_id",
+            "type": "string",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Like toggled successfully"
           }
         }
       }
@@ -825,6 +860,57 @@
       }
     },
     "/posts/{postId}/comments/{commentId}": {
+      "put": {
+        "tags": [
+          "Comments"
+        ],
+        "summary": "Edit your comment",
+        "description": "Update the text of your comment.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "postId",
+            "type": "string",
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "commentId",
+            "type": "string",
+            "required": true
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "text"
+              ],
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "example": "Updated comment text"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Comment updated"
+          },
+          "403": {
+            "description": "Not the author of this comment"
+          }
+        }
+      },
       "delete": {
         "tags": [
           "Comments"

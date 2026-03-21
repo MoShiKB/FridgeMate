@@ -7,12 +7,14 @@ import {
   CreateCommentSchema,
   PostCommentIdParamsSchema,
   PostIdParamsSchema,
+  UpdateCommentSchema,
 } from "../validators/comments.validators";
 
 export const commentsRoutes = Router();
 
 commentsRoutes.get(
   "/:postId/comments",
+  requireAuth,
   validate({ params: PostIdParamsSchema }),
   asyncHandler(CommentsController.list)
 );
@@ -22,6 +24,13 @@ commentsRoutes.post(
   requireAuth,
   validate({ params: PostIdParamsSchema, body: CreateCommentSchema }),
   asyncHandler(CommentsController.create)
+);
+
+commentsRoutes.put(
+  "/:postId/comments/:commentId",
+  requireAuth,
+  validate({ params: PostCommentIdParamsSchema, body: UpdateCommentSchema }),
+  asyncHandler(CommentsController.update)
 );
 
 commentsRoutes.delete(
