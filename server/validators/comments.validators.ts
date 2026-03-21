@@ -9,3 +9,7 @@ export const PostCommentIdParamsSchema = z.object({
 export const CreateCommentSchema = z.object({
   text: z.string().min(1),
 });
+
+export const UpdateCommentSchema = z.object({
+  text: z.string().min(1),
+});

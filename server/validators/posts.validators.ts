@@ -10,6 +10,7 @@ export const PostsQuerySchema = z.object({
 });
 
 export const CreatePostSchema = z.object({
+  title: z.string().min(1),
   text: z.string().min(1),
   mediaUrls: z.array(z.string().url()).optional().default([]),
   location: z
@@ -22,6 +23,7 @@ export const CreatePostSchema = z.object({
 });
 
 export const UpdatePostSchema = z.object({
+  title: z.string().min(1).optional(),
   text: z.string().min(1).optional(),
   mediaUrls: z.array(z.string().url()).optional(),
   location: z

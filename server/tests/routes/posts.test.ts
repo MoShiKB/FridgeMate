@@ -11,12 +11,14 @@ describe("Posts Routes", () => {
                 .post("/posts")
                 .set("Authorization", token)
                 .send({
+                    title: "Test Post",
                     text: "Hello world!",
                     mediaUrls: ["http://example.com/img.jpg"]
                 });
 
             expect(res.status).toBe(201);
             expect(res.body.data).toHaveProperty("_id");
+            expect(res.body.data.title).toBe("Test Post");
             expect(res.body.data.text).toBe("Hello world!");
             expect(res.body.data.authorUserId.toString()).toBe(userId.toString());
         });
@@ -26,6 +28,7 @@ describe("Posts Routes", () => {
         it("should list posts", async () => {
             await PostModel.create({
                 authorUserId: userId,
+                title: "First Title",
                 text: "My first post",
             });
 
@@ -45,6 +48,7 @@ describe("Posts Routes", () => {
         it("should update an existing post", async () => {
             const post = await PostModel.create({
                 authorUserId: userId,
+                title: "Old title",
                 text: "Old text",
             });
 
@@ -64,6 +68,7 @@ describe("Posts Routes", () => {
         it("should delete an existing post", async () => {
             const post = await PostModel.create({
                 authorUserId: userId,
+                title: "Delete me",
                 text: "To delete",
             });
 
