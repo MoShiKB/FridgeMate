@@ -13,6 +13,7 @@ export const CreatePostSchema = z.object({
   title: z.string().min(1),
   text: z.string().min(1),
   mediaUrls: z.array(z.string().url()).optional().default([]),
+  recipeId: z.string().optional(),
   location: z
     .object({
       lat: z.number(),

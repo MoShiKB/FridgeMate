@@ -13,7 +13,8 @@ export interface IRecipeNutrition {
 }
 
 export interface IRecipe extends Document {
-    userId: Types.ObjectId;
+    createdBy: Types.ObjectId;
+    favoritedBy: Types.ObjectId[];
     title: string;
     description: string;
     cookingTime: string;
@@ -47,12 +48,15 @@ const RecipeNutritionSchema = new Schema<IRecipeNutrition>(
 
 const RecipeSchema = new Schema<IRecipe>(
     {
-        userId: {
+        createdBy: {
             type: Schema.Types.ObjectId,
             ref: 'User',
-            required: [true, 'User ID is required'],
-            index: true,
+            required: [true, 'Creator user ID is required'],
         },
+        favoritedBy: [{
+            type: Schema.Types.ObjectId,
+            ref: 'User',
+        }],
         title: {
             type: String,
             required: [true, 'Recipe title is required'],

@@ -11,6 +11,7 @@ export class PostsService {
       text: payload.text,
       mediaUrls: payload.mediaUrls ?? [],
       likes: [],
+      recipeId: payload.recipeId ? new mongoose.Types.ObjectId(payload.recipeId) : null,
       location: payload.location
         ? {
             type: "Point",
@@ -46,6 +47,7 @@ export class PostsService {
     const [items, total] = await Promise.all([
       PostModel.find(q)
         .populate("authorUserId", "displayName profileImage address")
+        .populate("recipeId", "title description cookingTime difficulty imageUrl nutrition")
         .sort({ createdAt: -1 })
         .skip(opts.skip)
         .limit(opts.limit)
