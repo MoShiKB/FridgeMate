@@ -8,7 +8,15 @@ import { CreatePostSchema, PostIdParamsSchema, PostsQuerySchema, UpdatePostSchem
 export const postsRoutes = Router();
 
 postsRoutes.post("/", requireAuth, validate({ body: CreatePostSchema }), asyncHandler(PostsController.create));
-postsRoutes.get("/", validate({ query: PostsQuerySchema }), asyncHandler(PostsController.list));
+postsRoutes.get("/me", requireAuth, asyncHandler(PostsController.myPosts));
+postsRoutes.get("/", requireAuth, validate({ query: PostsQuerySchema }), asyncHandler(PostsController.list));
+
+postsRoutes.post(
+  "/:post_id/like",
+  requireAuth,
+  validate({ params: PostIdParamsSchema }),
+  asyncHandler(PostsController.toggleLike)
+);
 
 postsRoutes.put(
   "/:post_id",

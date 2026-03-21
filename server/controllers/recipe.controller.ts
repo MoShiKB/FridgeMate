@@ -2,50 +2,50 @@ import { Request, Response, NextFunction } from 'express';
 import { RecipeService } from '../services/recipe.service';
 
 export const RecipeController = {
-    async saveToFavorites(req: Request, res: Response, next: NextFunction) {
+    async addToFavorites(req: Request, res: Response, next: NextFunction) {
         try {
-            const userId = req.body.userId; // From auth middleware
-            const { title, description, cookingTime, difficulty, ingredients, steps, nutrition, imageUrl } = req.body;
+            const userId = req.body.userId;
+            const { id } = req.params;
 
-            if (!title) {
-                return res.status(400).json({ error: 'Recipe title is required' });
+            const already = await RecipeService.isFavoritedByUser(id, userId);
+            if (already) {
+                return res.status(409).json({ error: 'Recipe already in favorites' });
             }
 
-            const isDuplicate = await RecipeService.isDuplicate(userId, title);
-            if (isDuplicate) {
-                return res.status(409).json({ error: 'Recipe already saved to favorites' });
+            const recipe = await RecipeService.addToFavorites(id, userId);
+            if (!recipe) {
+                return res.status(404).json({ error: 'Recipe not found' });
             }
 
-            const recipe = await RecipeService.saveToFavorites(userId, {
-                title,
-                description,
-                cookingTime,
-                difficulty,
-                ingredients,
-                steps,
-                nutrition,
-                imageUrl,
-            });
-
-            res.status(201).json({
-                message: 'Recipe saved to favorites',
-                recipe,
-            });
+            res.json({ message: 'Recipe added to favorites', recipe });
         } catch (err: any) {
             next(err);
         }
     },
 
-    async getUserRecipes(req: Request, res: Response, next: NextFunction) {
+    async removeFromFavorites(req: Request, res: Response, next: NextFunction) {
+        try {
+            const userId = req.body.userId;
+            const { id } = req.params;
+
+            const recipe = await RecipeService.removeFromFavorites(id, userId);
+            if (!recipe) {
+                return res.status(404).json({ error: 'Recipe not found' });
+            }
+
+            res.json({ message: 'Recipe removed from favorites' });
+        } catch (err: any) {
+            next(err);
+        }
+    },
+
+    async getUserFavorites(req: Request, res: Response, next: NextFunction) {
         try {
             const userId = req.body.userId;
             const page = parseInt(req.query.page as string) || 1;
             const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
 
-            const result = await RecipeService.getUserRecipes(userId, {
-                page,
-                limit,
-            });
+            const result = await RecipeService.getUserFavorites(userId, { page, limit });
 
             res.json({
                 items: result.recipes,
@@ -61,51 +61,21 @@ export const RecipeController = {
     async getRecipeById(req: Request, res: Response, next: NextFunction) {
         try {
             const { id } = req.params;
+            const userId = req.body?.userId;
 
             const recipe = await RecipeService.getById(id);
             if (!recipe) {
                 return res.status(404).json({ error: 'Recipe not found' });
             }
 
-            res.json(recipe);
-        } catch (err: any) {
-            next(err);
-        }
-    },
+            const obj = recipe.toObject();
+            const isFavorited = userId
+                ? (obj.favoritedBy || []).some((uid: any) => uid.toString() === userId)
+                : false;
 
-    async deleteFromFavorites(req: Request, res: Response, next: NextFunction) {
-        try {
-            const userId = req.body.userId;
-            const { id } = req.params;
-
-            const deleted = await RecipeService.deleteFromFavorites(id, userId);
-            if (!deleted) {
-                return res.status(404).json({ error: 'Recipe not found or not owned by user' });
-            }
-
-            res.json({ message: 'Recipe removed from favorites' });
-        } catch (err: any) {
-            next(err);
-        }
-    },
-
-    async getRecipesByUserId(req: Request, res: Response, next: NextFunction) {
-        try {
-            const { userId } = req.params;
-            const page = parseInt(req.query.page as string) || 1;
-            const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
-
-            const result = await RecipeService.getRecipesByUserId(userId, { page, limit });
-
-            res.json({
-                items: result.recipes,
-                total: result.total,
-                page: result.page,
-                limit: result.limit,
-            });
+            res.json({ ...obj, isFavorited });
         } catch (err: any) {
             next(err);
         }
     },
 };
-

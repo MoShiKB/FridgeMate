@@ -449,14 +449,15 @@ Return ONLY a valid JSON array with exactly ${count} recipes. Keep steps SHORT (
     "title": "Recipe Name",
     "description": "One sentence description",
     "cookingTime": "30 minutes",
-    "difficulty": "Easy",
+    "difficulty": "Easy | Medium | Hard",
     "ingredients": [{ "name": "ingredient", "amount": "amount" }],
     "steps": ["Step 1", "Step 2"],
     "nutrition": { "calories": "350 kcal", "protein": "25g", "carbs": "30g", "fat": "15g" }
   }
 ]
 
-IMPORTANT: Return ONLY valid JSON, no markdown, no extra text. Ensure all strings are properly escaped.`;
+IMPORTANT: Return ONLY valid JSON, no markdown, no extra text. Ensure all strings are properly escaped.
+IMPORTANT: "difficulty" MUST be exactly one of: "Easy", "Medium", or "Hard". No other values are allowed.`;
 
     return prompt;
 }

@@ -11,6 +11,7 @@ describe("Comments Routes", () => {
     beforeEach(async () => {
         const post = await PostModel.create({
             authorUserId: userId,
+            title: "Comment Test Post",
             text: "Post for comments",
         });
         postId = post._id.toString();
@@ -28,7 +29,8 @@ describe("Comments Routes", () => {
             expect(res.status).toBe(201);
             expect(res.body.data).toHaveProperty("_id");
             expect(res.body.data.text).toBe("Nice post!");
-            expect(res.body.data.authorUserId.toString()).toBe(userId.toString());
+            const authorId = res.body.data.authorUserId._id || res.body.data.authorUserId;
+            expect(authorId.toString()).toBe(userId.toString());
             expect(res.body.data.postId.toString()).toBe(postId);
         });
     });
