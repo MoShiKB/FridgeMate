@@ -1,5 +1,6 @@
 import { CSSProperties } from "react";
 import { colors } from "./colors";
+import { TbFridgeOff } from "react-icons/tb";
 
 
 export const styles: Record<string, CSSProperties> = {
@@ -63,6 +64,14 @@ menuRowText: {
   fontSize: 18,
   fontWeight: 600,
   color: colors.black,
+},
+subText: {
+  textAlign: "center",
+  fontSize: 16,
+  margin: "18px 0",
+  fontWeight: 400,
+  color: colors.grayText,
+  marginTop: 4,
 },
 greenCard: {
   background: colors.lightTeal,
@@ -144,6 +153,7 @@ memberRow: {
   gap: 12,
   marginBottom: 8,
 },
+
 memberAvatar: {
   width: 40,
   height: 40,
@@ -203,6 +213,53 @@ copyToastText: {
   fontSize: 16,
   fontWeight: 500,
 },
+createBtn: {
+  width: "60%",
+  padding: "10px",
+  margin: "24px auto 0 auto",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  gap: "10px",
+  borderRadius: 12,
+  background: colors.buttons,
+  color: colors.white,
+  fontSize: 16,
+  fontWeight: 600,
+  cursor: "pointer",
+},
+joinBtn: {
+  width: "60%",
+  padding: "10px",
+  margin: "24px auto 0 auto",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  gap: "10px",
+  borderRadius: 12,
+  border: `2px solid ${colors.buttons}`,
+  background: colors.white,
+  color: colors.buttons,
+  fontSize: 16,
+  fontWeight: 600,
+  cursor: "pointer",
+},
+input: {
+  width: "60%",
+  padding: "10px",
+  margin: "16px auto 0 auto",
+    display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  gap: "10px",
+  border: "1px solid #ccc",
+  borderRadius: "10px",
+  fontSize: "14px",
+  backgroundColor: "colors.white",
+  boxSizing: "border-box",
+  marginBottom: "12px",
+},
+
 };
 
 export const iconProps = {
@@ -229,6 +286,10 @@ export const iconProps = {
   leaveIcon: {
     size: 17,
     color: colors.errorRed,
+  },
+  fridgeOffIcon: {
+    size: 20,
+    color: colors.black,
   },
 
 };
