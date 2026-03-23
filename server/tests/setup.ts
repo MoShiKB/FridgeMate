@@ -1,7 +1,8 @@
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
-import User, { IUser } from '../models/user.model';
+import { MongoMemoryServer } from 'mongodb-memory-server';
+import User from '../models/user.model';
 import bcrypt from "bcrypt";
 
 dotenv.config();
@@ -20,66 +21,39 @@ const testSetup = {
     userId,
 };
 
-beforeAll(async () => {
-    const testUri = process.env.MONGO_URI_TEST;
-    if (!testUri) {
-        throw new Error('MONGO_URI_TEST is not defined in the .env file');
-    }
+let mongoServer: MongoMemoryServer;
 
-    try {
-        await mongoose.connect(testUri);
-        console.log('Connected to the test database');
-    } catch (error) {
-        console.error('Error connecting to the test database:', error);
-        throw error;
-    }
+beforeAll(async () => {
+    mongoServer = await MongoMemoryServer.create();
+    await mongoose.connect(mongoServer.getUri());
 });
 
 beforeEach(async () => {
-    try {
-        const existingUser = await User.findById(userId);
-        if (!existingUser) {
-            const password = await bcrypt.hash('securePassword123', 10);
+    const existingUser = await User.findById(userId);
+    if (!existingUser) {
+        const password = await bcrypt.hash('securePassword123', 10);
 
-            await User.create({
-                _id: userId,
-                userName: 'testuser',
-                displayName: 'Test User',
-                email: `testuser${Date.now()}@example.com`,
-                password,
-                refreshToken,
-            });
-        }
-    } catch (error) {
-        console.error('Error inserting mock user:', error);
-        throw error;
+        await User.create({
+            _id: userId,
+            userName: 'testuser',
+            displayName: 'Test User',
+            email: `testuser${Date.now()}@example.com`,
+            password,
+            refreshToken,
+        });
     }
 });
 
 afterEach(async () => {
-    try {
-        const collections = mongoose.connection.collections;
-        for (const key in collections) {
-            await collections[key]?.deleteMany({});
-        }
-    } catch (error) {
-        console.error('Error clearing test database:', error);
-        throw error;
+    const collections = mongoose.connection.collections;
+    for (const key in collections) {
+        await collections[key]?.deleteMany({});
     }
 });
 
 afterAll(async () => {
-    try {
-        const collections = mongoose.connection.collections;
-        for (const key in collections) {
-            await collections[key].deleteMany({});
-        }
-        await mongoose.connection.close();
-        console.log('Disconnected from the test database');
-    } catch (error) {
-        console.error('Error cleaning up the test database:', error);
-    }
+    await mongoose.connection.close();
+    await mongoServer.stop();
 });
 
 export default testSetup;
-

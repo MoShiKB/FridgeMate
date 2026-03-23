@@ -5,6 +5,7 @@ import { RecipeService } from '../services/recipe.service';
 export const AIController = {
     async generateRecipes(req: Request, res: Response, next: NextFunction) {
         try {
+            const userId = req.body.userId;
             const { ingredients, allergies, dietPreference, count } = req.body;
 
             if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
@@ -20,10 +21,31 @@ export const AIController = {
                 count: count || 3
             });
 
+            const recipesWithImages = await Promise.all(
+                result.recipes.map(async (recipe) => {
+                    const imageUrl = await AIService.generateRecipeImage(recipe.title);
+                    return { ...recipe, imageUrl };
+                })
+            );
+
+            const saved = await RecipeService.bulkCreate(userId, recipesWithImages);
+
+            const recipesResponse = saved.map((r) => ({
+                _id: r._id,
+                title: r.title,
+                description: r.description,
+                cookingTime: r.cookingTime,
+                difficulty: r.difficulty,
+                ingredients: r.ingredients,
+                steps: r.steps,
+                nutrition: r.nutrition,
+                imageUrl: r.imageUrl,
+            }));
+
             res.json({
                 message: 'Recipes generated successfully',
-                recipes: result.recipes,
-                count: result.recipes.length
+                recipes: recipesResponse,
+                count: recipesResponse.length
             });
         } catch (err: any) {
             next(err);
@@ -67,4 +89,3 @@ export const AIController = {
         }
     }
 };
-

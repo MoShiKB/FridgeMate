@@ -14,6 +14,7 @@ export class PostsController {
 
   static async list(req: Request, res: Response) {
     const { page, limit, skip } = parsePageLimit(req.query);
+    const userId = (req as AuthedRequest).user?.userId;
 
     const lat = (req.query as any).lat;
     const lng = (req.query as any).lng;
@@ -24,7 +25,14 @@ export class PostsController {
         ? { lat: Number(lat), lng: Number(lng), radiusKm: radiusKm ? Number(radiusKm) : undefined }
         : undefined;
 
-    const result = await PostsService.list({ skip, limit, near });
+    const result = await PostsService.list({ skip, limit, userId, near });
+    return itemsRes(res, { items: result.items, total: result.total, page, limit });
+  }
+
+  static async myPosts(req: Request, res: Response) {
+    const userId = (req as AuthedRequest).user.userId;
+    const { page, limit, skip } = parsePageLimit(req.query);
+    const result = await PostsService.list({ skip, limit, userId, authorId: userId });
     return itemsRes(res, { items: result.items, total: result.total, page, limit });
   }
 
@@ -39,6 +47,13 @@ export class PostsController {
     const userId = (req as AuthedRequest).user.userId;
     const postId = req.params.post_id;
     const result = await PostsService.remove(userId, postId);
+    return ok(res, result);
+  }
+
+  static async toggleLike(req: Request, res: Response) {
+    const userId = (req as AuthedRequest).user.userId;
+    const postId = req.params.post_id;
+    const result = await PostsService.toggleLike(userId, postId);
     return ok(res, result);
   }
 }

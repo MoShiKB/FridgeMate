@@ -8,8 +8,11 @@ export interface IPostLocation {
 
 export interface IPost {
   authorUserId: mongoose.Types.ObjectId;
+  title: string;
   text: string;
   mediaUrls: string[];
+  likes: mongoose.Types.ObjectId[];
+  recipeId?: mongoose.Types.ObjectId | null;
   location?: {
     type: "Point";
     coordinates: [number, number]; // [lng, lat]
@@ -22,8 +25,11 @@ export interface IPost {
 const PostSchema = new Schema<IPost>(
   {
     authorUserId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    title: { type: String, required: true, trim: true },
     text: { type: String, required: true, trim: true },
     mediaUrls: { type: [String], default: [] },
+    likes: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    recipeId: { type: Schema.Types.ObjectId, ref: "Recipe", default: null },
     location: {
       type: {
         type: String,

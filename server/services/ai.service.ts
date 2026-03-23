@@ -1,4 +1,18 @@
+import { GoogleGenAI } from '@google/genai';
 import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+import { UPLOADS_DIR } from '../config/env';
+
+// Initialize Gemini AI client
+if (!process.env.GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY is not configured in environment variables');
+}
+
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const IMAGE_MODEL_NAME = process.env.GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image';
 
 interface RecipeGenerationRequest {
     ingredients: string[];
@@ -31,43 +45,33 @@ export const AIService = {
     async generateRecipes(request: RecipeGenerationRequest): Promise<AIServiceResponse> {
         const { ingredients, allergies = [], dietPreference = 'NONE', count = 3 } = request;
 
-        if (!process.env.GEMINI_API_KEY) {
-            throw new Error('GEMINI_API_KEY is not configured');
-        }
-
         const prompt = buildRecipePrompt(ingredients, allergies, dietPreference, count);
 
         try {
-            const response = await axios.post(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-                {
-                    contents: [{
-                        parts: [{ text: prompt }]
-                    }],
-                    generationConfig: {
-                        temperature: 0.7,
-                        maxOutputTokens: 8192,
-                    }
-                },
-                {
-                    headers: { 'Content-Type': 'application/json' }
+            const response = await ai.models.generateContent({
+                model: MODEL_NAME,
+                contents: prompt,
+                config: {
+                    temperature: 0.7,
+                    maxOutputTokens: 8192,
                 }
-            );
+            });
 
-            const textContent = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-            
+            const textContent = response.text;
+
             if (!textContent) {
                 throw new Error('No response from AI');
             }
 
             const recipes = parseRecipeResponse(textContent);
-            
+
             return {
                 recipes,
                 rawResponse: textContent
             };
         } catch (error: any) {
-            if (error.response?.status === 429) {
+            // Handle rate limiting errors
+            if (error.message?.includes('429') || error.message?.includes('quota') || error.message?.includes('rate limit')) {
                 throw new Error('AI rate limit exceeded. Please try again later.');
             }
             throw new Error(`AI service error: ${error.message}`);
@@ -75,10 +79,6 @@ export const AIService = {
     },
 
     async askAboutRecipe(query: string, recipe?: { title: string; ingredients?: any[]; steps?: string[] }, availableIngredients: string[] = []): Promise<string> {
-        if (!process.env.GEMINI_API_KEY) {
-            throw new Error('GEMINI_API_KEY is not configured');
-        }
-
         let prompt = 'You are a helpful cooking assistant.\n\n';
 
         // Add recipe context if provided
@@ -86,7 +86,7 @@ export const AIService = {
             prompt += `The user is asking about this recipe:\n`;
             prompt += `Recipe: "${recipe.title}"\n`;
             if (recipe.ingredients && recipe.ingredients.length > 0) {
-                const ingredientList = recipe.ingredients.map((i: any) => 
+                const ingredientList = recipe.ingredients.map((i: any) =>
                     typeof i === 'string' ? i : `${i.name} (${i.amount})`
                 ).join(', ');
                 prompt += `Ingredients: ${ingredientList}\n`;
@@ -106,29 +106,321 @@ export const AIService = {
         prompt += `Provide a helpful, concise answer. If they ask about substitutions, variations, or modifications, give specific suggestions.`;
 
         try {
-            const response = await axios.post(
-                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-                {
-                    contents: [{
-                        parts: [{ text: prompt }]
-                    }],
-                    generationConfig: {
-                        temperature: 0.7,
-                        maxOutputTokens: 1024,
-                    }
-                },
-                {
-                    headers: { 'Content-Type': 'application/json' }
+            const response = await ai.models.generateContent({
+                model: MODEL_NAME,
+                contents: prompt,
+                config: {
+                    temperature: 0.7,
+                    maxOutputTokens: 1024,
                 }
-            );
+            });
 
-            const textContent = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+            const textContent = response.text;
             return textContent || 'Unable to process your request.';
         } catch (error: any) {
-            if (error.response?.status === 429) {
+            // Handle rate limiting errors
+            if (error.message?.includes('429') || error.message?.includes('quota') || error.message?.includes('rate limit')) {
                 throw new Error('AI rate limit exceeded. Please try again later.');
             }
             throw new Error(`AI service error: ${error.message}`);
+        }
+    },
+
+    async generateRecipeImage(recipeTitle: string): Promise<string | null> {
+        // 1. AI image generation (requires GEMINI_IMAGE_API_KEY)
+        if (process.env.GEMINI_IMAGE_API_KEY) {
+            const aiImage = await this._tryAIImageGeneration(recipeTitle);
+            if (aiImage) return aiImage;
+        }
+
+        // 2. TheMealDB → then Spoonacular
+        const searchImage = await this._tryAIImageSearch(recipeTitle);
+        if (searchImage) return searchImage;
+
+        return null;
+    },
+
+    async _downloadImageToUploads(imageUrl: string): Promise<string | null> {
+        try {
+            const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer', timeout: 10000 });
+            const ext = imageUrl.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
+            const filename = `recipe_${crypto.randomBytes(12).toString('hex')}.${ext}`;
+            const filepath = path.join(UPLOADS_DIR, filename);
+            fs.writeFileSync(filepath, Buffer.from(imageResponse.data));
+            return `/uploads/${filename}`;
+        } catch (error: any) {
+            console.error('Image download failed:', error.message);
+            return null;
+        }
+    },
+
+    async _tryAIImageGeneration(recipeTitle: string): Promise<string | null> {
+        const imageApiKey = process.env.GEMINI_IMAGE_API_KEY;
+        if (!imageApiKey) return null;
+
+        try {
+            const imageAi = new GoogleGenAI({ apiKey: imageApiKey });
+            const prompt = `Generate a beautiful, appetizing food photograph of "${recipeTitle}".
+            The image should be a professional food photograph, well-plated, natural lighting.
+            The image should be a high-quality, professional photograph.
+            The image should be a high-resolution photograph.`;
+
+            const response = await imageAi.models.generateContent({
+                model: IMAGE_MODEL_NAME,
+                contents: prompt,
+                config: {
+                    responseModalities: ['IMAGE', 'TEXT'] as any,
+                },
+            });
+
+            const parts = response.candidates?.[0]?.content?.parts;
+            if (!parts) return null;
+
+            for (const part of parts) {
+                if (part.inlineData?.mimeType?.startsWith('image/')) {
+                    const filename = `recipe_${crypto.randomBytes(12).toString('hex')}.png`;
+                    const filepath = path.join(UPLOADS_DIR, filename);
+
+                    const buffer = Buffer.from(part.inlineData.data!, 'base64');
+                    fs.writeFileSync(filepath, buffer);
+
+                    return `/uploads/${filename}`;
+                }
+            }
+
+            return null;
+        } catch (error: any) {
+            console.error('AI image generation failed:', error.message);
+            return null;
+        }
+    },
+
+    /**
+     * Extracts search keywords, then searches TheMealDB and Spoonacular for a matching dish image.
+     */
+    async _tryAIImageSearch(recipeTitle: string): Promise<string | null> {
+        const keywords = await this._extractKeywords(recipeTitle);
+
+        for (const keyword of keywords) {
+            try {
+                const response = await axios.get(
+                    `https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(keyword)}`,
+                    { timeout: 5000 }
+                );
+                const meals = response.data?.meals;
+                if (meals?.length > 0 && meals[0].strMealThumb) {
+                    return await this._downloadImageToUploads(meals[0].strMealThumb);
+                }
+            } catch {}
+        }
+
+        const spoonacularKey = process.env.SPOONACULAR_API_KEY;
+        if (spoonacularKey) {
+            for (const keyword of keywords) {
+                try {
+                    const response = await axios.get(
+                        `https://api.spoonacular.com/recipes/complexSearch?query=${encodeURIComponent(keyword)}&number=1&apiKey=${spoonacularKey}`,
+                        { timeout: 5000 }
+                    );
+                    const results = response.data?.results;
+                    if (results?.length > 0 && results[0].image) {
+                        return await this._downloadImageToUploads(results[0].image);
+                    }
+                } catch {}
+            }
+        }
+
+        return null;
+    },
+
+    async _extractKeywords(recipeTitle: string): Promise<string[]> {
+        try {
+            const response = await ai.models.generateContent({
+                model: MODEL_NAME,
+                contents: `From this recipe title, extract up to 3 search terms ordered from most specific to most general. Each term should be a food name likely to appear in a recipe database.
+Return ONLY a comma-separated list, nothing else.
+Examples:
+- "Spicy Thai Basil Chicken Stir-Fry" → "thai chicken, chicken stir-fry, chicken"
+- "Classic Margherita Pizza" → "margherita pizza, pizza, margherita"
+- "Lemon Herb Grilled Salmon with Vegetables" → "grilled salmon, salmon, fish"
+Title: "${recipeTitle}"`,
+                config: { temperature: 0, maxOutputTokens: 50 }
+            });
+            const raw = response.text?.trim()?.toLowerCase();
+            if (raw) return raw.split(',').map(k => k.trim()).filter(Boolean);
+        } catch { /* AI unavailable — fall through to simple extraction */ }
+
+        const stopWords = new Set(['a', 'an', 'the', 'with', 'and', 'or', 'in', 'on', 'of', 'for', 'to', 'my',
+            'easy', 'simple', 'quick', 'best', 'classic', 'homemade', 'style', 'recipe']);
+        const words = recipeTitle.toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/)
+            .filter(w => w.length > 2 && !stopWords.has(w));
+        if (words.length === 0) return [recipeTitle.toLowerCase()];
+        if (words.length >= 2) return [words.slice(0, 2).join(' '), words[0], words[1]];
+        return [words[0]];
+    },
+
+    /**
+     * Checks multiple items for "running low" status in a single request.
+     */
+    async checkMultipleItemsIfRunningLow(items: { id: string; name: string; quantity: string }[], userCount: number): Promise<Map<string, boolean>> {
+        if (items.length === 0) return new Map();
+
+        const itemsList = items.map(item => `- ID: ${item.id}, Name: "${item.name}", Quantity: "${item.quantity}"`).join('\n');
+
+        const prompt = `
+You are a smart kitchen assistant. Determine if each of the following fridge items is running low for a household of ${userCount} people.
+
+Context:
+Household Size: ${userCount} person(s)
+
+Items to evaluate:
+${itemsList}
+
+Task:
+- Analyze if the quantity for each item is typically considered low/insufficient for this household size.
+- Respond with ONLY a JSON array of objects.
+
+Format:
+[
+  { "id": "item_id_here", "isRunningLow": true/false }
+]
+`;
+
+        try {
+            const response = await ai.models.generateContent({
+                model: MODEL_NAME,
+                contents: prompt,
+                config: {
+                    temperature: 0.1,
+                    maxOutputTokens: 2048,
+                    responseMimeType: "application/json"
+                }
+            });
+
+            const textContent = response.text;
+            if (!textContent) throw new Error('No response from AI');
+
+            const results = JSON.parse(textContent);
+            const statusMap = new Map<string, boolean>();
+
+            if (Array.isArray(results)) {
+                results.forEach((r: any) => {
+                    if (r.id) statusMap.set(r.id, !!r.isRunningLow);
+                });
+            }
+
+            return statusMap;
+        } catch (error: any) {
+            console.error('AI checkMultipleItemsIfRunningLow error:', error);
+            return new Map(); // Return empty map on failure
+        }
+    },
+
+
+    /**
+     * Checks if a specific item is considered "running low" based on quantity and household size.
+     */
+    async detectFridgeItems(imageBuffer: Buffer, mimeType: string): Promise<{ name: string; quantity: string }[]> {
+        const base64Image = imageBuffer.toString('base64');
+
+        const prompt = `You are a smart kitchen assistant. Analyze this photo of the inside of a fridge (or of food items).
+Identify every distinct food item you can see in the image. For each item, estimate its quantity in a human-friendly format (e.g. "2", "1 bag", "500ml", "half a block").
+
+Respond with ONLY a JSON array of objects. Each object must have:
+- "name": the food item name (lowercase, singular form preferred, e.g. "egg" not "eggs")
+- "quantity": estimated quantity as a string
+
+Example:
+[
+  { "name": "egg", "quantity": "6" },
+  { "name": "milk", "quantity": "1 liter" },
+  { "name": "cheddar cheese", "quantity": "1 block" }
+]
+
+If no food items are visible, return an empty array: []`;
+
+        try {
+            const response = await ai.models.generateContent({
+                model: MODEL_NAME,
+                contents: [
+                    {
+                        role: 'user',
+                        parts: [
+                            { inlineData: { mimeType, data: base64Image } },
+                            { text: prompt },
+                        ],
+                    },
+                ],
+                config: {
+                    temperature: 0.2,
+                    maxOutputTokens: 2048,
+                    responseMimeType: "application/json",
+                },
+            });
+
+            const textContent = response.text;
+            if (!textContent) throw new Error('No response from AI');
+
+            const items = JSON.parse(textContent);
+            if (!Array.isArray(items)) throw new Error('AI did not return an array');
+
+            return items
+                .filter((item: any) => item.name && item.quantity)
+                .map((item: any) => ({
+                    name: String(item.name).trim(),
+                    quantity: String(item.quantity).trim(),
+                }));
+        } catch (error: any) {
+            if (error.message?.includes('429') || error.message?.includes('quota') || error.message?.includes('rate limit')) {
+                throw new Error('AI rate limit exceeded. Please try again later.');
+            }
+            throw new Error(`AI scan service error: ${error.message}`);
+        }
+    },
+
+    async checkIfRunningLow(itemName: string, quantity: string, userCount: number): Promise<{ isRunningLow: boolean; reasoning: string }> {
+        const prompt = `
+You are a smart kitchen assistant. Determine if the following fridge item is running low for a household of ${userCount} people.
+
+Context:
+- Item Name: "${itemName}"
+- Current Quantity: "${quantity}"
+- Household Size: ${userCount} person(s)
+
+Task:
+- Analyze if this quantity is typically considered low/insufficient for this household size.
+- Respond with ONLY a JSON object.
+
+Format:
+{
+  "isRunningLow": true/false, // Boolean
+  "reasoning": "short explanation (max 15 words)"
+}
+`;
+
+        try {
+            const response = await ai.models.generateContent({
+                model: MODEL_NAME,
+                contents: prompt,
+                config: {
+                    temperature: 0.1,
+                    maxOutputTokens: 200,
+                    responseMimeType: "application/json"
+                }
+            });
+
+            const textContent = response.text;
+            if (!textContent) throw new Error('No response from AI');
+
+            const result = JSON.parse(textContent);
+            return {
+                isRunningLow: !!result.isRunningLow,
+                reasoning: result.reasoning || "AI assessment."
+            };
+        } catch (error: any) {
+            console.error('AI checkRunningLow error:', error);
+            // Default to false if AI fails
+            return { isRunningLow: false, reasoning: "Could not determine status." };
         }
     }
 };
@@ -157,14 +449,15 @@ Return ONLY a valid JSON array with exactly ${count} recipes. Keep steps SHORT (
     "title": "Recipe Name",
     "description": "One sentence description",
     "cookingTime": "30 minutes",
-    "difficulty": "Easy",
+    "difficulty": "Easy | Medium | Hard",
     "ingredients": [{ "name": "ingredient", "amount": "amount" }],
     "steps": ["Step 1", "Step 2"],
     "nutrition": { "calories": "350 kcal", "protein": "25g", "carbs": "30g", "fat": "15g" }
   }
 ]
 
-IMPORTANT: Return ONLY valid JSON, no markdown, no extra text. Ensure all strings are properly escaped.`;
+IMPORTANT: Return ONLY valid JSON, no markdown, no extra text. Ensure all strings are properly escaped.
+IMPORTANT: "difficulty" MUST be exactly one of: "Easy", "Medium", or "Hard". No other values are allowed.`;
 
     return prompt;
 }
@@ -172,29 +465,27 @@ IMPORTANT: Return ONLY valid JSON, no markdown, no extra text. Ensure all string
 function parseRecipeResponse(text: string): GeneratedRecipe[] {
     try {
         let cleanedText = text.trim();
-        
+
         // Remove markdown code blocks (```json ... ``` or ``` ... ```)
         const codeBlockMatch = cleanedText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
         if (codeBlockMatch) {
             cleanedText = codeBlockMatch[1];
         }
-        
+
         // Try to find JSON array in the response
         const jsonMatch = cleanedText.match(/\[[\s\S]*\]/);
         if (jsonMatch) {
             cleanedText = jsonMatch[0];
         }
-        
+
         cleanedText = cleanedText.trim();
-        
-        console.log('Attempting to parse:', cleanedText.substring(0, 200) + '...');
-        
+
         const recipes = JSON.parse(cleanedText);
-        
+
         if (!Array.isArray(recipes)) {
             throw new Error('Response is not an array');
         }
-        
+
         return recipes.map((recipe: any) => ({
             title: recipe.title || 'Untitled Recipe',
             description: recipe.description || '',
@@ -210,4 +501,3 @@ function parseRecipeResponse(text: string): GeneratedRecipe[] {
         throw new Error('Failed to parse recipe response from AI');
     }
 }
-

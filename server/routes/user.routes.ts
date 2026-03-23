@@ -6,8 +6,8 @@ import { isAuthorized } from "../middlewares/authorization";
 const router = Router();
 
 router.get("/", isAuthorized, UserController.getAllUsers);
-router.get("/me/recipes", isAuthorized, RecipeController.getUserRecipes);
-router.delete("/me/recipes/:id", isAuthorized, RecipeController.deleteFromFavorites);
+router.get("/me/recipes", isAuthorized, RecipeController.getUserFavorites);
+router.delete("/me/recipes/:id", isAuthorized, RecipeController.removeFromFavorites);
 router.get("/:id", isAuthorized, UserController.getUserById);
 router.put("/:id", isAuthorized, UserController.updateProfile);
 
