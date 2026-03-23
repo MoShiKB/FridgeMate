@@ -20,4 +20,5 @@ export const colors = {
   titleGradientStart: '#00BC7D',
   titleGradientEnd: '#00B8DB',
   buttons: '#54a096',
+  bordwhite:'#e0e0e0'
 };

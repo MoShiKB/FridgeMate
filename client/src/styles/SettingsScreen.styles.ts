@@ -1,6 +1,5 @@
 import { CSSProperties } from "react";
 import { colors } from "./colors";
-import { TbUpload } from "react-icons/tb";
 
 
 export const styles: Record<string, CSSProperties> = {
@@ -10,7 +9,7 @@ export const styles: Record<string, CSSProperties> = {
     gap: 12,
     padding: "16px 24px",
     background:colors.white,
-    borderBottom: "1px solid #e0e0e0",
+    borderBottom: `1px solid ${colors.bordwhite}`,
   },
   backBtn: {
     background: "none",
@@ -57,7 +56,7 @@ menuRow: {
   alignItems: "center",
   gap: 10,
   padding: "14px 0",
-  borderBottom: "1px solid #f0f0f0",
+  borderBottom: `1px solid ${colors.bordwhite}`,
   cursor: "pointer",
 },
 menuRowText: {
@@ -65,7 +64,32 @@ menuRowText: {
   fontWeight: 600,
   color: colors.black,
 },
-
+greenCard: {
+  background: colors.lightTeal,
+  borderRadius: 16,
+  padding: 16,
+  marginTop: 12,
+},
+greenCardHeader: {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  marginBottom: 12,
+},
+greenCardLabel: {
+  fontSize: 15,
+  color: colors.grayText,
+  marginBottom: 4,
+},
+greenCardTitle: {
+  fontSize: 18,
+  fontWeight: 700,
+  color: colors.black,
+},
+membersText: {
+  fontSize: 15,
+  color: colors.grayText,
+},
 scannerBtn: {
   width: "60%",
   padding: "10px",
@@ -81,7 +105,78 @@ scannerBtn: {
   fontSize: 16,
   fontWeight: 600,
   cursor: "pointer",
-}
+},
+inviteBox: {
+  background: colors.white,
+  borderRadius: 12,
+  padding: "12px 16px",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: 12,
+},
+inviteLabel: {
+  fontSize: 12,
+  color: colors.grayText,
+  marginBottom: 4,
+},
+inviteCode: {
+  fontSize: 15,
+  fontWeight: 700,
+  color: colors.darkTeal,
+},
+copyBtn: {
+  background: colors.buttons,
+  color: colors.white,
+  border: "none",
+  borderRadius: 10,
+  padding: "8px 16px",
+  cursor: "pointer",
+  fontSize: 14,
+  fontWeight: 600,
+},
+memberRow: {
+  background: colors.white,
+  borderRadius: 12,
+  padding: "10px 14px",
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
+  marginBottom: 8,
+},
+memberAvatar: {
+  width: 40,
+  height: 40,
+  borderRadius: "50%",
+  background: colors.lightTeal,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: 16,
+  fontWeight: 600,
+  color: colors.darkTeal,
+},
+memberName: {
+  fontSize: 15,
+  fontWeight: 600,
+  color: colors.black,
+},
+leaveBtn: {
+  width: "60%",
+  padding: "10px",
+  margin: "16px auto 0 auto",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  gap: "10px",
+  borderRadius: 12,
+ border: `1px solid ${colors.errorRed}`,
+  backgroundColor: colors.white,
+  color: colors.errorRed,
+  fontSize: 16,
+  fontWeight: 600,
+  cursor: "pointer",
+},
 };
 
 export const iconProps = {
@@ -100,6 +195,14 @@ export const iconProps = {
   uploadIcon: {
     size: 17,
     color: colors.white,
+  },
+  copyIcon: {
+    size: 14,
+    color: colors.darkTeal,
+  },
+  leaveIcon: {
+    size: 17,
+    color: colors.errorRed,
   },
 
 };
