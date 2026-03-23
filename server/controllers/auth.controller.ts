@@ -33,7 +33,6 @@ export const AuthController = {
 
   async handleGoogleCallback(req: Request, res: Response, next: NextFunction) {
     const clientUrl = process.env.CLIENT_URL || "http://localhost:3000";
-    const redirectRoute = `${clientUrl}/auth/google/callback`;
     const googleUser = req.user as { email?: string; userName?: string; profileImage?: string };
 
     if (!googleUser?.email) {
@@ -47,9 +46,24 @@ export const AuthController = {
         googleUser.profileImage
       );
 
-      return res.redirect(
-        `${redirectRoute}?accessToken=${response.data.accessToken}&refreshToken=${response.data.refreshToken}`
-      );
+      const isProduction = process.env.NODE_ENV === "production";
+
+      res.cookie("accessToken", response.data.accessToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: "lax",
+        maxAge: 15 * 60 * 1000,
+      });
+
+      res.cookie("refreshToken", response.data.refreshToken, {
+        httpOnly: true,
+        secure: isProduction,
+        path: "/api/auth/refresh-token",
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
+      return res.redirect(`${clientUrl}/auth/google/callback`);
     } catch (err) {
       next(err);
     }
