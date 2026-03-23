@@ -8,17 +8,11 @@ export const AIController = {
             const userId = req.body.userId;
             const { ingredients, allergies, dietPreference, count } = req.body;
 
-            if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
-                return res.status(400).json({
-                    error: 'ingredients is required and must be a non-empty array'
-                });
-            }
-
             const result = await AIService.generateRecipes({
                 ingredients,
                 allergies,
                 dietPreference,
-                count: count || 3
+                count,
             });
 
             const recipesWithImages = await Promise.all(
@@ -55,12 +49,6 @@ export const AIController = {
     async askAI(req: Request, res: Response, next: NextFunction) {
         try {
             const { query, recipe, recipeId, ingredients } = req.body;
-
-            if (!query || typeof query !== 'string') {
-                return res.status(400).json({
-                    error: 'query is required and must be a string'
-                });
-            }
 
             let recipeContext = recipe;
             if (recipeId && !recipe) {
