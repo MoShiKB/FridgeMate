@@ -1,10 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
+import { AuthedRequest } from '../middlewares/auth';
 import { RecipeService } from '../services/recipe.service';
 
 export const RecipeController = {
     async addToFavorites(req: Request, res: Response, next: NextFunction) {
         try {
-            const userId = req.body.userId;
+            const userId = (req as AuthedRequest).user.userId;
             const { id } = req.params;
 
             const already = await RecipeService.isFavoritedByUser(id, userId);
@@ -25,7 +26,7 @@ export const RecipeController = {
 
     async removeFromFavorites(req: Request, res: Response, next: NextFunction) {
         try {
-            const userId = req.body.userId;
+            const userId = (req as AuthedRequest).user.userId;
             const { id } = req.params;
 
             const recipe = await RecipeService.removeFromFavorites(id, userId);
@@ -41,7 +42,7 @@ export const RecipeController = {
 
     async getUserFavorites(req: Request, res: Response, next: NextFunction) {
         try {
-            const userId = req.body.userId;
+            const userId = (req as AuthedRequest).user.userId;
             const page = parseInt(req.query.page as string) || 1;
             const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
 
@@ -61,7 +62,7 @@ export const RecipeController = {
     async getRecipeById(req: Request, res: Response, next: NextFunction) {
         try {
             const { id } = req.params;
-            const userId = req.body?.userId;
+            const userId = (req as AuthedRequest).user.userId;
 
             const recipe = await RecipeService.getById(id);
             if (!recipe) {

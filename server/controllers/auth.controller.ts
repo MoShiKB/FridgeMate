@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { AuthedRequest } from "../middlewares/auth";
 import { AuthService, RegisterData } from "../services/auth.service";
 
 export const AuthController = {
@@ -57,7 +58,7 @@ export const AuthController = {
 
   async logout(req: Request, res: Response, next: NextFunction) {
     try {
-      const { userId } = req.body;
+      const userId = (req as AuthedRequest).user.userId;
       const response = await AuthService.logout(userId);
       return res.status(response.status).json(response.data);
     } catch (err) {
