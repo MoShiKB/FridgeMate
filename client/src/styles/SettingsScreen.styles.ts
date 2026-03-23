@@ -68,7 +68,7 @@ menuRowText: {
 subText: {
   textAlign: "center",
   fontSize: 16,
-  margin: "18px 0",
+  margin: "18px",
   fontWeight: 400,
   color: colors.grayText,
   marginTop: 4,

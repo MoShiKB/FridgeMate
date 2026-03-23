@@ -115,7 +115,7 @@ useEffect(() => {
  
 
  {/*leave fridge button*/}
-    <button style={styles.leaveBtn} onClick={() => console.log("leaving fridge...")}>
+    <button style={styles.leaveBtn} onClick={() => setHasFridge(false)}>
          <SlLogout {...iconProps.leaveIcon} />
                 <span style={styles.scannerBtnText}>Leave Fridge</span>
     </button>
@@ -166,11 +166,10 @@ useEffect(() => {
         <button
           type="button"
           style={styles.createBtn}
-          onClick={() => console.log("creating...")}
+          onClick={() => setHasFridge(true)}
         >
           Create Fridge
         </button>
-
         <p style={styles.subText}>Or join an existing fridge</p>
 
         <input
