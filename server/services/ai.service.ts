@@ -1,6 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import axios from 'axios';
-import fs from 'fs';
+import fs from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
 import { UPLOADS_DIR } from '../config/env';
@@ -146,7 +146,7 @@ export const AIService = {
             const ext = imageUrl.match(/\.(jpg|jpeg|png|webp)/i)?.[1] || 'jpg';
             const filename = `recipe_${crypto.randomBytes(12).toString('hex')}.${ext}`;
             const filepath = path.join(UPLOADS_DIR, filename);
-            fs.writeFileSync(filepath, Buffer.from(imageResponse.data));
+            await fs.writeFile(filepath, Buffer.from(imageResponse.data));
             return `/uploads/${filename}`;
         } catch (error: any) {
             console.error('Image download failed:', error.message);
@@ -182,7 +182,7 @@ export const AIService = {
                     const filepath = path.join(UPLOADS_DIR, filename);
 
                     const buffer = Buffer.from(part.inlineData.data!, 'base64');
-                    fs.writeFileSync(filepath, buffer);
+                    await fs.writeFile(filepath, buffer);
 
                     return `/uploads/${filename}`;
                 }
