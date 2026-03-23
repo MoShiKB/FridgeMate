@@ -19,4 +19,5 @@ export const colors = {
   errorRed: '#D32F2F',
   titleGradientStart: '#00BC7D',
   titleGradientEnd: '#00B8DB',
+  buttons: '#54a096',
 };
