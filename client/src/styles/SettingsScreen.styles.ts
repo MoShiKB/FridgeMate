@@ -177,6 +177,32 @@ leaveBtn: {
   fontWeight: 600,
   cursor: "pointer",
 },
+copyToast: {
+  position: "fixed",
+  bottom: "24px",
+  right: "24px",
+  backgroundColor: colors.white,
+  color: colors.black,
+  padding: "20px 24px",
+  borderRadius: 16,
+  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
+  display: "flex",
+  alignItems: "center",
+  gap: "12px",
+  zIndex: 9999,
+  minWidth: "320px",
+},
+
+copyToastIcon: {
+  fontSize: 24,
+  color: colors.black,
+  flexShrink: 0,
+},
+
+copyToastText: {
+  fontSize: 16,
+  fontWeight: 500,
+},
 };
 
 export const iconProps = {

@@ -1,14 +1,15 @@
 import { iconProps, styles } from "../styles/SettingsScreen.styles";
-
+import { useState } from "react";
 /*icons*/
 import { IoPeopleOutline ,IoArrowBack} from "react-icons/io5";
-import { FiCamera } from "react-icons/fi";
+import { FiCamera,FiCheckCircle } from "react-icons/fi";
 import { TbUpload } from "react-icons/tb";
 import { FaRegCopy } from "react-icons/fa";
 import { SlLogout } from "react-icons/sl";
 
 {/*texts*/}
 const fridgeScannerText ="Upload photos of your fridge contents and we'll automatically detect items and add them to your inventory.";
+const inviteCodeTXT= "FRIDGE-2024-XY7K"; //TODO:add real data
 const members = [
   { name: "Alex Johnson (You)" },
   { name: "Sarah Johnson" },
@@ -19,8 +20,21 @@ function SettingsScreen() {
     const onClick = (index: number) => {
     console.log("clicked index:", index);
   };
+const [showCopyToast, setShowCopyToast] = useState(false);
+const handleCopyInviteCode = async () => {
+  try {
+    await navigator.clipboard.writeText(inviteCodeTXT);
+    setShowCopyToast(true);
 
+    setTimeout(() => {
+      setShowCopyToast(false);
+    }, 2500);
+  } catch (error) {
+    console.error("Failed to copy invite code:", error);
+  }
+};
   return (
+    <>
     <div style={styles.page}>
 
       {/* Header */}
@@ -54,9 +68,9 @@ function SettingsScreen() {
     <div style={styles.inviteBox}>
       <div>
         <p style={styles.inviteLabel}>Invite Code</p>
-        <p style={styles.inviteCode}>FRIDGE-2024-XY7K</p> {/*TODO:add real data*/}
+        <p style={styles.inviteCode}>{inviteCodeTXT}</p>
       </div>
-        <button style={styles.copyBtn} onClick={() => console.log("copying...")}>
+        <button style={styles.copyBtn} onClick={handleCopyInviteCode}>
                 <FaRegCopy {...iconProps.copyIcon} />
                 <span style={styles.copyBtnText} >  Copy </span>
               </button>
@@ -94,8 +108,16 @@ function SettingsScreen() {
               </button>
    </div>
 </div>
-
-  );
-}
+    {showCopyToast && (
+      <div style={styles.copyToast}>
+        <FiCheckCircle style={styles.copyToastIcon} />
+        <span style={styles.copyToastText}>
+          Invite code copied to clipboard!
+        </span>
+      </div>
+    )}
+  </>
+);
+};
 
 export default SettingsScreen;
