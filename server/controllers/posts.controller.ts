@@ -3,7 +3,7 @@ import { items as itemsRes, ok } from "../utils/apiResponse";
 import { parsePageLimit } from "../utils/pagination";
 import { PostsService } from "../services/posts.service";
 
-type AuthedRequest = Request & { user: { userId: string } };
+import { AuthedRequest } from "../middlewares/auth";
 
 export class PostsController {
   static async create(req: Request, res: Response) {

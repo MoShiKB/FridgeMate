@@ -1,7 +1,7 @@
 import { Router } from "express";
 import passport from "../middlewares/passport";
 import { AuthController } from "../controllers/auth.controller";
-import { isAuthorized } from "../middlewares/authorization";
+import { requireAuth } from "../middlewares/auth";
 
 const router = Router();
 
@@ -11,7 +11,7 @@ router.post("/refresh-token", AuthController.refreshToken);
 router.post("/forgot-password", AuthController.forgotPassword);
 router.post("/reset-password", AuthController.resetPassword);
 
-router.post("/logout", isAuthorized, AuthController.logout);
+router.post("/logout", requireAuth, AuthController.logout);
 
 router.get(
   "/login/google",

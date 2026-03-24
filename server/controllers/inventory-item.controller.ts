@@ -3,7 +3,7 @@ import { items as itemsRes, ok } from "../utils/apiResponse";
 import { parsePageLimit } from "../utils/pagination";
 import { InventoryItemService } from "../services/inventory-item.service";
 
-type AuthedRequest = Request & { user: { userId: string } };
+import { AuthedRequest } from "../middlewares/auth";
 
 export class InventoryItemController {
   /**
