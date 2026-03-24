@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { ok, items as itemsRes } from "../utils/apiResponse";
 import { FridgesService } from "../services/fridges.service";
 
-type AuthedRequest = Request & { user: { userId: string } };
+import { AuthedRequest } from "../middlewares/auth";
 
 export class FridgesController {
   static async create(req: Request, res: Response) {

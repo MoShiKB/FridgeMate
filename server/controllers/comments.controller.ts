@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { ok } from "../utils/apiResponse";
 import { CommentsService } from "../services/comments.service";
 
-type AuthedRequest = Request & { user: { userId: string } };
+import { AuthedRequest } from "../middlewares/auth";
 
 export class CommentsController {
   static async list(req: Request, res: Response) {
