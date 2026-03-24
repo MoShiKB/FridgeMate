@@ -16,7 +16,7 @@ export class InventoryItemService {
   private static async verifyFridgeMembership(
     fridgeId: string,
     userId: string
-  ): Promise<void> {
+  ) {
     const fridge = await FridgeModel.findById(fridgeId);
     if (!fridge) {
       throw new ApiError(404, "Fridge not found", "FRIDGE_NOT_FOUND");
@@ -28,6 +28,8 @@ export class InventoryItemService {
     if (!isMember) {
       throw new ApiError(403, "Not a member of this fridge", "FORBIDDEN");
     }
+
+    return fridge;
   }
 
   /**
@@ -38,13 +40,7 @@ export class InventoryItemService {
     userId: string,
     data: Omit<CreateInventoryItemInput, "fridgeId">
   ) {
-    // Verify membership and fetch fridge for member count
-    await this.verifyFridgeMembership(fridgeId, userId);
-
-    const fridge = await FridgeModel.findById(fridgeId);
-    if (!fridge) {
-      throw new ApiError(404, "Fridge not found", "FRIDGE_NOT_FOUND");
-    }
+    const fridge = await this.verifyFridgeMembership(fridgeId, userId);
 
     // AI Check for running low
     let isRunningLow = false;

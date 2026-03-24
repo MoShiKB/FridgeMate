@@ -1,36 +1,29 @@
 import { Request, Response, NextFunction } from 'express';
-import { MongoError } from 'mongodb';
-
-interface ValidationError {
-    message: string;
-    properties?: {
-        message: string;
-    };
-    stack?: string;
-}
 
 interface CustomError extends Error {
-    errors?: Record<string, ValidationError>;
     status?: number;
+    code?: number;
+    errors?: Record<string, { message: string }>;
 }
 
-const errorHandler = (error: CustomError | MongoError, req: Request, res: Response, next: NextFunction): Response => {
+const errorHandler = (err: CustomError, req: Request, res: Response, next: NextFunction): Response => {
+    console.error(err);
 
-    if (error instanceof MongoError) {
-        switch (error.code) {
-            case 11000:
-                return res.status(400).json({ message: 'Duplicate key error: A record with this key already exists.' });
-            case 121:
-                return res.status(400).json({ message: 'Document failed validation.' });
-            default:
-                return res.status(500).json({ message: 'An internal server error occurred.' });
-        }
-    } else {
-
-        console.error(error.message);
-        console.log(error.stack);
-        return res.status(error.status || 400).send(error.message);
+    if (err.name === 'ValidationError' && err.errors) {
+        const messages = Object.values(err.errors).map((val) => val.message);
+        return res.status(400).json({ message: 'Validation Error', errors: messages });
     }
+
+    if (err.code === 11000) {
+        return res.status(400).json({ message: 'Duplicate key error: A record with this key already exists.' });
+    }
+
+    const status = err.status || 500;
+    const message = process.env.NODE_ENV === 'production' && status === 500
+        ? 'An internal server error occurred.'
+        : err.message;
+
+    return res.status(status).json({ message });
 };
 
 export default errorHandler;
