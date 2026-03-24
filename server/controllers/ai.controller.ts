@@ -1,11 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
+import { AuthedRequest } from '../middlewares/auth';
 import { AIService } from '../services/ai.service';
 import { RecipeService } from '../services/recipe.service';
 
 export const AIController = {
     async generateRecipes(req: Request, res: Response, next: NextFunction) {
         try {
-            const userId = req.body.userId;
+            const userId = (req as AuthedRequest).user.userId;
             const { ingredients, allergies, dietPreference, count } = req.body;
 
             const result = await AIService.generateRecipes({

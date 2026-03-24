@@ -1,7 +1,7 @@
 import { Router } from "express";
 import passport from "../middlewares/passport";
 import { AuthController } from "../controllers/auth.controller";
-import { isAuthorized } from "../middlewares/authorization";
+import { requireAuth } from "../middlewares/auth";
 import { validate } from "../middlewares/validate";
 import {
   RegisterSchema,
@@ -19,7 +19,7 @@ router.post("/refresh-token", validate({ body: RefreshTokenSchema }), AuthContro
 router.post("/forgot-password", validate({ body: ForgotPasswordSchema }), AuthController.forgotPassword);
 router.post("/reset-password", validate({ body: ResetPasswordSchema }), AuthController.resetPassword);
 
-router.post("/logout", isAuthorized, AuthController.logout);
+router.post("/logout", requireAuth, AuthController.logout);
 
 router.get(
   "/login/google",
