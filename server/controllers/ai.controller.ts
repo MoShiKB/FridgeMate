@@ -2,12 +2,24 @@ import { Request, Response, NextFunction } from 'express';
 import { AuthedRequest } from '../middlewares/auth';
 import { AIService } from '../services/ai.service';
 import { RecipeService } from '../services/recipe.service';
+import { UserService } from '../services/user.service';
 
 export const AIController = {
     async generateRecipes(req: Request, res: Response, next: NextFunction) {
         try {
             const userId = (req as AuthedRequest).user.userId;
-            const { ingredients, allergies, dietPreference, count } = req.body;
+            const { ingredients, count } = req.body;
+            let { allergies, dietPreference } = req.body;
+
+            const user = await UserService.getUserById(userId);
+            if (user) {
+                if (!allergies || allergies.length === 0) {
+                    allergies = user.allergies ?? [];
+                }
+                if (!dietPreference || dietPreference === 'NONE') {
+                    dietPreference = user.dietPreference ?? 'NONE';
+                }
+            }
 
             const result = await AIService.generateRecipes({
                 ingredients,
