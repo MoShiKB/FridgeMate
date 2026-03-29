@@ -459,6 +459,7 @@ Return ONLY a valid JSON array with exactly ${count} recipes. Keep steps SHORT (
 IMPORTANT: Return ONLY valid JSON, no markdown, no extra text. Ensure all strings are properly escaped.
 IMPORTANT: "difficulty" MUST be exactly one of: "Easy", "Medium", or "Hard". No other values are allowed.`;
 
+    console.log(prompt);
     return prompt;
 }
 
