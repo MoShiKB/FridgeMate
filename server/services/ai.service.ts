@@ -6,11 +6,14 @@ import crypto from 'crypto';
 import { UPLOADS_DIR } from '../config/env';
 
 // Initialize Gemini AI client
-if (!process.env.GEMINI_API_KEY) {
-    throw new Error('GEMINI_API_KEY is not configured in environment variables');
-}
+const geminiApiKey = process.env.GEMINI_API_KEY || 'dummy-key-for-development';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+let ai: any = null;
+try {
+    ai = new GoogleGenAI({ apiKey: geminiApiKey });
+} catch (error) {
+    console.warn('Failed to initialize Gemini AI client:', error);
+}
 const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 const IMAGE_MODEL_NAME = process.env.GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image';
 
@@ -45,40 +48,78 @@ export const AIService = {
     async generateRecipes(request: RecipeGenerationRequest): Promise<AIServiceResponse> {
         const { ingredients, allergies = [], dietPreference = 'NONE', count = 3 } = request;
 
-        const prompt = buildRecipePrompt(ingredients, allergies, dietPreference, count);
+        // Try Gemini AI first if available
+        if (ai) {
+            try {
+                const prompt = buildRecipePrompt(ingredients, allergies, dietPreference, count);
+                const response = await ai.models.generateContent({
+                    model: MODEL_NAME,
+                    contents: prompt,
+                    config: {
+                        temperature: 0.7,
+                        maxOutputTokens: 8192,
+                    }
+                });
+
+                const textContent = response.text;
+
+                if (!textContent) {
+                    throw new Error('No response from AI');
+                }
+
+                const recipes = parseRecipeResponse(textContent);
+
+                return {
+                    recipes,
+                    rawResponse: textContent
+                };
+            } catch (error: any) {
+                console.warn('Gemini AI failed, falling back to Spoonacular:', error.message);
+                // Fall through to Spoonacular fallback
+            }
+        }
+
+        // Fallback: Use Spoonacular API
+        return this._generateRecipesFromSpoonacular(ingredients, count);
+    },
+
+    async _generateRecipesFromSpoonacular(ingredients: string[], count: number = 3): Promise<AIServiceResponse> {
+        const spoonacularKey = process.env.SPOONACULAR_API_KEY;
+        if (!spoonacularKey) {
+            throw new Error('AI service unavailable: No Gemini API key or Spoonacular API key configured');
+        }
 
         try {
-            const response = await ai.models.generateContent({
-                model: MODEL_NAME,
-                contents: prompt,
-                config: {
-                    temperature: 0.7,
-                    maxOutputTokens: 8192,
-                }
-            });
+            const ingredientQuery = ingredients.slice(0, 3).join(',');
+            const response = await axios.get(
+                `https://api.spoonacular.com/recipes/findByIngredients?ingredients=${encodeURIComponent(ingredientQuery)}&number=${count}&apiKey=${spoonacularKey}`
+            );
 
-            const textContent = response.text;
-
-            if (!textContent) {
-                throw new Error('No response from AI');
-            }
-
-            const recipes = parseRecipeResponse(textContent);
+            const recipes: GeneratedRecipe[] = response.data.map((recipe: any) => ({
+                title: recipe.title,
+                ingredients: recipe.usedIngredients?.map((i: any) => ({
+                    name: i.name,
+                    amount: '1 unit'
+                })) || [],
+                steps: [`Check the recipe on spoonacular.com for detailed instructions. Recipe ID: ${recipe.id}`],
+                cookTime: 30,
+                servings: 4
+            }));
 
             return {
                 recipes,
-                rawResponse: textContent
+                rawResponse: `Recipes from Spoonacular for ingredients: ${ingredientQuery}`
             };
         } catch (error: any) {
-            // Handle rate limiting errors
-            if (error.message?.includes('429') || error.message?.includes('quota') || error.message?.includes('rate limit')) {
-                throw new Error('AI rate limit exceeded. Please try again later.');
-            }
-            throw new Error(`AI service error: ${error.message}`);
+            throw new Error(`Recipe service error: ${error.message}`);
         }
     },
 
     async askAboutRecipe(query: string, recipe?: { title: string; ingredients?: any[]; steps?: string[] }, availableIngredients: string[] = []): Promise<string> {
+        if (!ai) {
+            return 'AI assistant is currently unavailable. Please try again later.';
+        }
+
         let prompt = 'You are a helpful cooking assistant.\n\n';
 
         // Add recipe context if provided
@@ -247,7 +288,7 @@ Title: "${recipeTitle}"`,
                 config: { temperature: 0, maxOutputTokens: 50 }
             });
             const raw = response.text?.trim()?.toLowerCase();
-            if (raw) return raw.split(',').map(k => k.trim()).filter(Boolean);
+            if (raw) return raw.split(',').map((k: string) => k.trim()).filter(Boolean);
         } catch { /* AI unavailable — fall through to simple extraction */ }
 
         const stopWords = new Set(['a', 'an', 'the', 'with', 'and', 'or', 'in', 'on', 'of', 'for', 'to', 'my',
