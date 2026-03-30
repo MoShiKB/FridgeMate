@@ -4,6 +4,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
 import { UPLOADS_DIR } from '../config/env';
+import { ApiError } from '../utils/errors';
 
 // Initialize Gemini AI client
 if (!process.env.GEMINI_API_KEY) {
@@ -60,7 +61,7 @@ export const AIService = {
             const textContent = response.text;
 
             if (!textContent) {
-                throw new Error('No response from AI');
+                throw new ApiError(502, 'No response from AI');
             }
 
             const recipes = parseRecipeResponse(textContent);
@@ -70,11 +71,11 @@ export const AIService = {
                 rawResponse: textContent
             };
         } catch (error: any) {
-            // Handle rate limiting errors
+            if (error instanceof ApiError) throw error;
             if (error.message?.includes('429') || error.message?.includes('quota') || error.message?.includes('rate limit')) {
-                throw new Error('AI rate limit exceeded. Please try again later.');
+                throw new ApiError(429, 'AI rate limit exceeded. Please try again later.');
             }
-            throw new Error(`AI service error: ${error.message}`);
+            throw new ApiError(502, `AI service error: ${error.message}`);
         }
     },
 
@@ -118,11 +119,11 @@ export const AIService = {
             const textContent = response.text;
             return textContent || 'Unable to process your request.';
         } catch (error: any) {
-            // Handle rate limiting errors
+            if (error instanceof ApiError) throw error;
             if (error.message?.includes('429') || error.message?.includes('quota') || error.message?.includes('rate limit')) {
-                throw new Error('AI rate limit exceeded. Please try again later.');
+                throw new ApiError(429, 'AI rate limit exceeded. Please try again later.');
             }
-            throw new Error(`AI service error: ${error.message}`);
+            throw new ApiError(502, `AI service error: ${error.message}`);
         }
     },
 
@@ -298,7 +299,7 @@ Format:
             });
 
             const textContent = response.text;
-            if (!textContent) throw new Error('No response from AI');
+            if (!textContent) throw new Error('No response from AI check');
 
             const results = JSON.parse(textContent);
             const statusMap = new Map<string, boolean>();
@@ -359,10 +360,10 @@ If no food items are visible, return an empty array: []`;
             });
 
             const textContent = response.text;
-            if (!textContent) throw new Error('No response from AI');
+            if (!textContent) throw new ApiError(502, 'No response from AI');
 
             const items = JSON.parse(textContent);
-            if (!Array.isArray(items)) throw new Error('AI did not return an array');
+            if (!Array.isArray(items)) throw new ApiError(502, 'AI did not return an array');
 
             return items
                 .filter((item: any) => item.name && item.quantity)
@@ -371,10 +372,11 @@ If no food items are visible, return an empty array: []`;
                     quantity: String(item.quantity).trim(),
                 }));
         } catch (error: any) {
+            if (error instanceof ApiError) throw error;
             if (error.message?.includes('429') || error.message?.includes('quota') || error.message?.includes('rate limit')) {
-                throw new Error('AI rate limit exceeded. Please try again later.');
+                throw new ApiError(429, 'AI rate limit exceeded. Please try again later.');
             }
-            throw new Error(`AI scan service error: ${error.message}`);
+            throw new ApiError(502, `AI scan service error: ${error.message}`);
         }
     },
 
@@ -410,7 +412,7 @@ Format:
             });
 
             const textContent = response.text;
-            if (!textContent) throw new Error('No response from AI');
+            if (!textContent) throw new Error('No response from AI check');
 
             const result = JSON.parse(textContent);
             return {
@@ -484,7 +486,7 @@ function parseRecipeResponse(text: string): GeneratedRecipe[] {
         const recipes = JSON.parse(cleanedText);
 
         if (!Array.isArray(recipes)) {
-            throw new Error('Response is not an array');
+            throw new ApiError(502, 'Response is not an array');
         }
 
         return recipes.map((recipe: any) => ({
@@ -499,6 +501,6 @@ function parseRecipeResponse(text: string): GeneratedRecipe[] {
     } catch (error) {
         console.error('Failed to parse AI response. Raw text:', text);
         console.error('Parse error:', error);
-        throw new Error('Failed to parse recipe response from AI');
+        throw new ApiError(502, 'Failed to parse recipe response from AI');
     }
 }
