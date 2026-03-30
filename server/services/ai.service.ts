@@ -434,14 +434,17 @@ function buildRecipePrompt(
     dietPreference: string,
     count: number
 ): string {
-    const ingredientList = ingredients.join(', ');
     const ingredientCount = ingredients.length;
 
     let prompt = `You are a professional chef assistant for a fridge management app called FridgeMate.
 
 ## THE MOST IMPORTANT RULE — READ THIS FIRST
-The user's fridge contains ONLY these items: ${ingredientList}
+The user's fridge contains ONLY these items (with available quantities):
+${ingredients.map(i => `- ${i}`).join('\n')}
+
 You must ONLY use these fridge items plus basic pantry staples (defined below). Do NOT invent or add any perishable ingredient that is not listed above. This is the #1 rule and must never be violated.
+Prioritize using as many fridge items as possible in each recipe — they should be the star of the dish, not an afterthought. Pantry staples are only for supporting roles (seasoning, base, binding). Do NOT generate a recipe that only uses pantry staples while ignoring the fridge items.
+Recipes must respect the available quantities — do NOT suggest a recipe requiring more of an ingredient than the user has (e.g., if they have "Eggs (1)", do not create a recipe needing 3 eggs).
 
 ## What You CAN Add (Pantry Staples Only)
 These non-perishable items can be assumed available: salt, black pepper, sugar, flour, cooking oil, olive oil, vinegar, soy sauce, dried spices and herbs (paprika, cumin, oregano, garlic powder, onion powder, cinnamon, chili flakes, red pepper flakes), baking powder, baking soda, vanilla extract, honey, mustard, hot sauce, water, rice, pasta, bread.
@@ -454,7 +457,7 @@ NEVER add any of these if they are NOT in the fridge list above:
 - Tofu, tempeh, or other refrigerated proteins
 - Any item that typically requires refrigeration
 
-Example: if the fridge only has "Avocado", do NOT add eggs, cheese, lime, tomato, chicken, or any fresh item. Only use avocado + pantry staples like salt, oil, spices, bread.
+Example: if the fridge only has "Avocado (1)", do NOT add eggs, cheese, lime, tomato, chicken, or any fresh item. Only use that 1 avocado + pantry staples like salt, oil, spices, bread.
 
 ## Fewer Items = Fewer Recipes
 If only ${count} recipes are requested but the available ingredients cannot realistically support ${count} distinct good recipes, return FEWER recipes rather than forcing bad ones. Quality over quantity. Return at least 1 recipe if any recipe is possible.`;
