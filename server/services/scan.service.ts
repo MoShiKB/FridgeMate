@@ -7,10 +7,7 @@ import { UserModel } from "../models/user.model";
 import { AIService } from "./ai.service";
 
 export class ScanService {
-  /**
-   * Upload and process a fridge scan image.
-   * Detects items via AI, then creates/updates inventory items.
-   */
+
   static async createScan(userId: string, imageBuffer: Buffer, mimeType: string) {
     const user = await UserModel.findById(userId).lean();
     if (!user) throw new ApiError(404, "User not found", "USER_NOT_FOUND");
@@ -46,7 +43,7 @@ export class ScanService {
     const addedItemIds: mongoose.Types.ObjectId[] = [];
     const memberCount = fridge.members.length;
 
-    // Step 1: Create/update all items without AI check
+    
     const processedItems: { id: string; name: string; quantity: string; ownership: string }[] = [];
 
     for (const detected of detectedItems) {
@@ -84,7 +81,7 @@ export class ScanService {
       }
     }
 
-    // Step 2: Batch AI check - group by ownership to determine userCount
+
     try {
       const sharedItems = processedItems.filter(i => i.ownership === "SHARED");
       const privateItems = processedItems.filter(i => i.ownership === "PRIVATE");
@@ -100,7 +97,6 @@ export class ScanService {
 
       const statusMap = new Map<string, boolean>([...sharedResults, ...privateResults]);
 
-      // Step 3: Bulk update isRunningLow
       const updates = processedItems
         .filter(item => statusMap.has(item.id))
         .map(item => ({
@@ -114,7 +110,7 @@ export class ScanService {
         await InventoryItemModel.bulkWrite(updates);
       }
     } catch {
-      // Ignore AI failure for stock check
+     
     }
 
     const scan = await ScanModel.create({
