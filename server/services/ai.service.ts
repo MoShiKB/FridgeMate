@@ -294,15 +294,29 @@ Format:
                 contents: prompt,
                 config: {
                     temperature: 0.1,
-                    maxOutputTokens: 2048,
+                    maxOutputTokens: 4096,
                     responseMimeType: "application/json"
                 }
             });
 
-            const textContent = response.text;
+            const textContent = (response.text ?? '').trim();
             if (!textContent) throw new Error('No response from AI check');
 
-            const results = JSON.parse(textContent);
+            let cleaned = textContent;
+            const cbMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+            if (cbMatch) cleaned = cbMatch[1];
+            const arrMatch = cleaned.match(/\[[\s\S]*\]/);
+            if (arrMatch) {
+                cleaned = arrMatch[0];
+            } else if (cleaned.includes('[')) {
+                cleaned = cleaned.substring(cleaned.indexOf('['));
+                cleaned = cleaned.replace(/,?\s*\{[^}]*$/, '');
+                cleaned = cleaned.replace(/,\s*$/, '');
+                cleaned += ']';
+            }
+            cleaned = cleaned.replace(/,\s*([}\]])/g, '$1');
+
+            const results = JSON.parse(cleaned);
             const statusMap = new Map<string, boolean>();
 
             if (Array.isArray(results)) {
@@ -314,7 +328,7 @@ Format:
             return statusMap;
         } catch (error: any) {
             console.error('AI checkMultipleItemsIfRunningLow error:', error);
-            return new Map(); // Return empty map on failure
+            return new Map();
         }
     },
 
@@ -355,15 +369,30 @@ If no food items are visible, return an empty array: []`;
                 ],
                 config: {
                     temperature: 0.2,
-                    maxOutputTokens: 2048,
+                    maxOutputTokens: 4096,
                     responseMimeType: "application/json",
                 },
             });
 
-            const textContent = response.text;
+            const textContent = response.text ?? '';
             if (!textContent) throw new ApiError(502, 'No response from AI');
 
-            const items = JSON.parse(textContent);
+            let cleanedText = textContent.trim();
+            const codeBlockMatch = cleanedText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+            if (codeBlockMatch) cleanedText = codeBlockMatch[1];
+            const jsonMatch = cleanedText.match(/\[[\s\S]*\]/);
+            if (jsonMatch) {
+                cleanedText = jsonMatch[0];
+            } else if (cleanedText.includes('[')) {
+                cleanedText = cleanedText.substring(cleanedText.indexOf('['));
+                cleanedText = cleanedText.replace(/,\s*$/, '');
+                // Remove any incomplete trailing object like { "name": "egg"
+                cleanedText = cleanedText.replace(/,?\s*\{[^}]*$/, '');
+                cleanedText += ']';
+            }
+            cleanedText = cleanedText.replace(/,\s*([}\]])/g, '$1');
+
+            const items = JSON.parse(cleanedText);
             if (!Array.isArray(items)) throw new ApiError(502, 'AI did not return an array');
 
             return items
