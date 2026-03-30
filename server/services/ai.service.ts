@@ -55,10 +55,11 @@ export const AIService = {
                 config: {
                     temperature: 0.7,
                     maxOutputTokens: 8192,
+                    responseMimeType: "application/json",
                 }
             });
 
-            const textContent = response.text;
+            const textContent = response.text ?? '';
 
             if (!textContent) {
                 throw new ApiError(502, 'No response from AI');
@@ -433,35 +434,75 @@ function buildRecipePrompt(
     dietPreference: string,
     count: number
 ): string {
-    let prompt = `You are a professional chef assistant. Generate exactly ${count} recipes based on the following ingredients: ${ingredients.join(', ')}.`;
+    const ingredientList = ingredients.join(', ');
+    const ingredientCount = ingredients.length;
+
+    let prompt = `You are a professional chef assistant for a fridge management app called FridgeMate.
+
+## THE MOST IMPORTANT RULE — READ THIS FIRST
+The user's fridge contains ONLY these items: ${ingredientList}
+You must ONLY use these fridge items plus basic pantry staples (defined below). Do NOT invent or add any perishable ingredient that is not listed above. This is the #1 rule and must never be violated.
+
+## What You CAN Add (Pantry Staples Only)
+These non-perishable items can be assumed available: salt, black pepper, sugar, flour, cooking oil, olive oil, vinegar, soy sauce, dried spices and herbs (paprika, cumin, oregano, garlic powder, onion powder, cinnamon, chili flakes, red pepper flakes), baking powder, baking soda, vanilla extract, honey, mustard, hot sauce, water, rice, pasta, bread.
+
+## What You CANNOT Add
+NEVER add any of these if they are NOT in the fridge list above:
+- Eggs, butter, milk, cream, yogurt, cheese, or any dairy
+- Meat, poultry, fish, or seafood
+- Fresh vegetables or fresh fruit (tomatoes, onions, lemons, limes, etc.)
+- Tofu, tempeh, or other refrigerated proteins
+- Any item that typically requires refrigeration
+
+Example: if the fridge only has "Avocado", do NOT add eggs, cheese, lime, tomato, chicken, or any fresh item. Only use avocado + pantry staples like salt, oil, spices, bread.
+
+## Fewer Items = Fewer Recipes
+If only ${count} recipes are requested but the available ingredients cannot realistically support ${count} distinct good recipes, return FEWER recipes rather than forcing bad ones. Quality over quantity. Return at least 1 recipe if any recipe is possible.`;
 
     if (allergies.length > 0) {
-        prompt += `\n\nIMPORTANT: The user has these allergies, NEVER include these ingredients: ${allergies.join(', ')}.`;
+        prompt += `
+
+## Allergies — CRITICAL SAFETY
+The user has these allergies: ${allergies.join(', ')}
+- NEVER include any of these allergens in any recipe, not even as optional or garnish.
+- NEVER include ingredients that commonly contain or are derived from these allergens.
+- If an allergen conflicts with a fridge item, skip that item entirely.`;
     }
 
     if (dietPreference !== 'NONE') {
-        prompt += `\n\nDietary preference: ${dietPreference}. Only suggest ${dietPreference.toLowerCase()} recipes.`;
+        prompt += `
+
+## Dietary Preference
+The user follows a ${dietPreference} diet. ALL recipes must be strictly ${dietPreference.toLowerCase()}. Do not suggest any recipe that violates this.`;
     }
 
     prompt += `
 
-Return ONLY a valid JSON array with exactly ${count} recipes. Keep steps SHORT (max 10 steps per recipe). Format:
+## Recipe Quality Guidelines
+- Generate up to ${count} recipes. Each should be a DIFFERENT type of dish (vary cuisines, cooking methods, and meal types — avoid variations of the same thing).
+- Recipes must be practical and commonly known — no made-up or bizarre combinations.
+- Cooking times and difficulty should be realistic.
+- Nutrition estimates should be reasonable approximations for one serving.
+- Steps should be concise and actionable (max 10 steps per recipe).
+- Before outputting, double-check every ingredient: is it in the fridge list or the pantry staples list? If not, remove it.
+
+## Response Format
+Return ONLY a valid JSON array with 1 to ${count} objects. No markdown, no extra text.
+Each object must match this structure exactly:
 [
   {
     "title": "Recipe Name",
     "description": "One sentence description",
     "cookingTime": "30 minutes",
-    "difficulty": "Easy | Medium | Hard",
+    "difficulty": "Easy",
     "ingredients": [{ "name": "ingredient", "amount": "amount" }],
     "steps": ["Step 1", "Step 2"],
     "nutrition": { "calories": "350 kcal", "protein": "25g", "carbs": "30g", "fat": "15g" }
   }
 ]
 
-IMPORTANT: Return ONLY valid JSON, no markdown, no extra text. Ensure all strings are properly escaped.
-IMPORTANT: "difficulty" MUST be exactly one of: "Easy", "Medium", or "Hard". No other values are allowed.`;
+"difficulty" MUST be exactly one of: "Easy", "Medium", or "Hard".`;
 
-    console.log(prompt);
     return prompt;
 }
 
