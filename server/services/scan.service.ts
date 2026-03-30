@@ -7,10 +7,7 @@ import { UserModel } from "../models/user.model";
 import { AIService } from "./ai.service";
 
 export class ScanService {
-  /**
-   * Upload and process a fridge scan image.
-   * Detects items via AI, then creates/updates inventory items.
-   */
+
   static async createScan(userId: string, imageBuffer: Buffer, mimeType: string) {
     const user = await UserModel.findById(userId).lean();
     if (!user) throw new ApiError(404, "User not found", "USER_NOT_FOUND");
@@ -46,6 +43,9 @@ export class ScanService {
     const addedItemIds: mongoose.Types.ObjectId[] = [];
     const memberCount = fridge.members.length;
 
+    
+    const processedItems: { id: string; name: string; quantity: string; ownership: string }[] = [];
+
     for (const detected of detectedItems) {
       const existing = await InventoryItemModel.findOne({
         fridgeId: new mongoose.Types.ObjectId(fridgeId),
@@ -54,45 +54,63 @@ export class ScanService {
 
       if (existing) {
         existing.quantity = detected.quantity;
-
-        try {
-          const currentOwnership = existing.ownership;
-          const userCount = currentOwnership === "SHARED" ? memberCount : 1;
-          const aiResult = await AIService.checkIfRunningLow(
-            existing.name,
-            existing.quantity,
-            userCount
-          );
-          existing.isRunningLow = aiResult.isRunningLow;
-        } catch {
-          // Ignore AI failure for stock check
-        }
-
         await existing.save();
         addedItemIds.push(existing._id as mongoose.Types.ObjectId);
+        processedItems.push({
+          id: existing._id.toString(),
+          name: existing.name,
+          quantity: existing.quantity,
+          ownership: existing.ownership,
+        });
       } else {
-        let isRunningLow = false;
-        try {
-          const aiResult = await AIService.checkIfRunningLow(
-            detected.name,
-            detected.quantity,
-            memberCount
-          );
-          isRunningLow = aiResult.isRunningLow;
-        } catch {
-          // Ignore AI failure for stock check
-        }
-
         const newItem = await InventoryItemModel.create({
           fridgeId: new mongoose.Types.ObjectId(fridgeId),
           ownerId: new mongoose.Types.ObjectId(userId),
           name: detected.name,
           quantity: detected.quantity,
           ownership: "SHARED",
-          isRunningLow,
+          isRunningLow: false,
         });
         addedItemIds.push(newItem._id as mongoose.Types.ObjectId);
+        processedItems.push({
+          id: newItem._id.toString(),
+          name: newItem.name,
+          quantity: newItem.quantity,
+          ownership: newItem.ownership,
+        });
       }
+    }
+
+
+    try {
+      const sharedItems = processedItems.filter(i => i.ownership === "SHARED");
+      const privateItems = processedItems.filter(i => i.ownership === "PRIVATE");
+
+      const [sharedResults, privateResults] = await Promise.all([
+        sharedItems.length > 0
+          ? AIService.checkMultipleItemsIfRunningLow(sharedItems, memberCount)
+          : Promise.resolve(new Map<string, boolean>()),
+        privateItems.length > 0
+          ? AIService.checkMultipleItemsIfRunningLow(privateItems, 1)
+          : Promise.resolve(new Map<string, boolean>()),
+      ]);
+
+      const statusMap = new Map<string, boolean>([...sharedResults, ...privateResults]);
+
+      const updates = processedItems
+        .filter(item => statusMap.has(item.id))
+        .map(item => ({
+          updateOne: {
+            filter: { _id: new mongoose.Types.ObjectId(item.id) },
+            update: { $set: { isRunningLow: statusMap.get(item.id) } },
+          },
+        }));
+
+      if (updates.length > 0) {
+        await InventoryItemModel.bulkWrite(updates);
+      }
+    } catch {
+     
     }
 
     const scan = await ScanModel.create({
