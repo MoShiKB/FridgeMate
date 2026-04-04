@@ -143,6 +143,32 @@ chatBtn: {
   justifyContent: "center",
   gap: 8,
 },
+saveToast: {
+  position: "fixed",
+  bottom: "24px",
+  right: "24px",
+  backgroundColor: colors.white,
+  color: colors.black,
+  padding: "20px 24px",
+  borderRadius: 16,
+  boxShadow: "0 8px 24px rgba(0, 0, 0, 0.12)",
+  display: "flex",
+  alignItems: "center",
+  gap: "12px",
+  zIndex: 9999,
+  minWidth: "320px",
+},
+
+saveToastIcon: {
+  fontSize: 24,
+  color: colors.black,
+  flexShrink: 0,
+},
+
+saveToastText: {
+  fontSize: 16,
+  fontWeight: 500,
+},
 };
 
 export const iconProps = {

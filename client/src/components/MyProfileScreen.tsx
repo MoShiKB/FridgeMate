@@ -1,5 +1,5 @@
 import { iconProps, styles } from "../styles/MyProfileScreen.styles";
-import { IoArrowBack, IoPersonOutline } from "./icons";
+import { FiCheckCircle, IoArrowBack, IoPersonOutline } from "./icons";
 import { useEffect, useRef, useState } from "react";
 import { Chat, UserListPage } from "./chat";
 import { tokenManager } from "../services/api";
@@ -47,7 +47,7 @@ function MyProfileScreen() {
   const currentUserId = getUserIdFromToken();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
+  const [showSaveToast, setShowSaveToast] = useState(false);
 
 useEffect(() => {
   console.log('MyProfileScreen mounted, userId:', currentUserId);
@@ -111,12 +111,15 @@ const onSave = async () => {
     if (fullName.trim()) dataToSend.displayName = fullName.trim();
     if (location.trim()) dataToSend.address = { city: location.trim() };
     await ProfileApi.updateMyProfile(currentUserId, dataToSend);
-    alert('Saved!');
+     setShowSaveToast(true);
+         setTimeout(() => {
+      setShowSaveToast(false);
+    }, 2500);
   } catch (err) {
     console.error('Failed to save profile:', err);
-    alert('Something went wrong, try again!');
   }
 };
+
 if (isLoading) return <div style={styles.page}>Loading...</div>;
   return (
     <div style={styles.page}>
@@ -219,7 +222,15 @@ if (isLoading) return <div style={styles.page}>Loading...</div>;
       <button style={styles.saveBtn} onClick={onSave}>
         Save Changes
       </button>
-
+    {/*save screen toast*/}
+        {showSaveToast && (
+          <div style={styles.saveToast}>
+            <FiCheckCircle style={styles.saveToastIcon} />
+            <span style={styles.saveToastText}>
+              Changes saved successfully!
+            </span>
+          </div>
+        )}
 {/* Chat Button */}
       <button style={styles.chatBtn} onClick={() => setIsUserListOpen(true)}>
         💬 Open Chat with Others
@@ -247,7 +258,6 @@ if (isLoading) return <div style={styles.page}>Loading...</div>;
           onGoBack={() => { setIsChatOpen(false); setIsUserListOpen(true); }}
         />
       )}
-
     </div>
   );
 }
