@@ -48,7 +48,7 @@ function MyProfileScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showSaveToast, setShowSaveToast] = useState(false);
-
+  const [img,setImg] = useState<string | null>(null);
 useEffect(() => {
   console.log('MyProfileScreen mounted, userId:', currentUserId);
   if (!currentUserId) return;
@@ -84,11 +84,25 @@ useEffect(() => {
 }, []);
 const onImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   const file = e.target.files?.[0];
-  if (file) {
-    const url = URL.createObjectURL(file);
-    setAvatarUrl(url);
-  }
+  if (!file) return;
+
+  const url = URL.createObjectURL(file);
+  setAvatarUrl(url); //
+
+const { request } = ProfileApi.uploadAvatar(file);
+request.then((res) => {
+  const imageUrl = res.data.data.imageUrl; 
+  console.log('Avatar uploaded:', imageUrl);
+  return ProfileApi.updateMyProfile(currentUserId!, { profileImage: imageUrl });
+})
+  .then(() => {
+    console.log('Profile image saved!');
+  })
+  .catch((err) => {
+    console.error('Failed to upload avatar:', err);
+  });
 };
+
 
   const onClick = (index: number) => {
     console.log("clicked index:", index);
@@ -137,7 +151,7 @@ if (isLoading) return <div style={styles.page}>Loading...</div>;
   <div style={styles.avatarWrapper}>
 
     <div style={styles.avatarCircle}>
-     {avatarUrl
+{avatarUrl
   ? <img src={avatarUrl} alt="profile" style={styles.avatarImg} />
   : <IoPersonOutline size={80} color="#bbb" />
 }

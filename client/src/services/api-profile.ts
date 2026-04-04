@@ -24,5 +24,17 @@ async updateMyProfile(userId: string, data: object) {
     });
     return response.data;
   },
+  uploadAvatar(file: File) {
+  const formData = new FormData();
+  formData.append('image', file); 
+
+  const request = axios.post(`${API_BASE_URL}/upload`, formData, {
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+    },
+  });
+
+  return { request };
+},
 
 };
