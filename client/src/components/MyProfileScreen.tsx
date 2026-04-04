@@ -1,8 +1,9 @@
 import { iconProps, styles } from "../styles/MyProfileScreen.styles";
 import { IoArrowBack, IoPersonOutline } from "./icons";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Chat, UserListPage } from "./chat";
 import { tokenManager } from "../services/api";
+import { ProfileApi } from "../services/api-profile";
 
 const dietOptions = [
   { label: "None", emoji: "" },
@@ -39,13 +40,48 @@ function MyProfileScreen() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fullName, setFullName] = useState("");
   const [location, setLocation] = useState("");
-
   const [isUserListOpen, setIsUserListOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatId, setChatId] = useState("");
   const [chatUserName, setChatUserName] = useState("");
   const currentUserId = getUserIdFromToken();
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
+
+useEffect(() => {
+  console.log('MyProfileScreen mounted, userId:', currentUserId);
+  if (!currentUserId) return;
+
+  console.log('Fetching profile...');
+  setIsLoading(true); 
+
+  const { request, abort } = ProfileApi.getMyProfile(currentUserId);
+  
+  request.then((res) => {
+    console.log('Profile loaded:', res.data);
+    setFullName(res.data.displayName || '');
+    setLocation(res.data.address?.city || '');
+    if (res.data.profileImage) setAvatarUrl(res.data.profileImage);
+    const dietIndex = dietOptions.findIndex(d => d.label.toUpperCase() === res.data.dietPreference);
+    setSelectedDiet(dietIndex >= 0 ? dietIndex : 0);
+    setSelectedAllergies(res.data.allergies || []);
+    setIsLoading(false); 
+  })
+  .catch((err) => {
+    if (err.name === 'CanceledError') {
+      console.log('Request canceled', err.message);
+    } else {
+      console.error('Failed to load profile:', err);
+      setIsLoading(false); 
+    }
+  });
+
+  return () => {
+    console.log('MyProfileScreen cleanup - aborting');
+    abort();
+  };
+}, []);
 const onImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   const file = e.target.files?.[0];
   if (file) {
@@ -65,9 +101,26 @@ const onAllergyClick = (label: string) => {
       : [...prev, label]             
   );
 };
+const onSave = async () => {
+  if (!currentUserId) return;
+  try {
+    const dataToSend: any = {
+      dietPreference: dietOptions[selectedDiet].label.toUpperCase(),
+      allergies: selectedAllergies,
+    };
+    if (fullName.trim()) dataToSend.displayName = fullName.trim();
+    if (location.trim()) dataToSend.address = { city: location.trim() };
+    await ProfileApi.updateMyProfile(currentUserId, dataToSend);
+    alert('Saved!');
+  } catch (err) {
+    console.error('Failed to save profile:', err);
+    alert('Something went wrong, try again!');
+  }
+};
+if (isLoading) return <div style={styles.page}>Loading...</div>;
   return (
     <div style={styles.page}>
-
+  {error && <div style={styles.error}>{error}</div>}
       {/* Header */}
       <div style={styles.header}>
         <button style={styles.backBtn} onClick={() => window.history.back()}>
@@ -163,7 +216,7 @@ const onAllergyClick = (label: string) => {
 </div>
 
 {/* Save Button */}
-      <button style={styles.saveBtn} onClick={() => console.log("saving...")}>
+      <button style={styles.saveBtn} onClick={onSave}>
         Save Changes
       </button>
 
