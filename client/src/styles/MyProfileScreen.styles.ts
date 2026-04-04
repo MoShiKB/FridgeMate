@@ -127,6 +127,22 @@ input: {
   boxSizing: "border-box" as const,
   outline: "none",
 },
+chatBtn: {
+  width: "100%",
+  padding: "16px",
+  borderRadius: 12,
+  border: "2px solid #54A096",
+  background: colors.white,
+  color: colors.tealPrimary,
+  fontSize: 16,
+  fontWeight: 600,
+  cursor: "pointer",
+  marginTop: 12,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 8,
+},
 };
 
 export const iconProps = {

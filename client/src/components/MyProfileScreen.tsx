@@ -168,20 +168,7 @@ const onAllergyClick = (label: string) => {
       </button>
 
 {/* Chat Button */}
-      <button
-        style={{
-          ...styles.saveBtn,
-          background: '#fff',
-          color: '#54A096',
-          border: '2px solid #54A096',
-          marginTop: 12,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 8,
-        }}
-        onClick={() => setIsUserListOpen(true)}
-      >
+      <button style={styles.chatBtn} onClick={() => setIsUserListOpen(true)}>
         💬 Open Chat with Others
       </button>
 
