@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Chat, UserListPage } from "./chat";
 import { tokenManager } from "../services/api";
 import { ProfileApi } from "../services/api-profile";
-
+import axios from "axios";
 const dietOptions = [
   { label: "None", emoji: "" },
   { label: "Vegetarian", emoji: "🥘" },
@@ -133,7 +133,20 @@ const onSave = async () => {
     console.error('Failed to save profile:', err);
   }
 };
-
+const getMyLocation = () => {
+  if (!navigator.geolocation) return;
+  
+  navigator.geolocation.getCurrentPosition((position) => {
+    const { latitude, longitude } = position.coords;
+    
+    axios.get(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`)
+      .then(res => {
+        const city = res.data.city || res.data.locality || '';
+        setLocation(city);
+      })
+      .catch(() => console.error('Failed to get location'));
+  });
+};
 if (isLoading) return <div style={styles.page}>Loading...</div>;
   return (
     <div style={styles.page}>
@@ -183,13 +196,18 @@ if (isLoading) return <div style={styles.page}>Loading...</div>;
     placeholder="Enter your name"
   />
 
-  <label style={styles.label}>📍 Location</label>
+<label style={styles.label}>📍 Location</label>
+<div style={{ display: 'flex', gap: 8 }}>
   <input
     style={styles.input}
     value={location}
     onChange={(e) => setLocation(e.target.value)}
     placeholder="Enter your location"
   />
+  <button style={styles.locationBtn} onClick={getMyLocation}>
+    📍
+  </button>
+</div>
 </div>
       {/* Dietary Preferences Card */}
       <div style={styles.card}>

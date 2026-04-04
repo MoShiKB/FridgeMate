@@ -169,6 +169,14 @@ saveToastText: {
   fontSize: 16,
   fontWeight: 500,
 },
+locationBtn: {
+  padding: '0 14px',
+  borderRadius: 10,
+  border: '1px solid #e0e0e0',
+  background: colors.white,
+  cursor: 'pointer',
+  fontSize: 18,
+},
 };
 
 export const iconProps = {
