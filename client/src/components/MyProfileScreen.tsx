@@ -54,26 +54,36 @@ useEffect(() => {
   if (!currentUserId) return;
 
   console.log('Fetching profile...');
-  setIsLoading(true); 
+  setIsLoading(true);
 
   const { request, abort } = ProfileApi.getMyProfile(currentUserId);
-  
+
   request.then((res) => {
     console.log('Profile loaded:', res.data);
     setFullName(res.data.displayName || '');
-    setLocation(res.data.address?.city || '');
+    setSelectedAllergies(res.data.allergies || []);
+    setIsLoading(false);
     if (res.data.profileImage) setAvatarUrl(res.data.profileImage);
     const dietIndex = dietOptions.findIndex(d => d.label.toUpperCase() === res.data.dietPreference);
     setSelectedDiet(dietIndex >= 0 ? dietIndex : 0);
-    setSelectedAllergies(res.data.allergies || []);
-    setIsLoading(false); 
+
+    if (res.data.address?.city) {
+      setLocation(res.data.address.city);
+    } else {
+      navigator.geolocation?.getCurrentPosition((position) => {
+        const { latitude, longitude } = position.coords;
+        axios.get(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`)
+          .then(r => setLocation(r.data.city || r.data.locality || ''))
+          .catch(() => {});
+      });
+    }
   })
   .catch((err) => {
     if (err.name === 'CanceledError') {
       console.log('Request canceled', err.message);
     } else {
       console.error('Failed to load profile:', err);
-      setIsLoading(false); 
+      setIsLoading(false);
     }
   });
 
@@ -133,20 +143,6 @@ const onSave = async () => {
     console.error('Failed to save profile:', err);
   }
 };
-const getMyLocation = () => {
-  if (!navigator.geolocation) return;
-  
-  navigator.geolocation.getCurrentPosition((position) => {
-    const { latitude, longitude } = position.coords;
-    
-    axios.get(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`)
-      .then(res => {
-        const city = res.data.city || res.data.locality || '';
-        setLocation(city);
-      })
-      .catch(() => console.error('Failed to get location'));
-  });
-};
 if (isLoading) return <div style={styles.page}>Loading...</div>;
   return (
     <div style={styles.page}>
@@ -202,12 +198,8 @@ if (isLoading) return <div style={styles.page}>Loading...</div>;
     style={styles.input}
     value={location}
     onChange={(e) => setLocation(e.target.value)}
-    placeholder="Enter your location"
-  />
-  <button style={styles.locationBtn} onClick={getMyLocation}>
-    📍
-  </button>
-</div>
+    placeholder="Location"/>
+  </div>
 </div>
       {/* Dietary Preferences Card */}
       <div style={styles.card}>
