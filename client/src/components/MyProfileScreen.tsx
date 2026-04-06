@@ -1,9 +1,10 @@
 import { iconProps, styles } from "../styles/MyProfileScreen.styles";
-import { IoArrowBack, IoPersonOutline } from "./icons";
-import { useRef, useState } from "react";
+import { FiCheckCircle, IoArrowBack, IoPersonOutline } from "./icons";
+import { useEffect, useRef, useState } from "react";
 import { Chat, UserListPage } from "./chat";
 import { tokenManager } from "../services/api";
-
+import { ProfileApi } from "../services/api-profile";
+import axios from "axios";
 const dietOptions = [
   { label: "None", emoji: "" },
   { label: "Vegetarian", emoji: "🥘" },
@@ -39,20 +40,79 @@ function MyProfileScreen() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fullName, setFullName] = useState("");
   const [location, setLocation] = useState("");
-
   const [isUserListOpen, setIsUserListOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatId, setChatId] = useState("");
   const [chatUserName, setChatUserName] = useState("");
   const currentUserId = getUserIdFromToken();
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showSaveToast, setShowSaveToast] = useState(false);
+  const [img,setImg] = useState<string | null>(null);
+useEffect(() => {
+  console.log('MyProfileScreen mounted, userId:', currentUserId);
+  if (!currentUserId) return;
 
+  console.log('Fetching profile...');
+  setIsLoading(true);
+
+  const { request, abort } = ProfileApi.getMyProfile(currentUserId);
+
+  request.then((res) => {
+    console.log('Profile loaded:', res.data);
+    setFullName(res.data.displayName || '');
+    setSelectedAllergies(res.data.allergies || []);
+    setIsLoading(false);
+    if (res.data.profileImage) setAvatarUrl(res.data.profileImage);
+    const dietIndex = dietOptions.findIndex(d => d.label.toUpperCase() === res.data.dietPreference);
+    setSelectedDiet(dietIndex >= 0 ? dietIndex : 0);
+
+    if (res.data.address?.city) {
+      setLocation(res.data.address.city);
+    } else {
+      navigator.geolocation?.getCurrentPosition((position) => {
+        const { latitude, longitude } = position.coords;
+        axios.get(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`)
+          .then(r => setLocation(r.data.city || r.data.locality || ''))
+          .catch(() => {});
+      });
+    }
+  })
+  .catch((err) => {
+    if (err.name === 'CanceledError') {
+      console.log('Request canceled', err.message);
+    } else {
+      console.error('Failed to load profile:', err);
+      setIsLoading(false);
+    }
+  });
+
+  return () => {
+    console.log('MyProfileScreen cleanup - aborting');
+    abort();
+  };
+}, []);
 const onImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   const file = e.target.files?.[0];
-  if (file) {
-    const url = URL.createObjectURL(file);
-    setAvatarUrl(url);
-  }
+  if (!file) return;
+
+  const url = URL.createObjectURL(file);
+  setAvatarUrl(url); //
+
+const { request } = ProfileApi.uploadAvatar(file);
+request.then((res) => {
+  const imageUrl = res.data.data.imageUrl; 
+  console.log('Avatar uploaded:', imageUrl);
+  return ProfileApi.updateMyProfile(currentUserId!, { profileImage: imageUrl });
+})
+  .then(() => {
+    console.log('Profile image saved!');
+  })
+  .catch((err) => {
+    console.error('Failed to upload avatar:', err);
+  });
 };
+
 
   const onClick = (index: number) => {
     console.log("clicked index:", index);
@@ -65,9 +125,28 @@ const onAllergyClick = (label: string) => {
       : [...prev, label]             
   );
 };
+const onSave = async () => {
+  if (!currentUserId) return;
+  try {
+    const dataToSend: any = {
+      dietPreference: dietOptions[selectedDiet].label.toUpperCase(),
+      allergies: selectedAllergies,
+    };
+    if (fullName.trim()) dataToSend.displayName = fullName.trim();
+    if (location.trim()) dataToSend.address = { city: location.trim() };
+    await ProfileApi.updateMyProfile(currentUserId, dataToSend);
+     setShowSaveToast(true);
+         setTimeout(() => {
+      setShowSaveToast(false);
+    }, 2500);
+  } catch (err) {
+    console.error('Failed to save profile:', err);
+  }
+};
+if (isLoading) return <div style={styles.page}>Loading...</div>;
   return (
     <div style={styles.page}>
-
+  {error && <div style={styles.error}>{error}</div>}
       {/* Header */}
       <div style={styles.header}>
         <button style={styles.backBtn} onClick={() => window.history.back()}>
@@ -81,7 +160,7 @@ const onAllergyClick = (label: string) => {
   <div style={styles.avatarWrapper}>
 
     <div style={styles.avatarCircle}>
-     {avatarUrl
+{avatarUrl
   ? <img src={avatarUrl} alt="profile" style={styles.avatarImg} />
   : <IoPersonOutline size={80} color="#bbb" />
 }
@@ -113,13 +192,14 @@ const onAllergyClick = (label: string) => {
     placeholder="Enter your name"
   />
 
-  <label style={styles.label}>📍 Location</label>
+<label style={styles.label}>📍 Location</label>
+<div style={{ display: 'flex', gap: 8 }}>
   <input
     style={styles.input}
     value={location}
     onChange={(e) => setLocation(e.target.value)}
-    placeholder="Enter your location"
-  />
+    placeholder="Location"/>
+  </div>
 </div>
       {/* Dietary Preferences Card */}
       <div style={styles.card}>
@@ -163,25 +243,20 @@ const onAllergyClick = (label: string) => {
 </div>
 
 {/* Save Button */}
-      <button style={styles.saveBtn} onClick={() => console.log("saving...")}>
+      <button style={styles.saveBtn} onClick={onSave}>
         Save Changes
       </button>
-
+    {/*save screen toast*/}
+        {showSaveToast && (
+          <div style={styles.saveToast}>
+            <FiCheckCircle style={styles.saveToastIcon} />
+            <span style={styles.saveToastText}>
+              Changes saved successfully!
+            </span>
+          </div>
+        )}
 {/* Chat Button */}
-      <button
-        style={{
-          ...styles.saveBtn,
-          background: '#fff',
-          color: '#54A096',
-          border: '2px solid #54A096',
-          marginTop: 12,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 8,
-        }}
-        onClick={() => setIsUserListOpen(true)}
-      >
+      <button style={styles.chatBtn} onClick={() => setIsUserListOpen(true)}>
         💬 Open Chat with Others
       </button>
 
@@ -207,7 +282,6 @@ const onAllergyClick = (label: string) => {
           onGoBack={() => { setIsChatOpen(false); setIsUserListOpen(true); }}
         />
       )}
-
     </div>
   );
 }
