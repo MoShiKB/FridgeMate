@@ -143,7 +143,12 @@ const onSave = async () => {
     console.error('Failed to save profile:', err);
   }
 };
-if (isLoading) return <div style={styles.page}>Loading...</div>;
+if (isLoading) return (
+  <div style={styles.spinnerWrapper}>
+    <div style={styles.spinner} />
+    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+  </div>
+);
   return (
     <div style={styles.page}>
   {error && <div style={styles.error}>{error}</div>}
