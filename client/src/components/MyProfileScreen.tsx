@@ -232,18 +232,19 @@ if (isLoading) return (
 <div style={styles.card}>
   <h2 style={styles.cardTitle}>Allergies & Restrictions</h2>
   {allergyOptions.map((label) => (
-    <div
-      key={label}
-      style={styles.radioRow}
-      onClick={() => onAllergyClick(label)}
-    >
-      <input
-        type="checkbox"
-        checked={selectedAllergies.includes(label)}
-        onChange={() => onAllergyClick(label)}
-      />
-      <span style={styles.radioLabel}>{label}</span>
-    </div>
+<div key={label} style={styles.radioRow}>
+  <input
+    type="checkbox"
+    checked={selectedAllergies.includes(label)}
+    onChange={() => onAllergyClick(label)}
+  />
+  <span 
+    style={styles.radioLabel}
+    onClick={() => onAllergyClick(label)}
+  >
+    {label}
+  </span>
+</div>
   ))}
 </div>
 
