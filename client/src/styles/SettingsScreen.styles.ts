@@ -290,7 +290,19 @@ imagesContainer: {
   marginTop: 12,
   flexWrap: 'wrap' as const,
 },
-
+sendScanBtn: {
+  width: 80,
+  height: 80,
+  borderRadius: 8,
+  background: colors.darkTeal,
+  color: colors.white,
+  border: 'none',
+  cursor: 'pointer',
+  fontSize: 28,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+},
 };
 
 export const iconProps = {

@@ -25,6 +25,7 @@ const [fridgeName, setFridgeName] = useState("");
 const [currentFridgeName, setCurrentFridgeName] = useState("");
 const [inviteCode, setInviteCode] = useState("");
 const fridgeScanInputRef = useRef<HTMLInputElement>(null);
+const [isScanning, setIsScanning] = useState(false);
 const [showCopyToast, setShowCopyToast] = useState(false);const currentUserId = tokenManager.getAccessToken() 
   ? JSON.parse(atob(tokenManager.getAccessToken()!.split('.')[1])).userId 
   : null;
@@ -130,6 +131,25 @@ const onFridgeScan = (e: React.ChangeEvent<HTMLInputElement>) => {
   const urls = files.map(file => URL.createObjectURL(file));
  setFridgeImages(prev => [...prev, ...urls]);
 };
+const handleSendScan = async () => {
+  if (fridgeImages.length === 0) return;
+  setIsScanning(true);
+  try {
+    for (const url of fridgeImages) {
+      const blob = await fetch(url).then(r => r.blob());
+      const file = new File([blob], 'fridge.jpg', { type: blob.type });
+      await FridgeApi.scanFridge(file);
+    }
+    setFridgeImages([]);
+    alert('Scan complete! Items added to your fridge.');
+  } catch (err) {
+    console.error('Scan failed:', err);
+    alert('Scan failed, try again.');
+  } finally {
+    setIsScanning(false);
+  }
+};
+
   return (
     <div>
     <div style={styles.page}>
@@ -234,6 +254,9 @@ const onFridgeScan = (e: React.ChangeEvent<HTMLInputElement>) => {
         </button>
       </div>
     ))}
+    <button style={styles.sendScanBtn} onClick={handleSendScan}>
+      {isScanning ? '...' : '➤'}
+    </button>
   </div>
 )}
 </div>

@@ -41,5 +41,15 @@ export const FridgeApi = {
     });
     return response.data;
   },
+  async scanFridge(file: File) {
+  const formData = new FormData();
+  formData.append('image', file);
 
+  const response = await axios.post(`${API_BASE_URL}/fridges/me/scans`, formData, {
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+    },
+  });
+  return response.data;
+},
 };
