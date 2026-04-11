@@ -2,6 +2,7 @@ import { iconProps, styles } from "../styles/SettingsScreen.styles";
 import { useEffect, useState } from "react";
 import { FridgeApi } from '../services/api-settings';
 import { tokenManager } from '../services/api';
+import { useRef } from "react";
 /*icons*/
 import { IoPeopleOutline ,IoArrowBack} from "react-icons/io5";
 import { FiCamera,FiCheckCircle } from "react-icons/fi";
@@ -23,6 +24,7 @@ const [hasFridge, setHasFridge] = useState(false);
 const [fridgeName, setFridgeName] = useState(""); 
 const [currentFridgeName, setCurrentFridgeName] = useState("");
 const [inviteCode, setInviteCode] = useState("");
+const fridgeScanInputRef = useRef<HTMLInputElement>(null);
 const [showCopyToast, setShowCopyToast] = useState(false);const currentUserId = tokenManager.getAccessToken() 
   ? JSON.parse(atob(tokenManager.getAccessToken()!.split('.')[1])).userId 
   : null;
@@ -119,7 +121,15 @@ const handleLeaveFridge = async () => {
     console.error('Error leaving fridge:', err);
   }
 };
+const [fridgeImages, setFridgeImages] = useState<string[]>([]);
 
+const onFridgeScan = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const files = Array.from(e.target.files || []);
+  if (files.length === 0) return;
+
+  const urls = files.map(file => URL.createObjectURL(file));
+ setFridgeImages(prev => [...prev, ...urls]);
+};
   return (
     <div>
     <div style={styles.page}>
@@ -191,20 +201,43 @@ const handleLeaveFridge = async () => {
     </div>
   {/*fridge scanning card*/}
 
-    <div style={styles.card}>
-        <div style={styles.menuRow}>   
-            <FiCamera {...iconProps.cameraIcon} />
-            <span style={styles.menuRowText}>Fridge Scanner</span>
-        </div>
-        <p style={styles.cardText}>{fridgeScannerText}</p>
-               {/*Scanner Button*/}
-              <button style={styles.scannerBtn} onClick={() => console.log("scanning...")}>
-                <TbUpload {...iconProps.uploadIcon} />
-                <span style={styles.scannerBtnText}>Upload fridge photo </span>
-              </button>
-   </div>
-    </>
+<div style={styles.card}>
+  <div style={styles.menuRow}>   
+    <FiCamera {...iconProps.cameraIcon} />
+    <span style={styles.menuRowText}>Fridge Scanner</span>
+  </div>
+  <p style={styles.cardText}>{fridgeScannerText}</p>
+  {/*upload button*/}
+  <button style={styles.scannerBtn} onClick={() => fridgeScanInputRef.current?.click()}>
+    <TbUpload {...iconProps.uploadIcon} />
+    <span style={styles.scannerBtnText}>Upload fridge photo</span>
+  </button>
 
+  <input
+    ref={fridgeScanInputRef}
+    type="file"
+    accept="image/*"
+    multiple
+    style={{ display: 'none' }}
+    onChange={onFridgeScan}
+  />
+{fridgeImages.length > 0 && (
+  <div style={styles.imagesContainer}>
+    {fridgeImages.map((url, index) => (
+      <div key={index} style={styles.imageWrapper}>
+        <img src={url} alt={`fridge ${index + 1}`} style={styles.imagePreview} />
+        <button
+          onClick={() => setFridgeImages(prev => prev.filter((_, i) => i !== index))}
+          style={styles.imageDeleteBtn}
+        >
+          ✕
+        </button>
+      </div>
+    ))}
+  </div>
+)}
+</div>
+</>
 ) : (
   <div>
     {/* No Fridge Card */}
