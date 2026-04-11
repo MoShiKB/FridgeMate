@@ -289,12 +289,14 @@ imagesContainer: {
   gap: 8,
   marginTop: 12,
   flexWrap: 'wrap' as const,
+  alignItems: 'center',
+  justifyContent: 'center',
 },
 sendScanBtn: {
-  width: 80,
-  height: 80,
-  borderRadius: 8,
-  background: colors.darkTeal,
+  width: 50,
+  height: 50,
+  borderRadius: '50%',
+  background: colors.buttons,
   color: colors.white,
   border: 'none',
   cursor: 'pointer',
@@ -334,5 +336,9 @@ export const iconProps = {
     size: 20,
     color: colors.black,
   },
+  sendIcon: {
+  size: 24,
+  color: colors.white,
+},
 
 };

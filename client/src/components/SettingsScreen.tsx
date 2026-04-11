@@ -4,7 +4,7 @@ import { FridgeApi } from '../services/api-settings';
 import { tokenManager } from '../services/api';
 import { useRef } from "react";
 /*icons*/
-import { IoPeopleOutline ,IoArrowBack} from "react-icons/io5";
+import { IoPeopleOutline ,IoArrowBack, IoSend} from "react-icons/io5";
 import { FiCamera,FiCheckCircle } from "react-icons/fi";
 import { TbFridgeOff, TbUpload } from "react-icons/tb";
 import { FaRegCopy } from "react-icons/fa";
@@ -26,6 +26,7 @@ const [currentFridgeName, setCurrentFridgeName] = useState("");
 const [inviteCode, setInviteCode] = useState("");
 const fridgeScanInputRef = useRef<HTMLInputElement>(null);
 const [isScanning, setIsScanning] = useState(false);
+const [showScanToast, setShowScanToast] = useState(false);
 const [showCopyToast, setShowCopyToast] = useState(false);const currentUserId = tokenManager.getAccessToken() 
   ? JSON.parse(atob(tokenManager.getAccessToken()!.split('.')[1])).userId 
   : null;
@@ -141,7 +142,8 @@ const handleSendScan = async () => {
       await FridgeApi.scanFridge(file);
     }
     setFridgeImages([]);
-    alert('Scan complete! Items added to your fridge.');
+    setShowScanToast(true);
+     setTimeout(() => setShowScanToast(false), 2500);
   } catch (err) {
     console.error('Scan failed:', err);
     alert('Scan failed, try again.');
@@ -254,9 +256,18 @@ const handleSendScan = async () => {
         </button>
       </div>
     ))}
-    <button style={styles.sendScanBtn} onClick={handleSendScan}>
-      {isScanning ? '...' : '➤'}
-    </button>
+ <button style={styles.sendScanBtn} onClick={handleSendScan}>
+{isScanning ? '...' : <IoSend {...iconProps.sendIcon} />}
+</button>
+  </div>
+)}
+{/*scan complete toast*/}
+{showScanToast && (
+  <div style={styles.copyToast}>
+    <FiCheckCircle style={styles.copyToastIcon} />
+    <span style={styles.copyToastText}>
+      Items added to your fridge!
+    </span>
   </div>
 )}
 </div>
