@@ -1,6 +1,7 @@
 import { iconProps, styles } from "../styles/SettingsScreen.styles";
 import { useEffect, useState } from "react";
 import { FridgeApi } from '../services/api-settings';
+import { tokenManager } from '../services/api';
 /*icons*/
 import { IoPeopleOutline ,IoArrowBack} from "react-icons/io5";
 import { FiCamera,FiCheckCircle } from "react-icons/fi";
@@ -22,7 +23,10 @@ const [hasFridge, setHasFridge] = useState(false);
 const [fridgeName, setFridgeName] = useState(""); 
 const [currentFridgeName, setCurrentFridgeName] = useState("");
 const [inviteCode, setInviteCode] = useState("");
-const [showCopyToast, setShowCopyToast] = useState(false);
+const [showCopyToast, setShowCopyToast] = useState(false);const currentUserId = tokenManager.getAccessToken() 
+  ? JSON.parse(atob(tokenManager.getAccessToken()!.split('.')[1])).userId 
+  : null;
+
 const handleCopyInviteCode = async () => {
   try {
     await navigator.clipboard.writeText(inviteCode);
@@ -70,7 +74,7 @@ const handleCreateFridge = async () => {
   if (!fridgeName.trim()) return;
   try {
     const res = await FridgeApi.createFridge(fridgeName);
-    setInviteCode(res.data.data.inviteCode);
+    setInviteCode(res.data.inviteCode);
     setCurrentFridgeName(fridgeName);
     const { request } = FridgeApi.getMembers();
     request.then((membersRes) => {
@@ -164,10 +168,16 @@ const handleLeaveFridge = async () => {
      {/* Members List */}
       {members.map((member) => (
 <div key={member.userId} style={styles.memberRow}>
-  <div style={styles.memberAvatar}>
-    {member.displayName?.[0]}
-  </div>
-  <span style={styles.memberName}>{member.displayName}</span>
+ <div style={styles.memberAvatar}>
+  {member.profileImage 
+    ? <img src={member.profileImage} alt={member.displayName} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+    : member.displayName?.[0]
+  }
+</div>
+<span style={styles.memberName}>
+  {member.displayName}
+  {member.userId === currentUserId && ' (Me)'}
+</span>
 </div>
   ))}
  </div>
