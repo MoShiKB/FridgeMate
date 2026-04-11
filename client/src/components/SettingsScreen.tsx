@@ -27,6 +27,7 @@ const [inviteCode, setInviteCode] = useState("");
 const fridgeScanInputRef = useRef<HTMLInputElement>(null);
 const [isScanning, setIsScanning] = useState(false);
 const [showScanToast, setShowScanToast] = useState(false);
+const [isLoading, setIsLoading] = useState(true);
 const [showCopyToast, setShowCopyToast] = useState(false);const currentUserId = tokenManager.getAccessToken() 
   ? JSON.parse(atob(tokenManager.getAccessToken()!.split('.')[1])).userId 
   : null;
@@ -51,14 +52,17 @@ useEffect(() => {
     setHasFridge(true);
     setInviteCode(res.data.data.inviteCode);
     setCurrentFridgeName(res.data.data.name);
+    setIsLoading(false);
   })
 .catch((err) => {
   if (err.name === 'CanceledError') {
     console.log('Request canceled', err.message);
   } else if (err.response?.status === 404) {
     setHasFridge(false);
+    setIsLoading(false);
   } else {
     console.error('Error fetching fridge:', err);
+    setIsLoading(false);
   }
 });
 
@@ -151,7 +155,12 @@ const handleSendScan = async () => {
     setIsScanning(false);
   }
 };
-
+if (isLoading) return (
+  <div style={styles.spinnerWrapper}>
+    <div style={styles.spinner} />
+    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+  </div>
+);
   return (
     <div>
     <div style={styles.page}>

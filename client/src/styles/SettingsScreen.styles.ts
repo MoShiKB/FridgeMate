@@ -305,6 +305,20 @@ sendScanBtn: {
   alignItems: 'center',
   justifyContent: 'center',
 },
+spinner: {
+  width: 40,
+  height: 40,
+  borderRadius: '50%',
+  border: '4px solid #e0e0e0',
+  borderTop: `4px solid ${colors.darkTeal}`,
+  animation: 'spin 1s linear infinite',
+},
+spinnerWrapper: {
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  height: '100vh',
+},
 };
 
 export const iconProps = {
