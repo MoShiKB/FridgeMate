@@ -354,5 +354,9 @@ export const iconProps = {
   size: 24,
   color: colors.white,
 },
+closeIcon: {
+  size: 12,
+  color: colors.black,
+},
 
 };

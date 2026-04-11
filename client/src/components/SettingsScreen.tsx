@@ -4,7 +4,7 @@ import { FridgeApi } from '../services/api-settings';
 import { tokenManager } from '../services/api';
 import { useRef } from "react";
 /*icons*/
-import { IoPeopleOutline ,IoArrowBack, IoSend} from "react-icons/io5";
+import { IoPeopleOutline ,IoArrowBack, IoSend, IoClose} from "react-icons/io5";
 import { FiCamera,FiCheckCircle } from "react-icons/fi";
 import { TbFridgeOff, TbUpload } from "react-icons/tb";
 import { FaRegCopy } from "react-icons/fa";
@@ -251,6 +251,7 @@ if (isLoading) return (
     multiple
     style={{ display: 'none' }}
     onChange={onFridgeScan}
+    onClick={(e) => { (e.target as HTMLInputElement).value = ''; }}
   />
 {fridgeImages.length > 0 && (
   <div style={styles.imagesContainer}>
@@ -261,7 +262,7 @@ if (isLoading) return (
           onClick={() => setFridgeImages(prev => prev.filter((_, i) => i !== index))}
           style={styles.imageDeleteBtn}
         >
-          ✕
+        <IoClose {...iconProps.closeIcon} />
         </button>
       </div>
     ))}
