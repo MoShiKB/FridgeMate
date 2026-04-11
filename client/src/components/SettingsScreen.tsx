@@ -96,6 +96,17 @@ const handleJoinFridge = async (e: React.FormEvent) => {
   if (!inviteCode.trim()) return;
   try {
     await FridgeApi.joinFridge(inviteCode);
+    const { request } = FridgeApi.getMyFridge();
+    request.then((res) => {
+      console.log('Fridge data after join:', res.data);
+      setCurrentFridgeName(res.data.data.name);
+      setInviteCode(res.data.data.inviteCode);
+    });
+    // get members
+    const { request: membersReq } = FridgeApi.getMembers();
+    membersReq.then((res) => {
+      setMembers(res.data.items || []);
+    });
     setHasFridge(true);
   } catch (err) {
     console.error('Error joining fridge:', err);
