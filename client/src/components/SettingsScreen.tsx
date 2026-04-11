@@ -1,7 +1,6 @@
 import { iconProps, styles } from "../styles/SettingsScreen.styles";
 import { useEffect, useState } from "react";
-import { tokenManager } from "../services/api";
-import axios from "axios";
+import { FridgeApi } from '../services/api-settings';
 /*icons*/
 import { IoPeopleOutline ,IoArrowBack} from "react-icons/io5";
 import { FiCamera,FiCheckCircle } from "react-icons/fi";
@@ -11,16 +10,17 @@ import { SlLogout } from "react-icons/sl";
 
 {/*texts*/}
 const fridgeScannerText ="Upload photos of your fridge contents and we'll automatically detect items and add them to your inventory.";
-const inviteCodeTXT= "FRIDGE-2024-XY7K"; //TODO:add real data
+
 interface Member {
-  _id: string;
-  userName: string;
+  userId: string;
+  displayName: string;
   profileImage: string | null;
 }
 
 function SettingsScreen() {
 const [hasFridge, setHasFridge] = useState(false);
-const [fridgeName, setFridgeName] = useState("");
+const [fridgeName, setFridgeName] = useState(""); 
+const [currentFridgeName, setCurrentFridgeName] = useState("");
 const [inviteCode, setInviteCode] = useState("");
 
     const onClick = (index: number) => {
@@ -29,7 +29,7 @@ const [inviteCode, setInviteCode] = useState("");
 const [showCopyToast, setShowCopyToast] = useState(false);
 const handleCopyInviteCode = async () => {
   try {
-    await navigator.clipboard.writeText(inviteCodeTXT);
+    await navigator.clipboard.writeText(inviteCode);
     setShowCopyToast(true);
 
     setTimeout(() => {
@@ -41,21 +41,75 @@ const handleCopyInviteCode = async () => {
 };
 const [members, setMembers] = useState<Member[]>([]);
 useEffect(() => {
-  const token = tokenManager.getAccessToken();
+  const { request, abort } = FridgeApi.getMyFridge();
   
-  axios.get<Member[]>("http://localhost:3001/user", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+  request.then((res) => {
+    setHasFridge(true);
+    setInviteCode(res.data.inviteCode);
+    setCurrentFridgeName(res.data.name);
   })
-  .then((response) => {
-    console.log("Fetching members...");
-    setMembers(response.data);
-  })
-  .catch((error) => {
-    console.error("Error fetching members:", error);
-  });
+.catch((err) => {
+  if (err.name === 'CanceledError') {
+    console.log('Request canceled', err.message);
+  } else if (err.response?.status === 404) {
+    setHasFridge(false);
+  } else {
+    console.error('Error fetching fridge:', err);
+  }
+});
+
+  return () => abort();
 }, []);
+useEffect(() => {
+  if (!hasFridge) return;
+  
+  const { request } = FridgeApi.getMembers();
+  request.then((res) => {
+    const data = res.data;
+setMembers(data.items || []);
+  })
+  .catch((err) => console.error('Error fetching members:', err));
+}, [hasFridge]);
+const handleCreateFridge = async () => {
+  if (!fridgeName.trim()) return;
+  try {
+    const res = await FridgeApi.createFridge(fridgeName);
+    console.log('Create fridge response:', res);
+    console.log('Fridge name from res:', res.data.name);
+console.log('Full res.data:', JSON.stringify(res.data));
+    setInviteCode(res.data.inviteCode);
+    setCurrentFridgeName(fridgeName);
+    const { request } = FridgeApi.getMembers();
+    request.then((membersRes) => {
+      console.log('Members response:', membersRes.data);
+   const data = membersRes.data;
+setMembers(data.items || []);
+    });
+    
+    setHasFridge(true);
+  } catch (err) {
+    console.error('Error creating fridge:', err);
+  }
+};
+const handleJoinFridge = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!inviteCode.trim()) return;
+  try {
+    await FridgeApi.joinFridge(inviteCode);
+    setHasFridge(true);
+  } catch (err) {
+    console.error('Error joining fridge:', err);
+  }
+};
+const handleLeaveFridge = async () => {
+  try {
+    await FridgeApi.leaveFridge();
+    setHasFridge(false);
+  } catch (err) {
+    console.error('Error leaving fridge:', err);
+  }
+};
+
   return (
     <div>
     <div style={styles.page}>
@@ -86,16 +140,16 @@ useEffect(() => {
     <div style={styles.greenCardHeader}>
       <div>
         <p style={styles.greenCardLabel}>Current Fridge</p>
-        <p style={styles.greenCardTitle}>Family Kitchen</p>
+        <p style={styles.greenCardTitle}>{currentFridgeName}</p>
       </div>
-      <span style={styles.membersText}>3 members</span> {/*TODO:add real data*/}
+      <span style={styles.membersText}>{members.length} members</span> 
     </div>
 
      {/* Invite Code */}
     <div style={styles.inviteBox}>
       <div>
         <p style={styles.inviteLabel}>Invite Code</p>
-        <p style={styles.inviteCode}>{inviteCodeTXT}</p>
+        <p style={styles.inviteCode}>{inviteCode}</p>
       </div>
         <button style={styles.copyBtn} onClick={handleCopyInviteCode}>
                 <FaRegCopy {...iconProps.copyIcon} />
@@ -104,18 +158,18 @@ useEffect(() => {
     </div>
      {/* Members List */}
       {members.map((member) => (
-    <div key={member._id} style={styles.memberRow}>
-      <div style={styles.memberAvatar}>
-        {member.userName[0]}
-      </div>
-      <span style={styles.memberName}>{member.userName}</span>
-    </div>
+<div key={member.userId} style={styles.memberRow}>
+  <div style={styles.memberAvatar}>
+    {member.displayName?.[0]}
+  </div>
+  <span style={styles.memberName}>{member.displayName}</span>
+</div>
   ))}
  </div>
  
 
  {/*leave fridge button*/}
-    <button style={styles.leaveBtn} onClick={() => setHasFridge(false)}>
+    <button style={styles.leaveBtn} onClick={handleLeaveFridge}>
          <SlLogout {...iconProps.leaveIcon} />
                 <span style={styles.scannerBtnText}>Leave Fridge</span>
     </button>
@@ -151,8 +205,7 @@ useEffect(() => {
 
       <form
         onSubmit={(e) => {
-          e.preventDefault();
-          console.log("submitting...", { fridgeName, inviteCode });
+          handleJoinFridge(e);
         }}
       >
         <input
@@ -166,7 +219,7 @@ useEffect(() => {
         <button
           type="button"
           style={styles.createBtn}
-          onClick={() => setHasFridge(true)}
+         onClick={handleCreateFridge}
         >
           Create Fridge
         </button>
