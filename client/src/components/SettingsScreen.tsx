@@ -22,10 +22,6 @@ const [hasFridge, setHasFridge] = useState(false);
 const [fridgeName, setFridgeName] = useState(""); 
 const [currentFridgeName, setCurrentFridgeName] = useState("");
 const [inviteCode, setInviteCode] = useState("");
-
-    const onClick = (index: number) => {
-    console.log("clicked index:", index);
-  };
 const [showCopyToast, setShowCopyToast] = useState(false);
 const handleCopyInviteCode = async () => {
   try {
@@ -45,8 +41,8 @@ useEffect(() => {
   
   request.then((res) => {
     setHasFridge(true);
-    setInviteCode(res.data.inviteCode);
-    setCurrentFridgeName(res.data.name);
+    setInviteCode(res.data.data.inviteCode);
+    setCurrentFridgeName(res.data.data.name);
   })
 .catch((err) => {
   if (err.name === 'CanceledError') {
@@ -74,14 +70,10 @@ const handleCreateFridge = async () => {
   if (!fridgeName.trim()) return;
   try {
     const res = await FridgeApi.createFridge(fridgeName);
-    console.log('Create fridge response:', res);
-    console.log('Fridge name from res:', res.data.name);
-console.log('Full res.data:', JSON.stringify(res.data));
-    setInviteCode(res.data.inviteCode);
+    setInviteCode(res.data.data.inviteCode);
     setCurrentFridgeName(fridgeName);
     const { request } = FridgeApi.getMembers();
     request.then((membersRes) => {
-      console.log('Members response:', membersRes.data);
    const data = membersRes.data;
 setMembers(data.items || []);
     });
@@ -98,7 +90,6 @@ const handleJoinFridge = async (e: React.FormEvent) => {
     await FridgeApi.joinFridge(inviteCode);
     const { request } = FridgeApi.getMyFridge();
     request.then((res) => {
-      console.log('Fridge data after join:', res.data);
       setCurrentFridgeName(res.data.data.name);
       setInviteCode(res.data.data.inviteCode);
     });
@@ -116,6 +107,10 @@ const handleLeaveFridge = async () => {
   try {
     await FridgeApi.leaveFridge();
     setHasFridge(false);
+    setInviteCode('');        
+    setCurrentFridgeName('');
+    setFridgeName('');
+    setMembers([]);           
   } catch (err) {
     console.error('Error leaving fridge:', err);
   }
@@ -126,7 +121,6 @@ const handleLeaveFridge = async () => {
     <div style={styles.page}>
 
       {/* Header */}
-
       <div style={styles.header}>
         <button style={styles.backBtn} onClick={() => window.history.back()}>
           <IoArrowBack {...iconProps.backIcon} />
@@ -253,7 +247,6 @@ const handleLeaveFridge = async () => {
 )
 };
   
-
 {/*copy screen toast*/}
     {showCopyToast && (
       <div style={styles.copyToast}>
