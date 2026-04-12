@@ -84,6 +84,10 @@ web_modules/
 jest_cache/
 tmp/jest*
 
+# Uploaded files
+server/uploads/*
+!server/uploads/.gitkeep
+
 # Misc
 .DS_Store
 
@@ -139,3 +143,6 @@ dist
 
 ./public
 ./uploads
+
+# Local prompt file
+prompt.txt

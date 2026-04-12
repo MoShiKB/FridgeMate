@@ -49,3 +49,6 @@ input::placeholder,
 textarea::placeholder {
   color: #8E8E8E;
 }
+button:active {
+  filter: brightness(0.85);
+}

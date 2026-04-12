@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import UserModel, { IUser } from "../models/user.model";
 import { sendResetCodeEmail } from "../config/email";
+import { ApiError } from "../utils/errors";
 
 export interface RegisterData {
   userName?: string;
@@ -44,7 +45,7 @@ export const AuthService = {
     const email = data.email.toLowerCase().trim();
 
     const exist = await UserModel.findOne({ email }).lean();
-    if (exist) throw new Error("User already exists");
+    if (exist) throw new ApiError(409, "User already exists");
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(data.password, salt);
@@ -75,10 +76,10 @@ export const AuthService = {
 
     // חשוב: select("+password") כי password מוגדר select:false במודל
     const user = await UserModel.findOne({ email: normalizedEmail }).select("+password").exec();
-    if (!user || !user.password) throw new Error("Invalid credentials");
+    if (!user || !user.password) throw new ApiError(401, "Invalid credentials");
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) throw new Error("Invalid credentials");
+    if (!isMatch) throw new ApiError(401, "Invalid credentials");
 
     const accessToken = signAccessToken(user);
     const refreshToken = signRefreshToken(user._id.toString());
@@ -128,7 +129,7 @@ export const AuthService = {
 
   async logout(userId: string) {
     const user = await UserModel.findById(userId).select("+refreshToken").exec();
-    if (!user) throw new Error("Invalid token");
+    if (!user) throw new ApiError(401, "Invalid token");
 
     user.refreshToken = null;
     await user.save();
@@ -139,7 +140,7 @@ export const AuthService = {
     const decodedToken = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET as string) as { userId: string };
 
     const user = await UserModel.findById(decodedToken.userId).select("+refreshToken").exec();
-    if (!user || user.refreshToken !== refreshToken) throw new Error("Invalid refresh token");
+    if (!user || user.refreshToken !== refreshToken) throw new ApiError(401, "Invalid refresh token");
 
     const newAccessToken = signAccessToken(user);
     return { status: 200, data: { accessToken: newAccessToken } };
@@ -151,7 +152,7 @@ export const AuthService = {
       .select("+resetPasswordToken +resetPasswordExpires")
       .exec();
 
-    if (!user) throw new Error("No account found with this email");
+    if (!user) throw new ApiError(404, "No account found with this email");
 
     const code = crypto.randomInt(100_000, 999_999).toString();
     const hashedCode = await bcrypt.hash(code, 10);
@@ -172,18 +173,18 @@ export const AuthService = {
       .exec();
 
     if (!user || !user.resetPasswordToken || !user.resetPasswordExpires) {
-      throw new Error("No reset request found. Please request a new code.");
+      throw new ApiError(400, "No reset request found. Please request a new code.");
     }
 
     if (user.resetPasswordExpires < new Date()) {
       user.resetPasswordToken = null;
       user.resetPasswordExpires = null;
       await user.save({ validateModifiedOnly: true });
-      throw new Error("Reset code has expired. Please request a new one.");
+      throw new ApiError(400, "Reset code has expired. Please request a new one.");
     }
 
     const isMatch = await bcrypt.compare(code, user.resetPasswordToken);
-    if (!isMatch) throw new Error("Invalid reset code");
+    if (!isMatch) throw new ApiError(400, "Invalid reset code");
 
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(newPassword, salt);

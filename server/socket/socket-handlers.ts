@@ -61,8 +61,8 @@ export const setupSocketHandlers = (io: Server) => {
                 try {
                     const senderId = socket.data.userId;
 
-                    const chat = await ChatModel.findByIdAndUpdate(
-                        chatId,
+                    const chat = await ChatModel.findOneAndUpdate(
+                        { _id: chatId, participants: senderId },
                         {
                             $push: {
                                 messages: { sender: senderId, content, status: "sent" },
@@ -77,7 +77,7 @@ export const setupSocketHandlers = (io: Server) => {
                     });
 
                     if (!chat) {
-                        return socket.emit("error", "Chat not found");
+                        return socket.emit("error", "Chat not found or unauthorized");
                     }
 
                     const newMessage = chat.messages[chat.messages.length - 1];
@@ -90,7 +90,9 @@ export const setupSocketHandlers = (io: Server) => {
 
         socket.on("getMessages", async ({ chatId }: { chatId: string }) => {
             try {
-                const chat = await ChatModel.findById(chatId)
+                const userId = socket.data.userId;
+
+                const chat = await ChatModel.findOne({ _id: chatId, participants: userId })
                     .populate({
                         path: "messages.sender",
                         select: "displayName profileImage",
@@ -98,7 +100,7 @@ export const setupSocketHandlers = (io: Server) => {
                     .exec();
 
                 if (!chat) {
-                    return socket.emit("error", "Chat not found");
+                    return socket.emit("error", "Chat not found or unauthorized");
                 }
 
                 socket.emit("messages", chat.messages);
@@ -111,14 +113,16 @@ export const setupSocketHandlers = (io: Server) => {
             "markAsRead",
             async ({ chatId, messageId }: { chatId: string; messageId: string }) => {
                 try {
+                    const userId = socket.data.userId;
+
                     const result = await ChatModel.findOneAndUpdate(
-                        { _id: chatId, "messages._id": messageId },
+                        { _id: chatId, participants: userId, "messages._id": messageId },
                         { $set: { "messages.$.status": "read" } },
                         { new: true }
                     );
 
                     if (!result) {
-                        return socket.emit("error", "Message not found");
+                        return socket.emit("error", "Message not found or unauthorized");
                     }
 
                     io.to(chatId).emit("messageStatusUpdated", {

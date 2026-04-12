@@ -16,10 +16,10 @@ export const UserController = {
 
   async updateProfile(req: Request, res: Response, next: NextFunction) {
     try {
-      const userId = req.body.userId as string;
-      const { userName, profileImage } = req.body;
+      const userId = req.params.id as string;
+      const { userName, profileImage, displayName, address, allergies, dietPreference } = req.body;
 
-      const updatedUser = await UserService.updateProfile(userId, { userName, profileImage });
+      const updatedUser = await UserService.updateProfile(userId, { userName, profileImage, displayName, address, allergies, dietPreference });
       if (!updatedUser) return res.status(404).json({ message: "User not found" });
 
       return res.json(updatedUser);

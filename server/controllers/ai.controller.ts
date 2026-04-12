@@ -1,29 +1,58 @@
 import { Request, Response, NextFunction } from 'express';
+import { AuthedRequest } from '../middlewares/auth';
 import { AIService } from '../services/ai.service';
 import { RecipeService } from '../services/recipe.service';
+import { UserService } from '../services/user.service';
 
 export const AIController = {
     async generateRecipes(req: Request, res: Response, next: NextFunction) {
         try {
-            const { ingredients, allergies, dietPreference, count } = req.body;
+            const userId = (req as AuthedRequest).user.userId;
+            const { ingredients, count } = req.body;
+            let { allergies, dietPreference } = req.body;
 
-            if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
-                return res.status(400).json({
-                    error: 'ingredients is required and must be a non-empty array'
-                });
+            const user = await UserService.getUserById(userId);
+            if (user) {
+                if (!allergies || allergies.length === 0) {
+                    allergies = user.allergies ?? [];
+                }
+                if (!dietPreference || dietPreference === 'NONE') {
+                    dietPreference = user.dietPreference ?? 'NONE';
+                }
             }
 
             const result = await AIService.generateRecipes({
                 ingredients,
                 allergies,
                 dietPreference,
-                count: count || 3
+                count,
             });
+
+            const recipesWithImages = await Promise.all(
+                result.recipes.map(async (recipe) => {
+                    const imageUrl = await AIService.generateRecipeImage(recipe.title);
+                    return { ...recipe, imageUrl };
+                })
+            );
+
+            const saved = await RecipeService.bulkCreate(userId, recipesWithImages);
+
+            const recipesResponse = saved.map((r) => ({
+                _id: r._id,
+                title: r.title,
+                description: r.description,
+                cookingTime: r.cookingTime,
+                difficulty: r.difficulty,
+                ingredients: r.ingredients,
+                steps: r.steps,
+                nutrition: r.nutrition,
+                imageUrl: r.imageUrl,
+            }));
 
             res.json({
                 message: 'Recipes generated successfully',
-                recipes: result.recipes,
-                count: result.recipes.length
+                recipes: recipesResponse,
+                count: recipesResponse.length
             });
         } catch (err: any) {
             next(err);
@@ -33,12 +62,6 @@ export const AIController = {
     async askAI(req: Request, res: Response, next: NextFunction) {
         try {
             const { query, recipe, recipeId, ingredients } = req.body;
-
-            if (!query || typeof query !== 'string') {
-                return res.status(400).json({
-                    error: 'query is required and must be a string'
-                });
-            }
 
             let recipeContext = recipe;
             if (recipeId && !recipe) {
@@ -67,4 +90,3 @@ export const AIController = {
         }
     }
 };
-

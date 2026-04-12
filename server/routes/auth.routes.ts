@@ -1,17 +1,25 @@
 import { Router } from "express";
 import passport from "../middlewares/passport";
 import { AuthController } from "../controllers/auth.controller";
-import { isAuthorized } from "../middlewares/authorization";
+import { requireAuth } from "../middlewares/auth";
+import { validate } from "../middlewares/validate";
+import {
+  RegisterSchema,
+  LoginSchema,
+  RefreshTokenSchema,
+  ForgotPasswordSchema,
+  ResetPasswordSchema,
+} from "../validators/auth.validators";
 
 const router = Router();
 
-router.post("/register", AuthController.register);
-router.post("/login", AuthController.login);
-router.post("/refresh-token", AuthController.refreshToken);
-router.post("/forgot-password", AuthController.forgotPassword);
-router.post("/reset-password", AuthController.resetPassword);
+router.post("/register", validate({ body: RegisterSchema }), AuthController.register);
+router.post("/login", validate({ body: LoginSchema }), AuthController.login);
+router.post("/refresh-token", validate({ body: RefreshTokenSchema }), AuthController.refreshToken);
+router.post("/forgot-password", validate({ body: ForgotPasswordSchema }), AuthController.forgotPassword);
+router.post("/reset-password", validate({ body: ResetPasswordSchema }), AuthController.resetPassword);
 
-router.post("/logout", isAuthorized, AuthController.logout);
+router.post("/logout", requireAuth, AuthController.logout);
 
 router.get(
   "/login/google",

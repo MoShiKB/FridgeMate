@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { AuthedRequest } from "../middlewares/auth";
 import { AuthService, RegisterData } from "../services/auth.service";
 
 export const AuthController = {
@@ -32,7 +33,7 @@ export const AuthController = {
   },
 
   async handleGoogleCallback(req: Request, res: Response, next: NextFunction) {
-    const redirectRoute = `http://localhost:3000/auth/google/callback`;
+    const clientUrl = process.env.CLIENT_URL || "http://localhost:3000";
     const googleUser = req.user as { email?: string; userName?: string; profileImage?: string };
 
     if (!googleUser?.email) {
@@ -46,9 +47,24 @@ export const AuthController = {
         googleUser.profileImage
       );
 
-      return res.redirect(
-        `${redirectRoute}?accessToken=${response.data.accessToken}&refreshToken=${response.data.refreshToken}`
-      );
+      const isProduction = process.env.NODE_ENV === "production";
+
+      res.cookie("accessToken", response.data.accessToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: "lax",
+        maxAge: 15 * 60 * 1000,
+      });
+
+      res.cookie("refreshToken", response.data.refreshToken, {
+        httpOnly: true,
+        secure: isProduction,
+        path: "/api/auth/refresh-token",
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
+      return res.redirect(`${clientUrl}/auth/google/callback`);
     } catch (err) {
       next(err);
     }
@@ -56,7 +72,7 @@ export const AuthController = {
 
   async logout(req: Request, res: Response, next: NextFunction) {
     try {
-      const { userId } = req.body;
+      const userId = (req as AuthedRequest).user.userId;
       const response = await AuthService.logout(userId);
       return res.status(response.status).json(response.data);
     } catch (err) {

@@ -1,4 +1,12 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+import axios from "axios";
+export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+export default apiClient;
 
 interface LoginResponse {
   message: string;
@@ -118,6 +126,15 @@ class ApiService {
       },
     });
 
+    return this.handleResponse(response);
+  }
+
+  async getUsers(): Promise<any[]> {
+    const response = await fetch(`${API_BASE_URL}/user`, {
+      headers: {
+        'Authorization': `Bearer ${tokenManager.getAccessToken()}`,
+      },
+    });
     return this.handleResponse(response);
   }
 

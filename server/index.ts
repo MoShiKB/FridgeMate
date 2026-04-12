@@ -1,7 +1,9 @@
 import "./config/env";
 import express from "express";
+import path from "path";
 import http from "http";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import passport from "./middlewares/passport";
 import mongoSanitize from "express-mongo-sanitize";
 import swaggerUi from "swagger-ui-express";
@@ -28,10 +30,13 @@ setupSocketHandlers(io);
 
 app.use(express.json());
 app.use(cors());
+app.use(cookieParser());
 app.use(passport.initialize());
 app.use(mongoSanitize());
 app.use(express.urlencoded({ extended: false }));
 
+import { UPLOADS_DIR } from "./config/env";
+app.use("/uploads", express.static(UPLOADS_DIR));
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDoc));
 app.use("/", mainRoutes);
 app.use(errorHandler);
