@@ -259,7 +259,66 @@ input: {
   boxSizing: "border-box",
   marginBottom: "12px",
 },
-
+imageWrapper: {
+  position: 'relative' as const,
+},
+imagePreview: {
+  width: 80,
+  height: 80,
+  borderRadius: 8,
+  objectFit: 'cover' as const,
+},
+imageDeleteBtn: {
+  position: 'absolute' as const,
+  top: -6,
+  right: -6,
+  width: 20,
+  height: 20,
+  borderRadius: '50%',
+  background: colors.white,
+  color: colors.black,
+  border: '1px solid #e0e0e0',
+  cursor: 'pointer',
+  fontSize: 12,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+imagesContainer: {
+  display: 'flex',
+  gap: 8,
+  marginTop: 12,
+  flexWrap: 'wrap' as const,
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+sendScanBtn: {
+  width: 50,
+  height: 50,
+  borderRadius: '50%',
+  background: colors.buttons,
+  color: colors.white,
+  border: 'none',
+  cursor: 'pointer',
+  fontSize: 28,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+spinner: {
+  width: 40,
+  height: 40,
+  borderRadius: '50%',
+  border: '4px solid #e0e0e0',
+  borderTop: `4px solid ${colors.darkTeal}`,
+  animation: 'spin 1s linear infinite',
+},
+spinnerWrapper: {
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  height: '100vh',
+},
 };
 
 export const iconProps = {
@@ -291,5 +350,13 @@ export const iconProps = {
     size: 20,
     color: colors.black,
   },
+  sendIcon: {
+  size: 24,
+  color: colors.white,
+},
+closeIcon: {
+  size: 12,
+  color: colors.black,
+},
 
 };

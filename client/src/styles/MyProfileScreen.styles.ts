@@ -168,7 +168,21 @@ saveToastText: {
   fontSize: 16,
   fontWeight: 500,
 },
-
+spinner: {
+  width: 40,
+  height: 40,
+  borderRadius: '50%',
+  border: '4px solid #e0e0e0',
+  borderTop: `4px solid ${colors.tealPrimary}`,
+  animation: 'spin 1s linear infinite',
+},
+spinnerWrapper: {
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  height: '100vh',
+  background: colors.lightTeal,
+},
 };
 
 export const iconProps = {

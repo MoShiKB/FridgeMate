@@ -143,7 +143,12 @@ const onSave = async () => {
     console.error('Failed to save profile:', err);
   }
 };
-if (isLoading) return <div style={styles.page}>Loading...</div>;
+if (isLoading) return (
+  <div style={styles.spinnerWrapper}>
+    <div style={styles.spinner} />
+    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+  </div>
+);
   return (
     <div style={styles.page}>
   {error && <div style={styles.error}>{error}</div>}
@@ -227,18 +232,19 @@ if (isLoading) return <div style={styles.page}>Loading...</div>;
 <div style={styles.card}>
   <h2 style={styles.cardTitle}>Allergies & Restrictions</h2>
   {allergyOptions.map((label) => (
-    <div
-      key={label}
-      style={styles.radioRow}
-      onClick={() => onAllergyClick(label)}
-    >
-      <input
-        type="checkbox"
-        checked={selectedAllergies.includes(label)}
-        onChange={() => onAllergyClick(label)}
-      />
-      <span style={styles.radioLabel}>{label}</span>
-    </div>
+<div key={label} style={styles.radioRow}>
+  <input
+    type="checkbox"
+    checked={selectedAllergies.includes(label)}
+    onChange={() => onAllergyClick(label)}
+  />
+  <span 
+    style={styles.radioLabel}
+    onClick={() => onAllergyClick(label)}
+  >
+    {label}
+  </span>
+</div>
   ))}
 </div>
 

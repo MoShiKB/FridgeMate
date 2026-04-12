@@ -1,9 +1,10 @@
 import { iconProps, styles } from "../styles/SettingsScreen.styles";
 import { useEffect, useState } from "react";
-import { tokenManager } from "../services/api";
-import axios from "axios";
+import { FridgeApi } from '../services/api-settings';
+import { tokenManager } from '../services/api';
+import { useRef } from "react";
 /*icons*/
-import { IoPeopleOutline ,IoArrowBack} from "react-icons/io5";
+import { IoPeopleOutline ,IoArrowBack, IoSend, IoClose} from "react-icons/io5";
 import { FiCamera,FiCheckCircle } from "react-icons/fi";
 import { TbFridgeOff, TbUpload } from "react-icons/tb";
 import { FaRegCopy } from "react-icons/fa";
@@ -11,25 +12,29 @@ import { SlLogout } from "react-icons/sl";
 
 {/*texts*/}
 const fridgeScannerText ="Upload photos of your fridge contents and we'll automatically detect items and add them to your inventory.";
-const inviteCodeTXT= "FRIDGE-2024-XY7K"; //TODO:add real data
+
 interface Member {
-  _id: string;
-  userName: string;
+  userId: string;
+  displayName: string;
   profileImage: string | null;
 }
 
 function SettingsScreen() {
 const [hasFridge, setHasFridge] = useState(false);
-const [fridgeName, setFridgeName] = useState("");
+const [fridgeName, setFridgeName] = useState(""); 
+const [currentFridgeName, setCurrentFridgeName] = useState("");
 const [inviteCode, setInviteCode] = useState("");
+const fridgeScanInputRef = useRef<HTMLInputElement>(null);
+const [isScanning, setIsScanning] = useState(false);
+const [showScanToast, setShowScanToast] = useState(false);
+const [isLoading, setIsLoading] = useState(true);
+const [showCopyToast, setShowCopyToast] = useState(false);const currentUserId = tokenManager.getAccessToken() 
+  ? JSON.parse(atob(tokenManager.getAccessToken()!.split('.')[1])).userId 
+  : null;
 
-    const onClick = (index: number) => {
-    console.log("clicked index:", index);
-  };
-const [showCopyToast, setShowCopyToast] = useState(false);
 const handleCopyInviteCode = async () => {
   try {
-    await navigator.clipboard.writeText(inviteCodeTXT);
+    await navigator.clipboard.writeText(inviteCode);
     setShowCopyToast(true);
 
     setTimeout(() => {
@@ -41,27 +46,126 @@ const handleCopyInviteCode = async () => {
 };
 const [members, setMembers] = useState<Member[]>([]);
 useEffect(() => {
-  const token = tokenManager.getAccessToken();
+  const { request, abort } = FridgeApi.getMyFridge();
   
-  axios.get<Member[]>("http://localhost:3001/user", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+  request.then((res) => {
+    setHasFridge(true);
+    setInviteCode(res.data.data.inviteCode);
+    setCurrentFridgeName(res.data.data.name);
+    setIsLoading(false);
   })
-  .then((response) => {
-    console.log("Fetching members...");
-    setMembers(response.data);
-  })
-  .catch((error) => {
-    console.error("Error fetching members:", error);
-  });
+.catch((err) => {
+  if (err.name === 'CanceledError') {
+    console.log('Request canceled', err.message);
+  } else if (err.response?.status === 404) {
+    setHasFridge(false);
+    setIsLoading(false);
+  } else {
+    console.error('Error fetching fridge:', err);
+    setIsLoading(false);
+  }
+});
+
+  return () => abort();
 }, []);
+useEffect(() => {
+  if (!hasFridge) return;
+  
+  const { request } = FridgeApi.getMembers();
+  request.then((res) => {
+    const data = res.data;
+setMembers(data.items || []);
+  })
+  .catch((err) => console.error('Error fetching members:', err));
+}, [hasFridge]);
+const handleCreateFridge = async () => {
+  if (!fridgeName.trim()) return;
+  try {
+    const res = await FridgeApi.createFridge(fridgeName);
+    setInviteCode(res.data.inviteCode);
+    setCurrentFridgeName(fridgeName);
+    const { request } = FridgeApi.getMembers();
+    request.then((membersRes) => {
+   const data = membersRes.data;
+setMembers(data.items || []);
+    });
+    
+    setHasFridge(true);
+  } catch (err) {
+    console.error('Error creating fridge:', err);
+  }
+};
+const handleJoinFridge = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!inviteCode.trim()) return;
+  try {
+    await FridgeApi.joinFridge(inviteCode);
+    const { request } = FridgeApi.getMyFridge();
+    request.then((res) => {
+      setCurrentFridgeName(res.data.data.name);
+      setInviteCode(res.data.data.inviteCode);
+    });
+    // get members
+    const { request: membersReq } = FridgeApi.getMembers();
+    membersReq.then((res) => {
+      setMembers(res.data.items || []);
+    });
+    setHasFridge(true);
+  } catch (err) {
+    console.error('Error joining fridge:', err);
+  }
+};
+const handleLeaveFridge = async () => {
+  try {
+    await FridgeApi.leaveFridge();
+    setHasFridge(false);
+    setInviteCode('');        
+    setCurrentFridgeName('');
+    setFridgeName('');
+    setMembers([]);           
+  } catch (err) {
+    console.error('Error leaving fridge:', err);
+  }
+};
+const [fridgeImages, setFridgeImages] = useState<string[]>([]);
+
+const onFridgeScan = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const files = Array.from(e.target.files || []);
+  if (files.length === 0) return;
+
+  const urls = files.map(file => URL.createObjectURL(file));
+ setFridgeImages(prev => [...prev, ...urls]);
+};
+const handleSendScan = async () => {
+  if (fridgeImages.length === 0) return;
+  setIsScanning(true);
+  try {
+    for (const url of fridgeImages) {
+      const blob = await fetch(url).then(r => r.blob());
+      const file = new File([blob], 'fridge.jpg', { type: blob.type });
+      await FridgeApi.scanFridge(file);
+    }
+    setFridgeImages([]);
+    setShowScanToast(true);
+     setTimeout(() => setShowScanToast(false), 2500);
+  } catch (err) {
+    console.error('Scan failed:', err);
+    alert('Scan failed, try again.');
+  } finally {
+    setIsScanning(false);
+  }
+};
+if (isLoading) return (
+  <div style={styles.spinnerWrapper}>
+    <div style={styles.spinner} />
+    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+  </div>
+);
   return (
     <div>
     <div style={styles.page}>
 
       {/* Header */}
-
       <div style={styles.header}>
         <button style={styles.backBtn} onClick={() => window.history.back()}>
           <IoArrowBack {...iconProps.backIcon} />
@@ -86,16 +190,16 @@ useEffect(() => {
     <div style={styles.greenCardHeader}>
       <div>
         <p style={styles.greenCardLabel}>Current Fridge</p>
-        <p style={styles.greenCardTitle}>Family Kitchen</p>
+        <p style={styles.greenCardTitle}>{currentFridgeName}</p>
       </div>
-      <span style={styles.membersText}>3 members</span> {/*TODO:add real data*/}
+      <span style={styles.membersText}>{members.length} members</span> 
     </div>
 
      {/* Invite Code */}
     <div style={styles.inviteBox}>
       <div>
         <p style={styles.inviteLabel}>Invite Code</p>
-        <p style={styles.inviteCode}>{inviteCodeTXT}</p>
+        <p style={styles.inviteCode}>{inviteCode}</p>
       </div>
         <button style={styles.copyBtn} onClick={handleCopyInviteCode}>
                 <FaRegCopy {...iconProps.copyIcon} />
@@ -104,38 +208,80 @@ useEffect(() => {
     </div>
      {/* Members List */}
       {members.map((member) => (
-    <div key={member._id} style={styles.memberRow}>
-      <div style={styles.memberAvatar}>
-        {member.userName[0]}
-      </div>
-      <span style={styles.memberName}>{member.userName}</span>
-    </div>
+<div key={member.userId} style={styles.memberRow}>
+ <div style={styles.memberAvatar}>
+  {member.profileImage 
+    ? <img src={member.profileImage} alt={member.displayName} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+    : member.displayName?.[0]
+  }
+</div>
+<span style={styles.memberName}>
+  {member.displayName}
+  {member.userId === currentUserId && ' (Me)'}
+</span>
+</div>
   ))}
  </div>
  
 
  {/*leave fridge button*/}
-    <button style={styles.leaveBtn} onClick={() => setHasFridge(false)}>
+    <button style={styles.leaveBtn} onClick={handleLeaveFridge}>
          <SlLogout {...iconProps.leaveIcon} />
                 <span style={styles.scannerBtnText}>Leave Fridge</span>
     </button>
     </div>
   {/*fridge scanning card*/}
 
-    <div style={styles.card}>
-        <div style={styles.menuRow}>   
-            <FiCamera {...iconProps.cameraIcon} />
-            <span style={styles.menuRowText}>Fridge Scanner</span>
-        </div>
-        <p style={styles.cardText}>{fridgeScannerText}</p>
-               {/*Scanner Button*/}
-              <button style={styles.scannerBtn} onClick={() => console.log("scanning...")}>
-                <TbUpload {...iconProps.uploadIcon} />
-                <span style={styles.scannerBtnText}>Upload fridge photo </span>
-              </button>
-   </div>
-    </>
+<div style={styles.card}>
+  <div style={styles.menuRow}>   
+    <FiCamera {...iconProps.cameraIcon} />
+    <span style={styles.menuRowText}>Fridge Scanner</span>
+  </div>
+  <p style={styles.cardText}>{fridgeScannerText}</p>
+  {/*upload button*/}
+  <button style={styles.scannerBtn} onClick={() => fridgeScanInputRef.current?.click()}>
+    <TbUpload {...iconProps.uploadIcon} />
+    <span style={styles.scannerBtnText}>Upload fridge photo</span>
+  </button>
 
+  <input
+    ref={fridgeScanInputRef}
+    type="file"
+    accept="image/*"
+    multiple
+    style={{ display: 'none' }}
+    onChange={onFridgeScan}
+    onClick={(e) => { (e.target as HTMLInputElement).value = ''; }}
+  />
+{fridgeImages.length > 0 && (
+  <div style={styles.imagesContainer}>
+    {fridgeImages.map((url, index) => (
+      <div key={index} style={styles.imageWrapper}>
+        <img src={url} alt={`fridge ${index + 1}`} style={styles.imagePreview} />
+        <button
+          onClick={() => setFridgeImages(prev => prev.filter((_, i) => i !== index))}
+          style={styles.imageDeleteBtn}
+        >
+        <IoClose {...iconProps.closeIcon} />
+        </button>
+      </div>
+    ))}
+ <button style={styles.sendScanBtn} onClick={handleSendScan}>
+{isScanning ? '...' : <IoSend {...iconProps.sendIcon} />}
+</button>
+  </div>
+)}
+{/*scan complete toast*/}
+{showScanToast && (
+  <div style={styles.copyToast}>
+    <FiCheckCircle style={styles.copyToastIcon} />
+    <span style={styles.copyToastText}>
+      Items added to your fridge!
+    </span>
+  </div>
+)}
+</div>
+</>
 ) : (
   <div>
     {/* No Fridge Card */}
@@ -151,8 +297,7 @@ useEffect(() => {
 
       <form
         onSubmit={(e) => {
-          e.preventDefault();
-          console.log("submitting...", { fridgeName, inviteCode });
+          handleJoinFridge(e);
         }}
       >
         <input
@@ -166,7 +311,7 @@ useEffect(() => {
         <button
           type="button"
           style={styles.createBtn}
-          onClick={() => setHasFridge(true)}
+         onClick={handleCreateFridge}
         >
           Create Fridge
         </button>
@@ -189,7 +334,6 @@ useEffect(() => {
 )
 };
   
-
 {/*copy screen toast*/}
     {showCopyToast && (
       <div style={styles.copyToast}>
