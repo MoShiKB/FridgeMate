@@ -49,6 +49,33 @@ input::placeholder,
 textarea::placeholder {
   color: #8E8E8E;
 }
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d0d0d0;
+  border-radius: 6px;
+  opacity: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #b0b0b0;
+  opacity: 1;
+}
+
+/* Show scrollbar on body when scrolling */
+body.scrolling-active ::-webkit-scrollbar-thumb {
+  opacity: 0.8 !important;
+  transition: opacity 0.3s ease-out;
+}
+
 button:active {
   filter: brightness(0.85);
 }

@@ -19,7 +19,11 @@ interface Member {
   profileImage: string | null;
 }
 
-function SettingsScreen() {
+interface SettingsScreenProps {
+  onBack?: () => void;
+}
+
+function SettingsScreen({ onBack = () => window.history.back() }: SettingsScreenProps) {
 const [hasFridge, setHasFridge] = useState(false);
 const [fridgeName, setFridgeName] = useState(""); 
 const [currentFridgeName, setCurrentFridgeName] = useState("");
@@ -167,7 +171,7 @@ if (isLoading) return (
 
       {/* Header */}
       <div style={styles.header}>
-        <button style={styles.backBtn} onClick={() => window.history.back()}>
+        <button style={styles.backBtn} onClick={onBack}>
           <IoArrowBack {...iconProps.backIcon} />
         </button>
         <h1 style={styles.title}>Settings</h1>
