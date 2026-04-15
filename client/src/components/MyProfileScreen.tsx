@@ -33,7 +33,11 @@ function getUserIdFromToken(): string | null {
   }
 }
 
-function MyProfileScreen() {
+interface MyProfileScreenProps {
+  onBack?: () => void;
+}
+
+function MyProfileScreen({ onBack = () => window.history.back() }: MyProfileScreenProps) {
   const [selectedDiet, setSelectedDiet] = useState(0);
   const [selectedAllergies, setSelectedAllergies] = useState<string[]>([]);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -154,7 +158,7 @@ if (isLoading) return (
   {error && <div style={styles.error}>{error}</div>}
       {/* Header */}
       <div style={styles.header}>
-        <button style={styles.backBtn} onClick={() => window.history.back()}>
+        <button style={styles.backBtn} onClick={onBack}>
           <IoArrowBack {...iconProps.backIcon} />
         </button>
         <h1 style={styles.title}>My Profile</h1>

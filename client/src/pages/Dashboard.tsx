@@ -2,12 +2,17 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MyFridgeTab } from '../components/MyFridgeTab';
 import { FeedTab } from '../components/FeedTab';
 import { RecipesTab } from '../components/RecipesTab';
+import SettingsScreen from '../components/SettingsScreen';
+import MyProfileScreen from '../components/MyProfileScreen';
 import styles from '../styles/Dashboard.module.css';
 
 export function Dashboard() {
   const [activeTab, setActiveTab] = useState<'feed' | 'myFridge' | 'recipes'>('myFridge');
   const [showMenu, setShowMenu] = useState(false);
+  const [currentView, setCurrentView] = useState<'tabs' | 'profile' | 'settings'>('tabs');
+  const [scrollPositions, setScrollPositions] = useState<Record<string, number>>({});
   const menuRef = useRef<HTMLDivElement>(null);
+  const tabContentRef = useRef<HTMLDivElement>(null);
 
   // Mock user data - replace with actual user data from API/context
   const user = {
@@ -21,16 +26,38 @@ export function Dashboard() {
     window.location.href = '/';
   };
 
+  const saveScrollPosition = () => {
+    if (tabContentRef.current) {
+      setScrollPositions(prev => ({
+        ...prev,
+        [activeTab]: tabContentRef.current?.scrollTop || 0
+      }));
+    }
+  };
+
+  const restoreScrollPosition = () => {
+    if (tabContentRef.current) {
+      const savedScroll = scrollPositions[activeTab] || 0;
+      tabContentRef.current.scrollTop = savedScroll;
+    }
+  };
+
   const handleMyProfile = () => {
-    // TODO: Implement navigate to profile page
-    console.log('Navigate to profile');
+    saveScrollPosition();
+    setCurrentView('profile');
     setShowMenu(false);
   };
 
   const handleSettings = () => {
-    // TODO: Implement navigate to settings page
-    console.log('Navigate to settings');
+    saveScrollPosition();
+    setCurrentView('settings');
     setShowMenu(false);
+  };
+
+  const handleBack = () => {
+    setCurrentView('tabs');
+    // Restore scroll position on next render
+    setTimeout(restoreScrollPosition, 0);
   };
 
   // Close menu when clicking outside
@@ -49,6 +76,54 @@ export function Dashboard() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showMenu]);
+
+  // Simple scrollbar auto-hide on both tab content and overlays
+  useEffect(() => {
+    let hideTimer: NodeJS.Timeout | null = null;
+
+    const showScrollbar = () => {
+      if (hideTimer) clearTimeout(hideTimer);
+      document.body.classList.add('scrolling-active');
+      
+      hideTimer = setTimeout(() => {
+        document.body.classList.remove('scrolling-active');
+      }, 3000);
+    };
+
+    const tabElement = tabContentRef.current;
+    if (tabElement) {
+      tabElement.addEventListener('scroll', showScrollbar);
+      return () => {
+        tabElement.removeEventListener('scroll', showScrollbar);
+        if (hideTimer) clearTimeout(hideTimer);
+      };
+    }
+  }, []);
+
+  // Handle scrollbar for overlays separately
+  useEffect(() => {
+    if (currentView === 'tabs') return;
+
+    let hideTimer: NodeJS.Timeout | null = null;
+
+    const showScrollbar = () => {
+      if (hideTimer) clearTimeout(hideTimer);
+      document.body.classList.add('scrolling-active');
+      
+      hideTimer = setTimeout(() => {
+        document.body.classList.remove('scrolling-active');
+      }, 3000);
+    };
+
+    const overlay = document.querySelector(`.${styles.overlay}`);
+    if (overlay) {
+      overlay.addEventListener('scroll', showScrollbar);
+      return () => {
+        overlay.removeEventListener('scroll', showScrollbar);
+        if (hideTimer) clearTimeout(hideTimer);
+      };
+    }
+  }, [currentView]);
 
   return (
     <div className={styles.dashboard}>
@@ -123,11 +198,23 @@ export function Dashboard() {
       </div>
 
       {/* Tab Content */}
-      <div className={styles.tabContent}>
+      <div className={styles.tabContent} ref={tabContentRef}>
         {activeTab === 'feed' && <FeedTab />}
         {activeTab === 'myFridge' && <MyFridgeTab />}
         {activeTab === 'recipes' && <RecipesTab />}
       </div>
+
+      {/* Profile/Settings Overlay */}
+      {currentView === 'profile' && (
+        <div className={styles.overlay}>
+          <MyProfileScreen onBack={handleBack} />
+        </div>
+      )}
+      {currentView === 'settings' && (
+        <div className={styles.overlay}>
+          <SettingsScreen onBack={handleBack} />
+        </div>
+      )}
     </div>
   );
 }
