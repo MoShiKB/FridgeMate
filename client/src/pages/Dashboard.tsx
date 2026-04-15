@@ -77,52 +77,52 @@ export function Dashboard() {
     };
   }, [showMenu]);
 
-  // Simple scrollbar auto-hide on both tab content and overlays
+  // Handle scrollbar auto-hide for tab content
   useEffect(() => {
+    const tabElement = tabContentRef.current;
+    if (!tabElement) return;
+
     let hideTimer: NodeJS.Timeout | null = null;
 
-    const showScrollbar = () => {
+    const handleScroll = () => {
       if (hideTimer) clearTimeout(hideTimer);
-      document.body.classList.add('scrolling-active');
+      tabElement.classList.add('tab-content-scrolling');
       
       hideTimer = setTimeout(() => {
-        document.body.classList.remove('scrolling-active');
+        tabElement.classList.remove('tab-content-scrolling');
       }, 3000);
     };
 
-    const tabElement = tabContentRef.current;
-    if (tabElement) {
-      tabElement.addEventListener('scroll', showScrollbar);
-      return () => {
-        tabElement.removeEventListener('scroll', showScrollbar);
-        if (hideTimer) clearTimeout(hideTimer);
-      };
-    }
+    tabElement.addEventListener('scroll', handleScroll);
+    return () => {
+      tabElement.removeEventListener('scroll', handleScroll);
+      if (hideTimer) clearTimeout(hideTimer);
+    };
   }, []);
 
-  // Handle scrollbar for overlays separately
+  // Handle scrollbar auto-hide for overlay
   useEffect(() => {
     if (currentView === 'tabs') return;
 
+    const overlay = document.querySelector(`.${styles.overlay}`);
+    if (!overlay) return;
+
     let hideTimer: NodeJS.Timeout | null = null;
 
-    const showScrollbar = () => {
+    const handleScroll = () => {
       if (hideTimer) clearTimeout(hideTimer);
-      document.body.classList.add('scrolling-active');
+      overlay.classList.add('overlay-scrolling');
       
       hideTimer = setTimeout(() => {
-        document.body.classList.remove('scrolling-active');
+        overlay.classList.remove('overlay-scrolling');
       }, 3000);
     };
 
-    const overlay = document.querySelector(`.${styles.overlay}`);
-    if (overlay) {
-      overlay.addEventListener('scroll', showScrollbar);
-      return () => {
-        overlay.removeEventListener('scroll', showScrollbar);
-        if (hideTimer) clearTimeout(hideTimer);
-      };
-    }
+    overlay.addEventListener('scroll', handleScroll);
+    return () => {
+      overlay.removeEventListener('scroll', handleScroll);
+      if (hideTimer) clearTimeout(hideTimer);
+    };
   }, [currentView]);
 
   return (
