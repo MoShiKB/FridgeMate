@@ -3,6 +3,7 @@ import passport from "../middlewares/passport";
 import { AuthController } from "../controllers/auth.controller";
 import { requireAuth } from "../middlewares/auth";
 import { validate } from "../middlewares/validate";
+import { asyncHandler } from "../utils/asyncHandler";
 import {
   RegisterSchema,
   LoginSchema,
@@ -13,13 +14,13 @@ import {
 
 const router = Router();
 
-router.post("/register", validate({ body: RegisterSchema }), AuthController.register);
-router.post("/login", validate({ body: LoginSchema }), AuthController.login);
-router.post("/refresh-token", validate({ body: RefreshTokenSchema }), AuthController.refreshToken);
-router.post("/forgot-password", validate({ body: ForgotPasswordSchema }), AuthController.forgotPassword);
-router.post("/reset-password", validate({ body: ResetPasswordSchema }), AuthController.resetPassword);
+router.post("/register", validate({ body: RegisterSchema }), asyncHandler(AuthController.register));
+router.post("/login", validate({ body: LoginSchema }), asyncHandler(AuthController.login));
+router.post("/refresh-token", validate({ body: RefreshTokenSchema }), asyncHandler(AuthController.refreshToken));
+router.post("/forgot-password", validate({ body: ForgotPasswordSchema }), asyncHandler(AuthController.forgotPassword));
+router.post("/reset-password", validate({ body: ResetPasswordSchema }), asyncHandler(AuthController.resetPassword));
 
-router.post("/logout", requireAuth, AuthController.logout);
+router.post("/logout", requireAuth, asyncHandler(AuthController.logout));
 
 router.get(
   "/login/google",
@@ -35,7 +36,7 @@ router.get(
     session: false,
     failureRedirect: "/auth/login/google/failed",
   }),
-  AuthController.handleGoogleCallback
+  asyncHandler(AuthController.handleGoogleCallback)
 );
 
 router.get("/login/google/failed", (_req, res) => {

@@ -8,7 +8,8 @@ router.post("/", requireAuth, upload.single("image"), (req: Request, res: Respon
     return res.status(400).json({ message: "No image uploaded" });
   }
 
-  const baseUrl = `${req.protocol}://${req.get("host")}`;
+  const protocol = req.get("x-forwarded-proto") || req.protocol;
+  const baseUrl = `${protocol}://${req.get("host")}`;
   const imageUrl = `${baseUrl}/uploads/${req.file.filename}`;
   return res.status(201).json({ ok: true, data: { imageUrl } });
 });

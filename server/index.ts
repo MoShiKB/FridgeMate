@@ -1,6 +1,5 @@
 import "./config/env";
 import express from "express";
-import path from "path";
 import http from "http";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -13,6 +12,7 @@ import errorHandler from "./middlewares/errorHandler";
 import { connectDB } from "./config/database";
 import { Server } from "socket.io";
 import { setupSocketHandlers } from "./socket/socket-handlers";
+import { UPLOADS_DIR } from "./config/env";
 
 process.env.rootDir = __dirname;
 
@@ -38,7 +38,6 @@ app.use(passport.initialize());
 app.use(mongoSanitize());
 app.use(express.urlencoded({ extended: false }));
 
-import { UPLOADS_DIR } from "./config/env";
 app.use("/uploads", express.static(UPLOADS_DIR));
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDoc));
 app.use("/", mainRoutes);
