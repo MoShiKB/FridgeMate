@@ -87,7 +87,7 @@ describe('AI Controller Tests', () => {
                 .send({});
 
             expect(res.statusCode).toBe(400);
-            expect(res.body.error).toContain('ingredients');
+            expect(res.body.message).toBe('Validation error');
         });
 
         it('should return 400 if ingredients is empty array', async () => {
@@ -97,15 +97,15 @@ describe('AI Controller Tests', () => {
                 .send({ ingredients: [] });
 
             expect(res.statusCode).toBe(400);
-            expect(res.body.error).toContain('ingredients');
+            expect(res.body.message).toBe('Validation error');
         });
 
-        it('should return 403 without authorization', async () => {
+        it('should return 401 without authorization', async () => {
             const res = await request(app)
                 .post('/ai/recipes/generate')
                 .send({ ingredients: ['eggs'] });
 
-            expect(res.statusCode).toBe(403);
+            expect(res.statusCode).toBe(401);
         });
 
         it('should handle AI rate limit error', async () => {
@@ -118,8 +118,8 @@ describe('AI Controller Tests', () => {
                 .set('Authorization', token)
                 .send({ ingredients: ['eggs', 'cheese'] });
 
-            expect(res.statusCode).toBe(400);
-            expect(res.text).toContain('rate limit');
+            expect(res.statusCode).toBe(429);
+            expect(res.body.message).toContain('rate limit');
         });
 
         it('should handle AI service error', async () => {
@@ -130,8 +130,8 @@ describe('AI Controller Tests', () => {
                 .set('Authorization', token)
                 .send({ ingredients: ['eggs', 'cheese'] });
 
-            expect(res.statusCode).toBe(400);
-            expect(res.text).toContain('AI service error');
+            expect(res.statusCode).toBe(502);
+            expect(res.body.message).toContain('AI service error');
         });
     });
 
@@ -178,15 +178,15 @@ describe('AI Controller Tests', () => {
                 .send({});
 
             expect(res.statusCode).toBe(400);
-            expect(res.body.error).toContain('query');
+            expect(res.body.message).toBe('Validation error');
         });
 
-        it('should return 403 without authorization', async () => {
+        it('should return 401 without authorization', async () => {
             const res = await request(app)
                 .post('/ai/ask')
                 .send({ query: 'test' });
 
-            expect(res.statusCode).toBe(403);
+            expect(res.statusCode).toBe(401);
         });
 
         it('should handle AI rate limit error', async () => {
@@ -199,8 +199,8 @@ describe('AI Controller Tests', () => {
                 .set('Authorization', token)
                 .send({ query: 'What can I cook?' });
 
-            expect(res.statusCode).toBe(400);
-            expect(res.text).toContain('rate limit');
+            expect(res.statusCode).toBe(429);
+            expect(res.body.message).toContain('rate limit');
         });
     });
 });

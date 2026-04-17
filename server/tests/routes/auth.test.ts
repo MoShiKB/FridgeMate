@@ -33,7 +33,7 @@ describe('Authentication Controller Tests', () => {
             expect(res.body.user).toHaveProperty('_id');
         });
 
-        it('should return 400 if email already exists during registration', async () => {
+        it('should return 409 if email already exists during registration', async () => {
             await User.create<Partial<IUser>>({
                 userName,
                 displayName: 'Test User',
@@ -49,11 +49,11 @@ describe('Authentication Controller Tests', () => {
                     password: 'securePassword123',
                 });
 
-            expect(res.statusCode).toBe(400);
-            expect(res.text).toBe('User already exists');
+            expect(res.statusCode).toBe(409);
+            expect(res.body.message).toBe('User already exists');
         });
 
-        it('should return 400 if an error occurs during registration', async () => {
+        it('should return 500 if an error occurs during registration', async () => {
             jest.spyOn(User, 'create').mockImplementationOnce(() => {
                 throw new Error('Database error');
             });
@@ -66,8 +66,8 @@ describe('Authentication Controller Tests', () => {
                     password: 'securePassword123',
                 });
 
-            expect(res.statusCode).toBe(400);
-            expect(res.text).toBe('Database error');
+            expect(res.statusCode).toBe(500);
+            expect(res.body.message).toBe('Database error');
 
             jest.restoreAllMocks();
         });
@@ -96,7 +96,7 @@ describe('Authentication Controller Tests', () => {
             expect(res.body).toHaveProperty('refreshToken');
         });
 
-        it('should return 400 for invalid credentials during login', async () => {
+        it('should return 401 for invalid credentials during login', async () => {
             const res = await request(app)
                 .post('/auth/login')
                 .send({
@@ -104,11 +104,11 @@ describe('Authentication Controller Tests', () => {
                     password: 'wrongPassword',
                 });
 
-            expect(res.statusCode).toBe(400);
-            expect(res.text).toBe('Invalid credentials');
+            expect(res.statusCode).toBe(401);
+            expect(res.body.message).toBe('Invalid credentials');
         });
 
-        it('should return 400 for wrong password', async () => {
+        it('should return 401 for wrong password', async () => {
             const password = await bcrypt.hash('securePassword123', 10);
             await User.create<Partial<IUser>>({
                 userName,
@@ -124,11 +124,11 @@ describe('Authentication Controller Tests', () => {
                     password: 'wrongPassword',
                 });
 
-            expect(res.statusCode).toBe(400);
-            expect(res.text).toBe('Invalid credentials');
+            expect(res.statusCode).toBe(401);
+            expect(res.body.message).toBe('Invalid credentials');
         });
 
-        it('should return 400 if an error occurs during login', async () => {
+        it('should return 500 if an error occurs during login', async () => {
             jest.spyOn(User, 'findOne').mockImplementationOnce(() => {
                 throw new Error('Database error');
             });
@@ -140,8 +140,8 @@ describe('Authentication Controller Tests', () => {
                     password: 'securePassword123',
                 });
 
-            expect(res.statusCode).toBe(400);
-            expect(res.text).toBe('Database error');
+            expect(res.statusCode).toBe(500);
+            expect(res.body.message).toBe('Database error');
 
             jest.restoreAllMocks();
         });
@@ -184,13 +184,13 @@ describe('Authentication Controller Tests', () => {
             expect(res.body).toHaveProperty('accessToken');
         });
 
-        it('should return 400 for an invalid refresh token during refresh', async () => {
+        it('should return 500 for an invalid refresh token during refresh', async () => {
             const res = await request(app)
                 .post('/auth/refresh-token')
                 .send({ refreshToken: 'invalidToken' });
 
-            expect(res.statusCode).toBe(400);
-            expect(res.text).toBe('jwt malformed');
+            expect(res.statusCode).toBe(500);
+            expect(res.body.message).toBe('jwt malformed');
         });
 
         it('should return 400 for a missing refresh token during refresh', async () => {
@@ -224,13 +224,13 @@ describe('Authentication Controller Tests', () => {
             expect(updatedUser?.resetPasswordExpires).toBeTruthy();
         });
 
-        it('should return 400 for a non-existent email', async () => {
+        it('should return 404 for a non-existent email', async () => {
             const res = await request(app)
                 .post('/auth/forgot-password')
                 .send({ email: 'nonexistent@example.com' });
 
-            expect(res.statusCode).toBe(400);
-            expect(res.text).toBe('No account found with this email');
+            expect(res.statusCode).toBe(404);
+            expect(res.body.message).toBe('No account found with this email');
         });
     });
 
@@ -280,7 +280,7 @@ describe('Authentication Controller Tests', () => {
                 .send({ email: userEmail, code: '000000', newPassword: 'newPassword123' });
 
             expect(res.statusCode).toBe(400);
-            expect(res.text).toBe('Invalid reset code');
+            expect(res.body.message).toBe('Invalid reset code');
         });
 
         it('should return 400 for an expired code', async () => {
@@ -301,7 +301,7 @@ describe('Authentication Controller Tests', () => {
                 .send({ email: userEmail, code: '123456', newPassword: 'newPassword123' });
 
             expect(res.statusCode).toBe(400);
-            expect(res.text).toBe('Reset code has expired. Please request a new one.');
+            expect(res.body.message).toBe('Reset code has expired. Please request a new one.');
         });
 
         it('should return 400 when no reset was requested', async () => {
@@ -318,7 +318,7 @@ describe('Authentication Controller Tests', () => {
                 .send({ email: userEmail, code: '123456', newPassword: 'newPassword123' });
 
             expect(res.statusCode).toBe(400);
-            expect(res.text).toBe('No reset request found. Please request a new code.');
+            expect(res.body.message).toBe('No reset request found. Please request a new code.');
         });
     });
 

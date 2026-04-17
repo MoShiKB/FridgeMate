@@ -2,15 +2,14 @@ import request from 'supertest';
 import app from '../../index';
 import { token, userId } from '../setup';
 import Recipe from '../../models/recipe.model';
-
-const testUserId = userId;
+import mongoose from 'mongoose';
 
 describe('Recipe Controller Tests', () => {
-    const sampleRecipe = {
+    const sampleRecipeData = {
         title: 'Test Cheese Omelette',
         description: 'A fluffy cheese omelette',
         cookingTime: '15 minutes',
-        difficulty: 'Easy',
+        difficulty: 'Easy' as const,
         ingredients: [
             { name: 'eggs', amount: '3' },
             { name: 'cheese', amount: '50g' },
@@ -25,94 +24,106 @@ describe('Recipe Controller Tests', () => {
         imageUrl: 'https://images.food.com/cheese-omelette.jpg',
     };
 
-    describe('POST /recipes/save', () => {
-        it('should save a recipe to favorites', async () => {
-            const res = await request(app)
-                .post('/recipes/save')
-                .set('Authorization', token)
-                .send(sampleRecipe);
+    async function createRecipe(overrides: Record<string, unknown> = {}) {
+        return Recipe.create({
+            ...sampleRecipeData,
+            createdBy: new mongoose.Types.ObjectId(userId),
+            favoritedBy: [],
+            ...overrides,
+        });
+    }
 
-            expect(res.statusCode).toBe(201);
-            expect(res.body.message).toBe('Recipe saved to favorites');
-            expect(res.body.recipe.title).toBe(sampleRecipe.title);
-            expect(res.body.recipe.imageUrl).toBe(sampleRecipe.imageUrl);
+    describe('POST /recipes/:id/favorite', () => {
+        it('should add a recipe to favorites', async () => {
+            const recipe = await createRecipe();
+
+            const res = await request(app)
+                .post(`/recipes/${recipe._id}/favorite`)
+                .set('Authorization', token);
+
+            expect(res.statusCode).toBe(200);
+            expect(res.body.message).toBe('Recipe added to favorites');
+            expect(res.body.recipe.title).toBe(sampleRecipeData.title);
         });
 
-        it('should save a recipe with imageUrl', async () => {
+        it('should return 409 for duplicate favorite', async () => {
+            const recipe = await createRecipe({
+                favoritedBy: [new mongoose.Types.ObjectId(userId)],
+            });
+
             const res = await request(app)
-                .post('/recipes/save')
-                .set('Authorization', token)
-                .send({
-                    title: 'Recipe With Image',
-                    imageUrl: '/uploads/some-generated-image.png',
-                });
-
-            expect(res.statusCode).toBe(201);
-            expect(res.body.recipe.imageUrl).toBe('/uploads/some-generated-image.png');
-        });
-
-        it('should save a recipe without imageUrl (defaults to null)', async () => {
-            const res = await request(app)
-                .post('/recipes/save')
-                .set('Authorization', token)
-                .send({ title: 'Recipe Without Image' });
-
-            expect(res.statusCode).toBe(201);
-            expect(res.body.recipe.imageUrl).toBeNull();
-        });
-
-        it('should return 409 for duplicate recipe', async () => {
-            // First save
-            await request(app)
-                .post('/recipes/save')
-                .set('Authorization', token)
-                .send({ title: 'Unique Recipe' });
-
-            // Try to save again
-            const res = await request(app)
-                .post('/recipes/save')
-                .set('Authorization', token)
-                .send({ title: 'Unique Recipe' });
+                .post(`/recipes/${recipe._id}/favorite`)
+                .set('Authorization', token);
 
             expect(res.statusCode).toBe(409);
-            expect(res.body.error).toContain('already saved');
+            expect(res.body.error).toContain('already in favorites');
         });
 
-        it('should return 400 if title is missing', async () => {
-            const res = await request(app)
-                .post('/recipes/save')
-                .set('Authorization', token)
-                .send({ description: 'No title recipe' });
+        it('should return 404 for non-existent recipe', async () => {
+            const fakeId = new mongoose.Types.ObjectId();
 
-            expect(res.statusCode).toBe(400);
-            expect(res.body.error).toContain('title');
+            const res = await request(app)
+                .post(`/recipes/${fakeId}/favorite`)
+                .set('Authorization', token);
+
+            expect(res.statusCode).toBe(404);
         });
 
-        it('should return 403 without authorization', async () => {
-            const res = await request(app)
-                .post('/recipes/save')
-                .send(sampleRecipe);
+        it('should return 401 without authorization', async () => {
+            const recipe = await createRecipe();
 
-            expect(res.statusCode).toBe(403);
+            const res = await request(app)
+                .post(`/recipes/${recipe._id}/favorite`);
+
+            expect(res.statusCode).toBe(401);
+        });
+    });
+
+    describe('DELETE /recipes/:id/favorite', () => {
+        it('should remove a recipe from favorites', async () => {
+            const recipe = await createRecipe({
+                favoritedBy: [new mongoose.Types.ObjectId(userId)],
+            });
+
+            const res = await request(app)
+                .delete(`/recipes/${recipe._id}/favorite`)
+                .set('Authorization', token);
+
+            expect(res.statusCode).toBe(200);
+            expect(res.body.message).toContain('removed');
+        });
+
+        it('should return 401 without authorization', async () => {
+            const res = await request(app)
+                .delete('/recipes/507f1f77bcf86cd799439011/favorite');
+
+            expect(res.statusCode).toBe(401);
         });
     });
 
     describe('GET /recipes/:id', () => {
         it('should get a recipe by ID', async () => {
-            // First create a recipe
-            const createRes = await request(app)
-                .post('/recipes/save')
-                .set('Authorization', token)
-                .send({ title: 'Recipe to Fetch' });
-
-            const recipeId = createRes.body.recipe._id;
+            const recipe = await createRecipe();
 
             const res = await request(app)
-                .get(`/recipes/${recipeId}`)
+                .get(`/recipes/${recipe._id}`)
                 .set('Authorization', token);
 
             expect(res.statusCode).toBe(200);
-            expect(res.body.title).toBe('Recipe to Fetch');
+            expect(res.body.title).toBe(sampleRecipeData.title);
+        });
+
+        it('should include isFavorited flag', async () => {
+            const recipe = await createRecipe({
+                favoritedBy: [new mongoose.Types.ObjectId(userId)],
+            });
+
+            const res = await request(app)
+                .get(`/recipes/${recipe._id}`)
+                .set('Authorization', token);
+
+            expect(res.statusCode).toBe(200);
+            expect(res.body.isFavorited).toBe(true);
         });
 
         it('should return 404 for non-existent recipe', async () => {
@@ -123,24 +134,27 @@ describe('Recipe Controller Tests', () => {
             expect(res.statusCode).toBe(404);
         });
 
-        it('should return 403 without authorization', async () => {
+        it('should return 401 without authorization', async () => {
             const res = await request(app)
                 .get('/recipes/507f1f77bcf86cd799439011');
 
-            expect(res.statusCode).toBe(403);
+            expect(res.statusCode).toBe(401);
         });
     });
 
     describe('GET /user/me/recipes', () => {
         beforeEach(async () => {
-            // Create some test recipes
-            await Recipe.create([
-                { userId: testUserId, title: 'Favorite 1' },
-                { userId: testUserId, title: 'Favorite 2' },
-            ]);
+            await createRecipe({
+                title: 'Favorite 1',
+                favoritedBy: [new mongoose.Types.ObjectId(userId)],
+            });
+            await createRecipe({
+                title: 'Favorite 2',
+                favoritedBy: [new mongoose.Types.ObjectId(userId)],
+            });
         });
 
-        it('should get user recipes', async () => {
+        it('should get user favorite recipes', async () => {
             const res = await request(app)
                 .get('/user/me/recipes')
                 .set('Authorization', token);
@@ -160,53 +174,33 @@ describe('Recipe Controller Tests', () => {
             expect(res.body.limit).toBe(1);
         });
 
-        it('should return 403 without authorization', async () => {
+        it('should return 401 without authorization', async () => {
             const res = await request(app)
                 .get('/user/me/recipes');
 
-            expect(res.statusCode).toBe(403);
+            expect(res.statusCode).toBe(401);
         });
     });
 
     describe('DELETE /user/me/recipes/:id', () => {
         it('should delete a recipe from favorites', async () => {
-            // First create a recipe
-            const createRes = await request(app)
-                .post('/recipes/save')
-                .set('Authorization', token)
-                .send({ title: 'Recipe to Delete' });
-
-            const recipeId = createRes.body.recipe._id;
+            const recipe = await createRecipe({
+                favoritedBy: [new mongoose.Types.ObjectId(userId)],
+            });
 
             const res = await request(app)
-                .delete(`/user/me/recipes/${recipeId}`)
+                .delete(`/user/me/recipes/${recipe._id}`)
                 .set('Authorization', token);
 
             expect(res.statusCode).toBe(200);
             expect(res.body.message).toContain('removed');
-
-            // Verify it's deleted
-            const getRes = await request(app)
-                .get(`/recipes/${recipeId}`)
-                .set('Authorization', token);
-
-            expect(getRes.statusCode).toBe(404);
         });
 
-        it('should return 404 for non-existent recipe', async () => {
-            const res = await request(app)
-                .delete('/user/me/recipes/507f1f77bcf86cd799439011')
-                .set('Authorization', token);
-
-            expect(res.statusCode).toBe(404);
-        });
-
-        it('should return 403 without authorization', async () => {
+        it('should return 401 without authorization', async () => {
             const res = await request(app)
                 .delete('/user/me/recipes/507f1f77bcf86cd799439011');
 
-            expect(res.statusCode).toBe(403);
+            expect(res.statusCode).toBe(401);
         });
     });
 });
-

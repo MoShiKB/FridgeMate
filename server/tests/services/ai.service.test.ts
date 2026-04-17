@@ -78,7 +78,7 @@ describe('AIService Tests', () => {
 
             const callArgs = mockGenerateContent.mock.calls[0][0];
             expect(callArgs.contents).toContain('VEGAN');
-            expect(callArgs.contents).toContain('vegan recipes');
+            expect(callArgs.contents).toContain('strictly vegan');
         });
 
         it('should handle rate limit error', async () => {
@@ -122,7 +122,7 @@ describe('AIService Tests', () => {
             });
 
             const callArgs = mockGenerateContent.mock.calls[0][0];
-            expect(callArgs.contents).toContain('exactly 3 recipes');
+            expect(callArgs.contents).toContain('up to 3 recipes');
         });
 
         it('should handle malformed JSON response', async () => {
