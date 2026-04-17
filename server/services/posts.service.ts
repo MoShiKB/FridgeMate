@@ -110,19 +110,25 @@ export class PostsService {
   }
 
   static async toggleLike(userId: string, postId: string) {
-    const post = await PostModel.findById(postId);
-    if (!post) throw new ApiError(404, "Post not found", "POST_NOT_FOUND");
-
     const uid = new mongoose.Types.ObjectId(userId);
-    const idx = post.likes.findIndex((id) => id.toString() === userId);
 
-    if (idx === -1) {
-      post.likes.push(uid);
-    } else {
-      post.likes.splice(idx, 1);
+    const added = await PostModel.findOneAndUpdate(
+      { _id: postId, likes: { $ne: uid } },
+      { $addToSet: { likes: uid } },
+      { new: true }
+    );
+
+    if (added) {
+      return { liked: true, likesCount: added.likes.length };
     }
 
-    await post.save();
-    return { liked: idx === -1, likesCount: post.likes.length };
+    const removed = await PostModel.findOneAndUpdate(
+      { _id: postId, likes: uid },
+      { $pull: { likes: uid } },
+      { new: true }
+    );
+
+    if (!removed) throw new ApiError(404, "Post not found", "POST_NOT_FOUND");
+    return { liked: false, likesCount: removed.likes.length };
   }
 }

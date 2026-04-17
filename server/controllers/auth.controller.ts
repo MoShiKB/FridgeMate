@@ -59,7 +59,7 @@ export const AuthController = {
       res.cookie("refreshToken", response.data.refreshToken, {
         httpOnly: true,
         secure: isProduction,
-        path: "/api/auth/refresh-token",
+        path: "/auth/refresh-token",
         sameSite: "lax",
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
@@ -82,7 +82,10 @@ export const AuthController = {
 
   async refreshToken(req: Request, res: Response, next: NextFunction) {
     try {
-      const { refreshToken } = req.body;
+      const refreshToken = req.body.refreshToken || req.cookies?.refreshToken;
+      if (!refreshToken) {
+        return res.status(400).json({ message: "Refresh token is required" });
+      }
       const response = await AuthService.refreshToken(refreshToken);
       return res.status(response.status).json(response.data);
     } catch (err) {
