@@ -9,12 +9,15 @@ describe('Authentication Controller Tests', () => {
     let userId: string;
     let userName: string;
     let userEmail: string;
+    let counter = 0;
 
     beforeEach(() => {
+        counter++;
         const mongoUserId = new mongoose.Types.ObjectId();
         userId = mongoUserId.toString();
-        userName = `testuser-${Date.now()}`;
-        userEmail = `testuser${Date.now()}@example.com`;
+        const uid = `${Date.now()}-${counter}`;
+        userName = `testuser-${uid}`;
+        userEmail = `testuser-${uid}@example.com`;
         jest.clearAllMocks();
     });
 
@@ -75,7 +78,7 @@ describe('Authentication Controller Tests', () => {
 
     describe('POST /auth/login', () => {
         it('should log in an existing user successfully', async () => {
-            const password = await bcrypt.hash('securePassword123', 10);
+            const password = await bcrypt.hash('securePassword123', 1);
             await User.create<Partial<IUser>>({
                 userName,
                 displayName: 'Test User',
@@ -109,7 +112,7 @@ describe('Authentication Controller Tests', () => {
         });
 
         it('should return 401 for wrong password', async () => {
-            const password = await bcrypt.hash('securePassword123', 10);
+            const password = await bcrypt.hash('securePassword123', 1);
             await User.create<Partial<IUser>>({
                 userName,
                 displayName: 'Test User',
@@ -203,7 +206,7 @@ describe('Authentication Controller Tests', () => {
 
     describe('POST /auth/forgot-password', () => {
         it('should send a reset code for a valid email', async () => {
-            const password = await bcrypt.hash('securePassword123', 10);
+            const password = await bcrypt.hash('securePassword123', 1);
             await User.create<Partial<IUser>>({
                 userName,
                 displayName: 'Test User',
@@ -236,9 +239,9 @@ describe('Authentication Controller Tests', () => {
 
     describe('POST /auth/reset-password', () => {
         it('should reset password with a valid code', async () => {
-            const password = await bcrypt.hash('oldPassword123', 10);
+            const password = await bcrypt.hash('oldPassword123', 1);
             const code = '123456';
-            const hashedCode = await bcrypt.hash(code, 10);
+            const hashedCode = await bcrypt.hash(code, 1);
 
             await User.create<Partial<IUser>>({
                 userName,
@@ -263,8 +266,8 @@ describe('Authentication Controller Tests', () => {
         });
 
         it('should return 400 for an invalid code', async () => {
-            const password = await bcrypt.hash('oldPassword123', 10);
-            const hashedCode = await bcrypt.hash('123456', 10);
+            const password = await bcrypt.hash('oldPassword123', 1);
+            const hashedCode = await bcrypt.hash('123456', 1);
 
             await User.create<Partial<IUser>>({
                 userName,
@@ -284,8 +287,8 @@ describe('Authentication Controller Tests', () => {
         });
 
         it('should return 400 for an expired code', async () => {
-            const password = await bcrypt.hash('oldPassword123', 10);
-            const hashedCode = await bcrypt.hash('123456', 10);
+            const password = await bcrypt.hash('oldPassword123', 1);
+            const hashedCode = await bcrypt.hash('123456', 1);
 
             await User.create<Partial<IUser>>({
                 userName,
@@ -305,7 +308,7 @@ describe('Authentication Controller Tests', () => {
         });
 
         it('should return 400 when no reset was requested', async () => {
-            const password = await bcrypt.hash('oldPassword123', 10);
+            const password = await bcrypt.hash('oldPassword123', 1);
             await User.create<Partial<IUser>>({
                 userName,
                 displayName: 'Test User',

@@ -9,6 +9,7 @@
     "outDir": "dist",
     "resolveJsonModule": true,
     "skipLibCheck": true,
+    "isolatedModules": true,
     "typeRoots": [
       "./node_modules/@types",
       "./types"
