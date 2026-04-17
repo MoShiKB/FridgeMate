@@ -38,24 +38,9 @@ export const AuthController = {
       googleUser.profileImage
     );
 
-    const isProduction = process.env.NODE_ENV === "production";
-
-    res.cookie("accessToken", response.data.accessToken, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: "lax",
-      maxAge: 15 * 60 * 1000,
-    });
-
-    res.cookie("refreshToken", response.data.refreshToken, {
-      httpOnly: true,
-      secure: isProduction,
-      path: "/auth/refresh-token",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-
-    return res.redirect(`${clientUrl}/auth/google/callback`);
+    const { accessToken, refreshToken } = response.data;
+    const params = new URLSearchParams({ accessToken, refreshToken });
+    return res.redirect(`${clientUrl}/auth/google/callback?${params}`);
   },
 
   async logout(req: Request, res: Response) {

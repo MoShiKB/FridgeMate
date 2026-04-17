@@ -25,7 +25,7 @@ describe("User Routes", () => {
 
         it("should return 401 without auth token", async () => {
             const res = await request(app).get("/user");
-            expect(res.status).toBe(403);
+            expect(res.status).toBe(401);
         });
     });
 

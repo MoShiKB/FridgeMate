@@ -162,13 +162,13 @@ describe('Authentication Controller Tests', () => {
             expect(updatedUser?.refreshToken).toBeNull();
         });
 
-        it('should return 403 if no authorization header', async () => {
+        it('should return 401 if no authorization header', async () => {
             const res = await request(app)
                 .post('/auth/logout')
                 .send({ refreshToken });
 
-            expect(res.statusCode).toBe(403);
-            expect(res.body.error).toBe('Authorization header not found!');
+            expect(res.statusCode).toBe(401);
+            expect(res.body.message).toBe('Unauthorized');
         });
     });
 
@@ -197,7 +197,7 @@ describe('Authentication Controller Tests', () => {
             const res = await request(app).post('/auth/refresh-token');
 
             expect(res.statusCode).toBe(400);
-            expect(res.text).toBe('jwt must be provided');
+            expect(res.body.message).toBe('Refresh token is required');
         });
     });
 

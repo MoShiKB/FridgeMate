@@ -5,6 +5,8 @@ import { token, userId } from "../setup";
 import { PostModel } from "../../models/post.model";
 import { CommentModel } from "../../models/comment.model";
 
+const otherUserId = new mongoose.Types.ObjectId();
+
 describe("Comments Routes", () => {
     let postId: string;
 
@@ -33,6 +35,16 @@ describe("Comments Routes", () => {
             expect(authorId.toString()).toBe(userId.toString());
             expect(res.body.data.postId.toString()).toBe(postId);
         });
+
+        it("should return 404 for a non-existent post", async () => {
+            const fakePostId = new mongoose.Types.ObjectId();
+            const res = await request(app)
+                .post(`/posts/${fakePostId}/comments`)
+                .set("Authorization", token)
+                .send({ text: "Ghost comment" });
+
+            expect(res.status).toBe(404);
+        });
     });
 
     describe("GET /posts/:postId/comments", () => {
@@ -55,7 +67,40 @@ describe("Comments Routes", () => {
         });
     });
 
-    describe("DELETE /comments/:commentId", () => {
+    describe("PUT /posts/:postId/comments/:commentId", () => {
+        it("should update a comment", async () => {
+            const comment = await CommentModel.create({
+                postId: postId,
+                authorUserId: userId,
+                text: "Original comment"
+            });
+
+            const res = await request(app)
+                .put(`/posts/${postId}/comments/${comment._id}`)
+                .set("Authorization", token)
+                .send({ text: "Updated comment" });
+
+            expect(res.status).toBe(200);
+            expect(res.body.data.text).toBe("Updated comment");
+        });
+
+        it("should return 403 when updating another user's comment", async () => {
+            const comment = await CommentModel.create({
+                postId: postId,
+                authorUserId: otherUserId,
+                text: "Not my comment"
+            });
+
+            const res = await request(app)
+                .put(`/posts/${postId}/comments/${comment._id}`)
+                .set("Authorization", token)
+                .send({ text: "Trying to edit" });
+
+            expect(res.status).toBe(403);
+        });
+    });
+
+    describe("DELETE /posts/:postId/comments/:commentId", () => {
         it("should delete a comment", async () => {
             const comment = await CommentModel.create({
                 postId: postId,
@@ -72,6 +117,20 @@ describe("Comments Routes", () => {
 
             const deleted = await CommentModel.findById(comment._id);
             expect(deleted).toBeNull();
+        });
+
+        it("should return 403 when deleting another user's comment", async () => {
+            const comment = await CommentModel.create({
+                postId: postId,
+                authorUserId: otherUserId,
+                text: "Not my comment"
+            });
+
+            const res = await request(app)
+                .delete(`/posts/${postId}/comments/${comment._id}`)
+                .set("Authorization", token);
+
+            expect(res.status).toBe(403);
         });
     });
 });
