@@ -18,7 +18,7 @@ interface LoginData {
   password: string;
 }
 
-function signAccessToken(user: any) {
+function signAccessToken(user: Pick<IUser, "userName" | "email" | "role" | "profileImage"> & { _id: unknown }) {
   return jwt.sign(
     {
       userId: user._id,
