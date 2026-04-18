@@ -120,6 +120,39 @@ describe('AuthService Tests', () => {
             expect(result.status).toBe(200);
             expect(result.data).toHaveProperty('accessToken');
         });
+
+        it('should update profile image for existing Google user', async () => {
+            const password = await bcrypt.hash('randomhash', 1);
+            await User.create<Partial<IUser>>({
+                userName,
+                displayName: 'Google User',
+                email: userEmail,
+                password,
+                profileImage: 'old-image.jpg',
+            });
+
+            const result = await AuthService.loginWithGoogle(
+                userEmail,
+                undefined,
+                'new-image.jpg'
+            );
+
+            expect(result.status).toBe(200);
+            const user = await User.findOne({ email: userEmail });
+            expect(user?.profileImage).toBe('new-image.jpg');
+        });
+    });
+
+    describe('register edge cases', () => {
+        it('should use email prefix as displayName when no userName or displayName', async () => {
+            const result = await AuthService.register({
+                email: userEmail,
+                password: 'securePassword123',
+            });
+
+            expect(result.status).toBe(201);
+            expect(result.data.user.displayName).toBe(userEmail.split('@')[0]);
+        });
     });
 
     describe('logout', () => {

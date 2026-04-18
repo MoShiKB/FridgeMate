@@ -90,5 +90,60 @@ describe("User Routes", () => {
             expect(res.status).toBe(409);
             expect(res.body.message).toContain("Duplicate field");
         });
+
+        it("should update displayName", async () => {
+            const res = await request(app)
+                .put(`/user/${userId}`)
+                .set("Authorization", token)
+                .send({
+                    userId: userId.toString(),
+                    displayName: "New Display Name",
+                });
+
+            expect(res.status).toBe(200);
+            expect(res.body.displayName).toBe("New Display Name");
+        });
+
+        it("should update allergies and dietPreference", async () => {
+            const res = await request(app)
+                .put(`/user/${userId}`)
+                .set("Authorization", token)
+                .send({
+                    userId: userId.toString(),
+                    allergies: ["peanuts", "gluten"],
+                    dietPreference: "VEGAN",
+                });
+
+            expect(res.status).toBe(200);
+            expect(res.body.allergies).toEqual(["peanuts", "gluten"]);
+            expect(res.body.dietPreference).toBe("VEGAN");
+        });
+
+        it("should update address", async () => {
+            const res = await request(app)
+                .put(`/user/${userId}`)
+                .set("Authorization", token)
+                .send({
+                    userId: userId.toString(),
+                    address: { country: "Israel", city: "Tel Aviv" },
+                });
+
+            expect(res.status).toBe(200);
+            expect(res.body.address.city).toBe("Tel Aviv");
+            expect(res.body.address.country).toBe("Israel");
+        });
+
+        it("should return 404 for non-existent user update", async () => {
+            const fakeId = new mongoose.Types.ObjectId();
+            const res = await request(app)
+                .put(`/user/${fakeId}`)
+                .set("Authorization", token)
+                .send({
+                    userId: fakeId.toString(),
+                    displayName: "Ghost",
+                });
+
+            expect(res.status).toBe(404);
+        });
     });
 });

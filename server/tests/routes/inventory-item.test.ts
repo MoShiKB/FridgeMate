@@ -166,6 +166,70 @@ describe('Inventory Item Routes', () => {
         });
     });
 
+    describe('PATCH - forbidden for non-owner', () => {
+        it('should return 403 when another user tries to update', async () => {
+            const otherUser = new mongoose.Types.ObjectId();
+            const item = await InventoryItem.create({
+                fridgeId,
+                ownerId: otherUser,
+                name: 'Other Item',
+                quantity: '1 unit',
+                ownership: 'SHARED',
+            });
+
+            const res = await request(app)
+                .patch(`/fridges/${fridgeId}/items/${item._id}`)
+                .set('Authorization', token)
+                .send({ name: 'Stolen' });
+
+            expect(res.statusCode).toBe(403);
+        });
+    });
+
+    describe('GET - private item visibility', () => {
+        it('should return 403 for another user\'s private item', async () => {
+            const otherUser = new mongoose.Types.ObjectId();
+            const item = await InventoryItem.create({
+                fridgeId,
+                ownerId: otherUser,
+                name: 'Secret Snack',
+                quantity: '1',
+                ownership: 'PRIVATE',
+            });
+
+            const res = await request(app)
+                .get(`/fridges/${fridgeId}/items/${item._id}`)
+                .set('Authorization', token);
+
+            expect(res.statusCode).toBe(403);
+        });
+    });
+
+    describe('Fridge membership check', () => {
+        it('should return 403 when user is not a fridge member', async () => {
+            const otherFridge = await Fridge.create({
+                name: 'Not My Fridge',
+                inviteCode: 'NOPE99',
+                members: [{ userId: new mongoose.Types.ObjectId(), joinedAt: new Date() }],
+            });
+
+            const res = await request(app)
+                .get(`/fridges/${otherFridge._id}/items`)
+                .set('Authorization', token);
+
+            expect(res.statusCode).toBe(403);
+        });
+
+        it('should return 404 for non-existent fridge', async () => {
+            const fakeId = new mongoose.Types.ObjectId();
+            const res = await request(app)
+                .get(`/fridges/${fakeId}/items`)
+                .set('Authorization', token);
+
+            expect(res.statusCode).toBe(404);
+        });
+    });
+
     describe('DELETE /fridges/:fridgeId/items/:itemId', () => {
         let itemId: string;
 
@@ -187,7 +251,6 @@ describe('Inventory Item Routes', () => {
 
             expect(res.statusCode).toBe(200);
 
-            // Verify deletion
             const item = await InventoryItem.findById(itemId);
             expect(item).toBeNull();
         });
@@ -199,6 +262,52 @@ describe('Inventory Item Routes', () => {
                 .set('Authorization', token);
 
             expect(res.statusCode).toBe(404);
+        });
+
+        it('should return 403 when non-owner tries to delete', async () => {
+            const otherUser = new mongoose.Types.ObjectId();
+            const item = await InventoryItem.create({
+                fridgeId,
+                ownerId: otherUser,
+                name: 'Not Mine',
+                quantity: '1',
+                ownership: 'SHARED',
+            });
+
+            const res = await request(app)
+                .delete(`/fridges/${fridgeId}/items/${item._id}`)
+                .set('Authorization', token);
+
+            expect(res.statusCode).toBe(403);
+        });
+    });
+
+    describe('GET with PRIVATE ownership filter', () => {
+        it('should return only own private items when filtering', async () => {
+            const otherUser = new mongoose.Types.ObjectId();
+
+            await InventoryItem.create([
+                { fridgeId, ownerId: testUserId, name: 'My Yogurt', quantity: '1', ownership: 'PRIVATE' },
+                { fridgeId, ownerId: otherUser, name: 'Their Yogurt', quantity: '1', ownership: 'PRIVATE' },
+                { fridgeId, ownerId: testUserId, name: 'Shared Milk', quantity: '1', ownership: 'SHARED' },
+            ]);
+
+            const res = await request(app)
+                .get(`/fridges/${fridgeId}/items?ownership=PRIVATE`)
+                .set('Authorization', token);
+
+            expect(res.statusCode).toBe(200);
+            expect(res.body.items).toHaveLength(1);
+            expect(res.body.items[0].name).toBe('My Yogurt');
+        });
+    });
+
+    describe('Auth required', () => {
+        it('should return 401 without token', async () => {
+            const res = await request(app)
+                .get(`/fridges/${fridgeId}/items`);
+
+            expect(res.statusCode).toBe(401);
         });
     });
 });

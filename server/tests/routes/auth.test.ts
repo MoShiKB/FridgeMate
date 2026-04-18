@@ -325,6 +325,15 @@ describe('Authentication Controller Tests', () => {
         });
     });
 
+    describe('GET /auth/login/google/failed', () => {
+        it('should return 401 with failure message', async () => {
+            const res = await request(app).get('/auth/login/google/failed');
+
+            expect(res.statusCode).toBe(401);
+            expect(res.body.message).toBe('Google login failed');
+        });
+    });
+
     describe('GET /health', () => {
         it('should return health status', async () => {
             const res = await request(app).get('/health');
