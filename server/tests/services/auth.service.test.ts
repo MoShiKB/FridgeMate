@@ -8,10 +8,13 @@ import * as emailConfig from '../../config/email';
 describe('AuthService Tests', () => {
     let userName: string;
     let userEmail: string;
+    let counter = 0;
 
     beforeEach(() => {
-        userName = `testuser-${Date.now()}`;
-        userEmail = `testuser${Date.now()}@example.com`;
+        counter++;
+        const uid = `${Date.now()}-${counter}`;
+        userName = `testuser-${uid}`;
+        userEmail = `testuser-${uid}@example.com`;
         jest.clearAllMocks();
     });
 
@@ -60,7 +63,7 @@ describe('AuthService Tests', () => {
 
     describe('login', () => {
         it('should login successfully with valid credentials', async () => {
-            const password = await bcrypt.hash('securePassword123', 10);
+            const password = await bcrypt.hash('securePassword123', 1);
             await User.create<Partial<IUser>>({
                 userName,
                 displayName: 'Test User',
@@ -87,7 +90,7 @@ describe('AuthService Tests', () => {
         });
 
         it('should throw error for invalid password', async () => {
-            const password = await bcrypt.hash('securePassword123', 10);
+            const password = await bcrypt.hash('securePassword123', 1);
             await User.create<Partial<IUser>>({
                 userName,
                 displayName: 'Test User',
@@ -102,7 +105,7 @@ describe('AuthService Tests', () => {
         });
 
         it('should login Google user without password validation', async () => {
-            const password = await bcrypt.hash('NotNeededToSignInWithGoogle', 10);
+            const password = await bcrypt.hash('NotNeededToSignInWithGoogle', 1);
             await User.create<Partial<IUser>>({
                 userName,
                 displayName: 'Test User',
@@ -116,6 +119,39 @@ describe('AuthService Tests', () => {
 
             expect(result.status).toBe(200);
             expect(result.data).toHaveProperty('accessToken');
+        });
+
+        it('should update profile image for existing Google user', async () => {
+            const password = await bcrypt.hash('randomhash', 1);
+            await User.create<Partial<IUser>>({
+                userName,
+                displayName: 'Google User',
+                email: userEmail,
+                password,
+                profileImage: 'old-image.jpg',
+            });
+
+            const result = await AuthService.loginWithGoogle(
+                userEmail,
+                undefined,
+                'new-image.jpg'
+            );
+
+            expect(result.status).toBe(200);
+            const user = await User.findOne({ email: userEmail });
+            expect(user?.profileImage).toBe('new-image.jpg');
+        });
+    });
+
+    describe('register edge cases', () => {
+        it('should use email prefix as displayName when no userName or displayName', async () => {
+            const result = await AuthService.register({
+                email: userEmail,
+                password: 'securePassword123',
+            });
+
+            expect(result.status).toBe(201);
+            expect(result.data.user.displayName).toBe(userEmail.split('@')[0]);
         });
     });
 
@@ -155,7 +191,7 @@ describe('AuthService Tests', () => {
         });
 
         it('should generate a reset code and send email', async () => {
-            const password = await bcrypt.hash('securePassword123', 10);
+            const password = await bcrypt.hash('securePassword123', 1);
             await User.create<Partial<IUser>>({
                 userName,
                 displayName: 'Test User',
@@ -186,9 +222,9 @@ describe('AuthService Tests', () => {
 
     describe('resetPassword', () => {
         it('should reset password with valid code', async () => {
-            const password = await bcrypt.hash('oldPassword123', 10);
+            const password = await bcrypt.hash('oldPassword123', 1);
             const code = '654321';
-            const hashedCode = await bcrypt.hash(code, 10);
+            const hashedCode = await bcrypt.hash(code, 1);
 
             await User.create<Partial<IUser>>({
                 userName,
@@ -209,8 +245,8 @@ describe('AuthService Tests', () => {
         });
 
         it('should throw error for invalid code', async () => {
-            const password = await bcrypt.hash('oldPassword123', 10);
-            const hashedCode = await bcrypt.hash('123456', 10);
+            const password = await bcrypt.hash('oldPassword123', 1);
+            const hashedCode = await bcrypt.hash('123456', 1);
 
             await User.create<Partial<IUser>>({
                 userName,
@@ -226,8 +262,8 @@ describe('AuthService Tests', () => {
         });
 
         it('should throw error for expired code', async () => {
-            const password = await bcrypt.hash('oldPassword123', 10);
-            const hashedCode = await bcrypt.hash('123456', 10);
+            const password = await bcrypt.hash('oldPassword123', 1);
+            const hashedCode = await bcrypt.hash('123456', 1);
 
             await User.create<Partial<IUser>>({
                 userName,
@@ -243,7 +279,7 @@ describe('AuthService Tests', () => {
         });
 
         it('should throw error when no reset was requested', async () => {
-            const password = await bcrypt.hash('oldPassword123', 10);
+            const password = await bcrypt.hash('oldPassword123', 1);
             await User.create<Partial<IUser>>({
                 userName,
                 displayName: 'Test User',

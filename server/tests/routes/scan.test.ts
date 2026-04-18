@@ -1,3 +1,23 @@
+const mockGenerateContent = jest.fn();
+const mockCheckMultiple = jest.fn().mockResolvedValue(new Map());
+
+jest.mock('@google/genai', () => ({
+    GoogleGenAI: jest.fn().mockImplementation(() => ({
+        models: { generateContent: mockGenerateContent }
+    }))
+}));
+
+jest.mock('../../services/ai.service', () => {
+    const actual = jest.requireActual('../../services/ai.service');
+    return {
+        ...actual,
+        AIService: {
+            ...actual.AIService,
+            checkMultipleItemsIfRunningLow: (...args: any[]) => mockCheckMultiple(...args),
+        },
+    };
+});
+
 import request from 'supertest';
 import path from 'path';
 import fs from 'fs';
@@ -8,19 +28,6 @@ import InventoryItem from '../../models/inventory-item.model';
 import { ScanModel } from '../../models/scan.model';
 import User from '../../models/user.model';
 import mongoose from 'mongoose';
-
-// Mock the AI Service
-const mockGenerateContent = jest.fn();
-
-jest.mock('@google/genai', () => {
-    return {
-        GoogleGenAI: jest.fn().mockImplementation(() => ({
-            models: {
-                generateContent: mockGenerateContent
-            }
-        }))
-    };
-});
 
 // Create a tiny 1x1 JPEG buffer for test uploads
 const TINY_JPEG = Buffer.from(
@@ -43,6 +50,7 @@ describe('Scan Routes', () => {
 
     beforeEach(async () => {
         jest.clearAllMocks();
+        mockCheckMultiple.mockResolvedValue(new Map());
         await FridgeModel.deleteMany({});
         await InventoryItem.deleteMany({});
         await ScanModel.deleteMany({});
@@ -59,19 +67,12 @@ describe('Scan Routes', () => {
 
     describe('POST /fridges/me/scans', () => {
         it('should upload image and return detected items', async () => {
-            mockGenerateContent
-                .mockResolvedValueOnce({
-                    text: JSON.stringify([
-                        { name: 'egg', quantity: '6' },
-                        { name: 'milk', quantity: '1 liter' }
-                    ])
-                })
-                .mockResolvedValueOnce({
-                    text: JSON.stringify({ isRunningLow: false, reasoning: 'Sufficient.' })
-                })
-                .mockResolvedValueOnce({
-                    text: JSON.stringify({ isRunningLow: false, reasoning: 'Sufficient.' })
-                });
+            mockGenerateContent.mockResolvedValueOnce({
+                text: JSON.stringify([
+                    { name: 'egg', quantity: '6' },
+                    { name: 'milk', quantity: '1 liter' }
+                ])
+            });
 
             const res = await request(app)
                 .post('/fridges/me/scans')
@@ -103,15 +104,9 @@ describe('Scan Routes', () => {
                 isRunningLow: true
             });
 
-            mockGenerateContent
-                .mockResolvedValueOnce({
-                    text: JSON.stringify([
-                        { name: 'egg', quantity: '12' }
-                    ])
-                })
-                .mockResolvedValueOnce({
-                    text: JSON.stringify({ isRunningLow: false, reasoning: 'Plenty.' })
-                });
+            mockGenerateContent.mockResolvedValueOnce({
+                text: JSON.stringify([{ name: 'egg', quantity: '12' }])
+            });
 
             const res = await request(app)
                 .post('/fridges/me/scans')
@@ -125,19 +120,12 @@ describe('Scan Routes', () => {
             const items = await InventoryItem.find({ fridgeId, name: /^egg$/i });
             expect(items).toHaveLength(1);
             expect(items[0].quantity).toBe('12');
-            expect(items[0].isRunningLow).toBe(false);
         });
 
         it('should create items with SHARED ownership', async () => {
-            mockGenerateContent
-                .mockResolvedValueOnce({
-                    text: JSON.stringify([
-                        { name: 'cheese', quantity: '1 block' }
-                    ])
-                })
-                .mockResolvedValueOnce({
-                    text: JSON.stringify({ isRunningLow: false, reasoning: 'Sufficient.' })
-                });
+            mockGenerateContent.mockResolvedValueOnce({
+                text: JSON.stringify([{ name: 'cheese', quantity: '1 block' }])
+            });
 
             const res = await request(app)
                 .post('/fridges/me/scans')

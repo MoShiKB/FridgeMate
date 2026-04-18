@@ -26,6 +26,20 @@
     "application/json"
   ],
   "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "Health check",
+        "description": "Returns the server status and current timestamp.",
+        "responses": {
+          "200": {
+            "description": "Server is healthy"
+          }
+        }
+      }
+    },
     "/auth/register": {
       "post": {
         "tags": [
@@ -145,21 +159,19 @@
           "Authentication"
         ],
         "summary": "Refresh access token",
-        "description": "Gives you a fresh access token in exchange for a valid refresh token.",
+        "description": "Gives you a fresh access token in exchange for a valid refresh token. The token can be sent in the request body or via an httpOnly cookie (set by Google OAuth login).",
         "parameters": [
           {
             "in": "body",
             "name": "body",
-            "required": true,
+            "required": false,
             "schema": {
               "type": "object",
-              "required": [
-                "refreshToken"
-              ],
               "properties": {
                 "refreshToken": {
                   "type": "string",
-                  "example": "eyJhbGci..."
+                  "example": "eyJhbGci...",
+                  "description": "Optional if the refresh token is provided via httpOnly cookie"
                 }
               }
             }
@@ -253,6 +265,20 @@
           },
           "400": {
             "description": "Invalid or expired reset code"
+          }
+        }
+      }
+    },
+    "/auth/login/google": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Login with Google",
+        "description": "Redirects to Google OAuth consent screen. On success, sets httpOnly cookies with access and refresh tokens and redirects to the client callback URL.",
+        "responses": {
+          "302": {
+            "description": "Redirect to Google OAuth"
           }
         }
       }
@@ -493,7 +519,7 @@
           "Chat"
         ],
         "summary": "List my chats",
-        "description": "Returns all your active messaging threads, sorted by recent activity.",
+        "description": "Returns all your active messaging threads, sorted by recent activity. Sending messages, joining chats, and marking messages as read are handled via Socket.IO events (joinChat, sendMessage, getMessages, markAsRead).",
         "security": [
           {
             "bearerAuth": []
@@ -502,61 +528,6 @@
         "responses": {
           "200": {
             "description": "List of chats"
-          }
-        }
-      }
-    },
-    "/chats/{chatId}/messages": {
-      "get": {
-        "tags": [
-          "Chat"
-        ],
-        "summary": "Get messages for a specific chat",
-        "description": "Retrieves message history for a conversation.",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "chatId",
-            "type": "string",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of messages"
-          }
-        }
-      }
-    },
-    "/chats/private/{userId}": {
-      "post": {
-        "tags": [
-          "Chat"
-        ],
-        "summary": "Start or find a private chat",
-        "description": "Creates a new 1-on-1 chat with another user, or returns the existing chat if one already exists.",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "userId",
-            "type": "string",
-            "required": true,
-            "description": "ID of the target user"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Chat session details"
           }
         }
       }
@@ -670,6 +641,39 @@
         "responses": {
           "200": {
             "description": "Paginated list of posts"
+          }
+        }
+      }
+    },
+    "/posts/me": {
+      "get": {
+        "tags": [
+          "Social Feed (Posts)"
+        ],
+        "summary": "List my posts",
+        "description": "Returns only posts authored by the authenticated user, with pagination.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "type": "integer",
+            "default": 1
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "type": "integer",
+            "default": 20
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of the user's posts"
           }
         }
       }
@@ -1090,13 +1094,13 @@
         }
       }
     },
-    "/recipes/save": {
+    "/recipes/{id}/favorite": {
       "post": {
         "tags": [
           "Saved Recipes"
         ],
-        "summary": "Save a recipe to favorites",
-        "description": "Save an AI-generated recipe to your personal recipe box.",
+        "summary": "Add recipe to favorites",
+        "description": "Add an AI-generated recipe to your personal favorites.",
         "security": [
           {
             "bearerAuth": []
@@ -1104,95 +1108,51 @@
         ],
         "parameters": [
           {
-            "in": "body",
-            "name": "body",
+            "in": "path",
+            "name": "id",
+            "type": "string",
             "required": true,
-            "schema": {
-              "type": "object",
-              "required": [
-                "title"
-              ],
-              "properties": {
-                "title": {
-                  "type": "string",
-                  "example": "Chicken Fried Rice"
-                },
-                "description": {
-                  "type": "string",
-                  "example": "Quick and easy chicken fried rice"
-                },
-                "cookingTime": {
-                  "type": "string",
-                  "example": "20m"
-                },
-                "difficulty": {
-                  "type": "string",
-                  "example": "Easy"
-                },
-                "steps": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                "ingredients": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "name": {
-                        "type": "string"
-                      },
-                      "amount": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                },
-                "imageUrl": {
-                  "type": "string",
-                  "example": "/uploads/recipe_abc123.png",
-                  "description": "URL of the recipe image. Auto-generated by AI or uploaded manually."
-                },
-                "nutrition": {
-                  "type": "object",
-                  "properties": {
-                    "calories": {
-                      "type": "string",
-                      "example": "350 kcal"
-                    },
-                    "protein": {
-                      "type": "string",
-                      "example": "25g"
-                    },
-                    "carbs": {
-                      "type": "string",
-                      "example": "30g"
-                    },
-                    "fat": {
-                      "type": "string",
-                      "example": "15g"
-                    }
-                  }
-                },
-                "imageUrl": {
-                  "type": "string",
-                  "example": "/uploads/recipe_abc123.png",
-                  "description": "URL of the recipe image (AI-generated or from image search)"
-                }
-              }
-            }
+            "description": "Recipe ID"
           }
         ],
         "responses": {
-          "201": {
-            "description": "Recipe saved"
+          "200": {
+            "description": "Recipe added to favorites"
           },
-          "400": {
-            "description": "Title is required"
+          "404": {
+            "description": "Recipe not found"
           },
           "409": {
-            "description": "Recipe already saved to favorites"
+            "description": "Recipe already in favorites"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Saved Recipes"
+        ],
+        "summary": "Remove recipe from favorites",
+        "description": "Remove a recipe from your personal favorites.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "type": "string",
+            "required": true,
+            "description": "Recipe ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recipe removed from favorites"
+          },
+          "404": {
+            "description": "Recipe not found"
           }
         }
       }
@@ -1280,61 +1240,6 @@
         "responses": {
           "200": {
             "description": "Recipe removed"
-          }
-        }
-      }
-    },
-    "/upload": {
-      "post": {
-        "tags": [
-          "Upload"
-        ],
-        "summary": "Upload an image",
-        "description": "Upload a single image file (JPEG, PNG, GIF, or WebP). Max size: 5MB. Returns the URL path to the uploaded file.",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "consumes": [
-          "multipart/form-data"
-        ],
-        "parameters": [
-          {
-            "in": "formData",
-            "name": "image",
-            "type": "file",
-            "required": true,
-            "description": "Image file to upload (JPEG, PNG, GIF, WebP)"
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Image uploaded successfully",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "ok": {
-                  "type": "boolean",
-                  "example": true
-                },
-                "data": {
-                  "type": "object",
-                  "properties": {
-                    "imageUrl": {
-                      "type": "string",
-                      "example": "/uploads/a1b2c3d4e5f6.jpg"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "No image uploaded or invalid file type"
-          },
-          "401": {
-            "description": "Unauthorized"
           }
         }
       }

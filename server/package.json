@@ -10,8 +10,8 @@
     "start": "npx ts-node --project tsconfig.json --files index.ts",
     "seed": "npx ts-node --project tsconfig.json --files scripts/seed.ts",
     "build": "tsc -p ./tsconfig.json",
-    "test": "ts-node ./node_modules/jest/bin/jest.js --config jest.config.ts --coverage --detectOpenHandles --forceExit",
-    "test:watch": "ts-node ./node_modules/jest/bin/jest.js --config jest.config.ts --watchAll --coverage --detectOpenHandles --forceExit"
+    "test": "jest --forceExit --coverage --detectOpenHandles",
+    "test:watch": "jest --watchAll --forceExit"
   },
   "dependencies": {
     "@google/genai": "^1.45.0",

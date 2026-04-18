@@ -5,6 +5,8 @@ import UserModel, { IUser } from "../models/user.model";
 import { sendResetCodeEmail } from "../config/email";
 import { ApiError } from "../utils/errors";
 
+const SALT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS || "10", 10);
+
 export interface RegisterData {
   userName?: string;
   displayName?: string;
@@ -47,7 +49,7 @@ export const AuthService = {
     const exist = await UserModel.findOne({ email }).lean();
     if (exist) throw new ApiError(409, "User already exists");
 
-    const salt = await bcrypt.genSalt(10);
+    const salt = await bcrypt.genSalt(SALT_ROUNDS);
     const hashedPassword = await bcrypt.hash(data.password, salt);
 
     const userName = data.userName?.trim().toLowerCase();
@@ -98,7 +100,7 @@ export const AuthService = {
 
     if (!user) {
       const displayName = userName?.trim() || normalizedEmail.split("@")[0];
-      const randomPass = await bcrypt.hash(String(Date.now()) + normalizedEmail, 10);
+      const randomPass = await bcrypt.hash(String(Date.now()) + normalizedEmail, SALT_ROUNDS);
 
       user = await UserModel.create({
         email: normalizedEmail,
@@ -155,7 +157,7 @@ export const AuthService = {
     if (!user) throw new ApiError(404, "No account found with this email");
 
     const code = crypto.randomInt(100_000, 999_999).toString();
-    const hashedCode = await bcrypt.hash(code, 10);
+    const hashedCode = await bcrypt.hash(code, SALT_ROUNDS);
 
     user.resetPasswordToken = hashedCode;
     user.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000);
@@ -186,7 +188,7 @@ export const AuthService = {
     const isMatch = await bcrypt.compare(code, user.resetPasswordToken);
     if (!isMatch) throw new ApiError(400, "Invalid reset code");
 
-    const salt = await bcrypt.genSalt(10);
+    const salt = await bcrypt.genSalt(SALT_ROUNDS);
     user.password = await bcrypt.hash(newPassword, salt);
     user.resetPasswordToken = null;
     user.resetPasswordExpires = null;
