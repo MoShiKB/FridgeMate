@@ -4,21 +4,38 @@ import { FeedTab } from '../components/FeedTab';
 import { RecipesTab } from '../components/RecipesTab';
 import SettingsScreen from '../components/SettingsScreen';
 import MyProfileScreen from '../components/MyProfileScreen';
+import { tokenManager } from '../services/api';
+import { ProfileApi } from '../services/api-profile';
 import styles from '../styles/Dashboard.module.css';
+
+function getUserIdFromToken(): string | null {
+  const token = tokenManager.getAccessToken();
+  if (!token) return null;
+  try {
+    return JSON.parse(atob(token.split('.')[1])).userId || null;
+  } catch {
+    return null;
+  }
+}
 
 export function Dashboard() {
   const [activeTab, setActiveTab] = useState<'feed' | 'myFridge' | 'recipes'>('myFridge');
   const [showMenu, setShowMenu] = useState(false);
   const [currentView, setCurrentView] = useState<'tabs' | 'profile' | 'settings'>('tabs');
   const [scrollPositions, setScrollPositions] = useState<Record<string, number>>({});
+  const [userName, setUserName] = useState('');
   const menuRef = useRef<HTMLDivElement>(null);
   const tabContentRef = useRef<HTMLDivElement>(null);
 
-  // Mock user data - replace with actual user data from API/context
-  const user = {
-    name: 'Sarah',
-    profilePicture: null, // TODO: Replace with actual profile picture URL
-  };
+  useEffect(() => {
+    const userId = getUserIdFromToken();
+    if (!userId) return;
+    const { request, abort } = ProfileApi.getMyProfile(userId);
+    request.then(res => setUserName(res.data.displayName || '')).catch(() => {});
+    return () => abort();
+  }, []);
+
+  const user = { name: userName };
 
   const handleLogout = () => {
     localStorage.removeItem('accessToken');
@@ -143,7 +160,7 @@ export function Dashboard() {
             title="Menu"
           >
             <div className={styles.profileMenuPlaceholder}>
-              {user.name.charAt(0).toUpperCase()}
+              {user.name ? user.name.charAt(0).toUpperCase() : ''}
             </div>
           </button>
 
