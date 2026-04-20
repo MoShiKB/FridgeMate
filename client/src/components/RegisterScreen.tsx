@@ -65,7 +65,6 @@ export const RegisterScreen: React.FC<RegisterScreenProps> = ({
       if (onSignUpSuccess) {
         onSignUpSuccess(email);
       }
-      console.log('Sign up successful:', { fullName, email });
       
       // Auto-redirect after 1 second
       setTimeout(() => {

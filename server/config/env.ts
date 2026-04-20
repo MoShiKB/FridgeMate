@@ -12,7 +12,9 @@ for (const key of requiredEnvVars) {
   }
 }
 
-export const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join(process.cwd(), "uploads");
+// Get the server directory - this file is at server/config/env.ts
+const serverDir = path.resolve(__dirname, "..");
+export const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join(serverDir, "uploads");
 
 if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });

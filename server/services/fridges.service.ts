@@ -76,19 +76,20 @@ export class FridgesService {
   }
 
   static async getMyFridgeMembers(userId: string) {
-  const fridge = await this.getMyFridge(userId);
-  const memberIds = fridge.members.map((m) => m.userId);
+    const fridge = await this.getMyFridge(userId);
+    const memberIds = fridge.members.map((m) => m.userId);
 
-  const users = await UserModel.find(
-    { _id: { $in: memberIds } },
-    { displayName: 1, profileImage: 1 }
-  )
-    .sort({ displayName: 1 })
-    .lean();
+    const users = await UserModel.find(
+      { _id: { $in: memberIds } },
+      { displayName: 1, profileImage: 1 }
+    )
+      .sort({ displayName: 1 })
+      .lean();
 
-  return users.map((u) => ({
-    userId: u._id.toString(),
-    displayName: u.displayName,
-    profileImage: (u as any).profileImage,   }));
-}
+    return users.map((u) => ({
+      userId: u._id.toString(),
+      displayName: u.displayName,
+      profileImage: (u as any).profileImage,
+    }));
+  }
 }
