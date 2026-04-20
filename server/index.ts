@@ -52,7 +52,8 @@ const start = async () => {
   }
 
   server.listen(PORT, () => {
-    console.log(`Server is listening on port: ${PORT}\n`);
+    console.log(`Server is listening on port: ${PORT}`);
+    console.log(`Uploads directory: ${UPLOADS_DIR}`);
     console.log(`Swagger docs available at http://localhost:${PORT}/api-docs`);
   });
 };

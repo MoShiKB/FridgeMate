@@ -4,38 +4,52 @@ import { FeedTab } from '../components/FeedTab';
 import { RecipesTab } from '../components/RecipesTab';
 import SettingsScreen from '../components/SettingsScreen';
 import MyProfileScreen from '../components/MyProfileScreen';
-import { tokenManager } from '../services/api';
-import { ProfileApi } from '../services/api-profile';
 import styles from '../styles/Dashboard.module.css';
-
-function getUserIdFromToken(): string | null {
-  const token = tokenManager.getAccessToken();
-  if (!token) return null;
-  try {
-    return JSON.parse(atob(token.split('.')[1])).userId || null;
-  } catch {
-    return null;
-  }
-}
+import { ProfileApi } from '../services/api-profile';
+import { tokenManager } from '../services/api';
 
 export function Dashboard() {
   const [activeTab, setActiveTab] = useState<'feed' | 'myFridge' | 'recipes'>('myFridge');
   const [showMenu, setShowMenu] = useState(false);
   const [currentView, setCurrentView] = useState<'tabs' | 'profile' | 'settings'>('tabs');
   const [scrollPositions, setScrollPositions] = useState<Record<string, number>>({});
-  const [userName, setUserName] = useState('');
+  const [user, setUser] = useState<{ name: string; profilePicture: string | null }>({
+    name: 'Loading...',
+    profilePicture: null,
+  });
   const menuRef = useRef<HTMLDivElement>(null);
   const tabContentRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const userId = getUserIdFromToken();
-    if (!userId) return;
-    const { request, abort } = ProfileApi.getMyProfile(userId);
-    request.then(res => setUserName(res.data.displayName || '')).catch(() => {});
-    return () => abort();
-  }, []);
+  // Fetch user data function (can be called anytime)
+  const fetchUserData = async () => {
+    try {
+      const token = tokenManager.getAccessToken();
+      if (!token) {
+        return;
+      }
 
-  const user = { name: userName };
+      const userId = JSON.parse(atob(token.split('.')[1])).userId;
+      
+      const { request } = ProfileApi.getMyProfile(userId);
+      const response = await request;
+      
+      const userData = response.data;
+      const userName = userData.userName || userData.displayName || userData.fullName || 'User';
+      
+      setUser({
+        name: userName,
+        profilePicture: userData.profileImage || null,
+      });
+    } catch (error) {
+      console.error('Failed to fetch user data:', error);
+      setUser({ name: 'User', profilePicture: null });
+    }
+  };
+
+  // Fetch user data on mount
+  useEffect(() => {
+    fetchUserData();
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('accessToken');
@@ -73,6 +87,8 @@ export function Dashboard() {
 
   const handleBack = () => {
     setCurrentView('tabs');
+    // Refetch user data in case profile was updated
+    fetchUserData();
     // Restore scroll position on next render
     setTimeout(restoreScrollPosition, 0);
   };
@@ -94,52 +110,52 @@ export function Dashboard() {
     };
   }, [showMenu]);
 
-  // Simple scrollbar auto-hide on both tab content and overlays
+  // Handle scrollbar auto-hide for tab content
   useEffect(() => {
+    const tabElement = tabContentRef.current;
+    if (!tabElement) return;
+
     let hideTimer: NodeJS.Timeout | null = null;
 
-    const showScrollbar = () => {
+    const handleScroll = () => {
       if (hideTimer) clearTimeout(hideTimer);
-      document.body.classList.add('scrolling-active');
+      tabElement.classList.add('tab-content-scrolling');
       
       hideTimer = setTimeout(() => {
-        document.body.classList.remove('scrolling-active');
+        tabElement.classList.remove('tab-content-scrolling');
       }, 3000);
     };
 
-    const tabElement = tabContentRef.current;
-    if (tabElement) {
-      tabElement.addEventListener('scroll', showScrollbar);
-      return () => {
-        tabElement.removeEventListener('scroll', showScrollbar);
-        if (hideTimer) clearTimeout(hideTimer);
-      };
-    }
+    tabElement.addEventListener('scroll', handleScroll);
+    return () => {
+      tabElement.removeEventListener('scroll', handleScroll);
+      if (hideTimer) clearTimeout(hideTimer);
+    };
   }, []);
 
-  // Handle scrollbar for overlays separately
+  // Handle scrollbar auto-hide for overlay
   useEffect(() => {
     if (currentView === 'tabs') return;
 
+    const overlay = document.querySelector(`.${styles.overlay}`);
+    if (!overlay) return;
+
     let hideTimer: NodeJS.Timeout | null = null;
 
-    const showScrollbar = () => {
+    const handleScroll = () => {
       if (hideTimer) clearTimeout(hideTimer);
-      document.body.classList.add('scrolling-active');
+      overlay.classList.add('overlay-scrolling');
       
       hideTimer = setTimeout(() => {
-        document.body.classList.remove('scrolling-active');
+        overlay.classList.remove('overlay-scrolling');
       }, 3000);
     };
 
-    const overlay = document.querySelector(`.${styles.overlay}`);
-    if (overlay) {
-      overlay.addEventListener('scroll', showScrollbar);
-      return () => {
-        overlay.removeEventListener('scroll', showScrollbar);
-        if (hideTimer) clearTimeout(hideTimer);
-      };
-    }
+    overlay.addEventListener('scroll', handleScroll);
+    return () => {
+      overlay.removeEventListener('scroll', handleScroll);
+      if (hideTimer) clearTimeout(hideTimer);
+    };
   }, [currentView]);
 
   return (
@@ -159,9 +175,17 @@ export function Dashboard() {
             onClick={() => setShowMenu(!showMenu)}
             title="Menu"
           >
-            <div className={styles.profileMenuPlaceholder}>
-              {user.name ? user.name.charAt(0).toUpperCase() : ''}
-            </div>
+            {user.profilePicture ? (
+              <img 
+                src={user.profilePicture} 
+                alt={user.name} 
+                className={styles.profileMenuImage}
+              />
+            ) : (
+              <div className={styles.profileMenuPlaceholder}>
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+            )}
           </button>
 
           {/* Menu Dropdown */}

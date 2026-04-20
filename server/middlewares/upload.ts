@@ -5,7 +5,9 @@ import { UPLOADS_DIR } from "../config/env";
 import { ApiError } from "../utils/errors";
 
 const storage = multer.diskStorage({
-  destination: UPLOADS_DIR,
+  destination: (req, file, cb) => {
+    cb(null, UPLOADS_DIR);
+  },
   filename: (_req, file, cb) => {
     const ext = path.extname(file.originalname) || ".jpg";
     const name = crypto.randomBytes(16).toString("hex");

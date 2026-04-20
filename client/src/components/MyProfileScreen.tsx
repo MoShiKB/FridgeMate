@@ -54,16 +54,13 @@ function MyProfileScreen({ onBack = () => window.history.back() }: MyProfileScre
   const [showSaveToast, setShowSaveToast] = useState(false);
   const [img,setImg] = useState<string | null>(null);
 useEffect(() => {
-  console.log('MyProfileScreen mounted, userId:', currentUserId);
   if (!currentUserId) return;
 
-  console.log('Fetching profile...');
   setIsLoading(true);
 
   const { request, abort } = ProfileApi.getMyProfile(currentUserId);
 
   request.then((res) => {
-    console.log('Profile loaded:', res.data);
     setFullName(res.data.displayName || '');
     setSelectedAllergies(res.data.allergies || []);
     setIsLoading(false);
@@ -84,7 +81,7 @@ useEffect(() => {
   })
   .catch((err) => {
     if (err.name === 'CanceledError') {
-      console.log('Request canceled', err.message);
+      return;
     } else {
       console.error('Failed to load profile:', err);
       setIsLoading(false);
@@ -92,7 +89,6 @@ useEffect(() => {
   });
 
   return () => {
-    console.log('MyProfileScreen cleanup - aborting');
     abort();
   };
 }, []);
@@ -101,20 +97,19 @@ const onImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   if (!file) return;
 
   const url = URL.createObjectURL(file);
-  setAvatarUrl(url); //
+  setAvatarUrl(url);
 
-const { request } = ProfileApi.uploadAvatar(file);
-request.then((res) => {
-  const imageUrl = res.data.data.imageUrl; 
-  console.log('Avatar uploaded:', imageUrl);
-  return ProfileApi.updateMyProfile(currentUserId!, { profileImage: imageUrl });
-})
-  .then(() => {
-    console.log('Profile image saved!');
+  const { request } = ProfileApi.uploadAvatar(file);
+  request.then((res) => {
+    const imageUrl = res.data.data.imageUrl; 
+    return ProfileApi.updateMyProfile(currentUserId!, { profileImage: imageUrl }).then(() => imageUrl);
   })
-  .catch((err) => {
-    console.error('Failed to upload avatar:', err);
-  });
+    .then((uploadedImageUrl) => {
+      setAvatarUrl(uploadedImageUrl);
+    })
+    .catch((err) => {
+      console.error('Failed to upload avatar:', err);
+    });
 };
 
 

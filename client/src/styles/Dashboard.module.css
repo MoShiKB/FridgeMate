@@ -91,6 +91,14 @@
   color: #ffffff;
 }
 
+.profileMenuImage {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #ffffff;
+}
+
 .menu {
   position: absolute;
   top: calc(100% + 12px);
