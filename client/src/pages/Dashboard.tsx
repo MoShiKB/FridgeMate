@@ -218,7 +218,7 @@ export function Dashboard() {
       <div className={styles.tabContent} ref={tabContentRef}>
         {activeTab === 'feed' && <FeedTab />}
         {activeTab === 'myFridge' && <MyFridgeTab />}
-        {activeTab === 'recipes' && <RecipesTab />}
+        {activeTab === 'recipes' && <RecipesTab onPostShared={() => setActiveTab('feed')} />}
       </div>
 
       {/* Profile/Settings Overlay */}
