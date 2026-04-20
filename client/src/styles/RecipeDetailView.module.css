@@ -1,0 +1,408 @@
+.detailView {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  background: #f0f1f3;
+  -webkit-overflow-scrolling: touch;
+  align-items: center;
+}
+
+/* ── Centered wrapper ── */
+.detailView > * {
+  width: 100%;
+  max-width: 480px;
+}
+
+/* ── Hero ── */
+.heroWrapper {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  height: 280px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 0 0 18px 18px;
+}
+
+.heroImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.heroPlaceholder {
+  width: 100%;
+  height: 100%;
+  background: #e8f5e9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 64px;
+}
+
+.heroGradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.25) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.backBtn {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.35);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  padding: 6px;
+  transition: background 0.2s;
+}
+
+.backBtn:hover { background: rgba(0,0,0,0.55); }
+
+.backBtn svg { width: 100%; height: 100%; }
+
+.heroStarBtn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.9);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px;
+  color: #555;
+  transition: background 0.2s, transform 0.15s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+
+.heroStarBtn:hover { background: #fff; transform: scale(1.1); }
+.heroStarBtn:disabled { opacity: 0.6; cursor: default; transform: none; }
+.heroStarBtn svg { width: 100%; height: 100%; }
+
+/* ── Content ── */
+.detailContent {
+  flex: 1;
+  padding: 20px 20px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: #fff;
+  border-radius: 18px;
+  margin-top: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+}
+
+.detailTitle {
+  font-size: 22px;
+  font-weight: 700;
+  color: #111;
+  margin: 0;
+  line-height: 1.25;
+}
+
+.detailMeta {
+  display: flex;
+  gap: 16px;
+}
+
+.detailMetaItem {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #00bc90;
+}
+
+.detailMetaIcon {
+  width: 15px;
+  height: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #00bc90;
+}
+
+.detailMetaIcon svg { width: 100%; height: 100%; }
+
+.detailDescription {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ── Nutrition ── */
+.nutritionRow {
+  display: flex;
+  background: #f7f8f9;
+  border-radius: 12px;
+  padding: 14px 8px;
+  gap: 4px;
+}
+
+.nutritionCell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  border-right: 1px solid #e0e0e0;
+}
+
+.nutritionCell:last-child { border-right: none; }
+
+.nutritionVal {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111;
+}
+
+.nutritionLbl {
+  font-size: 11px;
+  color: #888;
+}
+
+/* ── Sections ── */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sectionTitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #111;
+  margin: 0;
+}
+
+/* Ingredients */
+.ingredientList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ingredientItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.ingredientDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #00bc90;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.ingredientText {
+  font-size: 14px;
+  color: #222;
+  line-height: 1.4;
+}
+
+.ingredientAmount {
+  color: #888;
+}
+
+/* Steps */
+.stepList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.stepItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.stepNumber {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #00bc90;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stepText {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.6;
+  padding-top: 4px;
+}
+
+/* ── Share button ── */
+.shareBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 15px;
+  background: #00bc90;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background 0.2s;
+}
+
+.shareBtn:hover { background: #00a57d; }
+
+/* ── Share modal ── */
+.shareOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 24px 16px;
+}
+
+.shareModal {
+  background: #fff;
+  border-radius: 20px;
+  padding: 28px 24px 24px;
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+}
+
+.shareTitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #111;
+  margin: 0;
+}
+
+.shareInput {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.shareInput:focus { border-color: #00bc90; }
+
+.shareTextarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 14px;
+  outline: none;
+  resize: none;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.shareTextarea:focus { border-color: #00bc90; }
+
+.shareError {
+  font-size: 13px;
+  color: #e53935;
+  margin: 0;
+}
+
+.shareActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.shareCancelBtn {
+  padding: 9px 18px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  color: #555;
+}
+
+.sharePostBtn {
+  padding: 9px 22px;
+  border: none;
+  border-radius: 10px;
+  background: #00bc90;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.sharePostBtn:hover { background: #00a57d; }
+.sharePostBtn:disabled { opacity: 0.6; cursor: default; }
+
+.shareSuccess {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 0;
+}
+
+.shareSuccessIcon {
+  width: 48px;
+  height: 48px;
+  background: #00bc90;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.shareSuccess p {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111;
+  margin: 0;
+}

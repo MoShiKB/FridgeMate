@@ -5,6 +5,7 @@ import { CommentModel } from "../models/comment.model";
 
 export class PostsService {
   static async create(userId: string, payload: any) {
+    console.log('[PostsService.create] location payload:', JSON.stringify(payload.location ?? null));
     const doc = await PostModel.create({
       authorUserId: new mongoose.Types.ObjectId(userId),
       title: payload.title,

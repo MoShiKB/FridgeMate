@@ -73,8 +73,9 @@ export const AIService = {
             };
         } catch (error: any) {
             if (error instanceof ApiError) throw error;
-            if (error.message?.includes('429') || error.message?.includes('quota') || error.message?.includes('rate limit')) {
-                throw new ApiError(429, 'AI rate limit exceeded. Please try again later.');
+            if (error.message?.includes('429') || error.message?.includes('quota') || error.message?.includes('rate limit') ||
+                error.message?.includes('503') || error.message?.includes('UNAVAILABLE') || error.message?.includes('high demand')) {
+                throw new ApiError(429, 'AI is busy right now. Please try again in a moment.');
             }
             throw new ApiError(502, `AI service error: ${error.message}`);
         }
@@ -201,7 +202,7 @@ export const AIService = {
      * Extracts search keywords, then searches TheMealDB and Spoonacular for a matching dish image.
      */
     async _tryAIImageSearch(recipeTitle: string): Promise<string | null> {
-        const keywords = await this._extractKeywords(recipeTitle);
+        const keywords = this._extractKeywords(recipeTitle);
 
         for (const keyword of keywords) {
             try {
@@ -235,23 +236,7 @@ export const AIService = {
         return null;
     },
 
-    async _extractKeywords(recipeTitle: string): Promise<string[]> {
-        try {
-            const response = await ai.models.generateContent({
-                model: MODEL_NAME,
-                contents: `From this recipe title, extract up to 3 search terms ordered from most specific to most general. Each term should be a food name likely to appear in a recipe database.
-Return ONLY a comma-separated list, nothing else.
-Examples:
-- "Spicy Thai Basil Chicken Stir-Fry" → "thai chicken, chicken stir-fry, chicken"
-- "Classic Margherita Pizza" → "margherita pizza, pizza, margherita"
-- "Lemon Herb Grilled Salmon with Vegetables" → "grilled salmon, salmon, fish"
-Title: "${recipeTitle}"`,
-                config: { temperature: 0, maxOutputTokens: 50 }
-            });
-            const raw = response.text?.trim()?.toLowerCase();
-            if (raw) return raw.split(',').map(k => k.trim()).filter(Boolean);
-        } catch { /* AI unavailable — fall through to simple extraction */ }
-
+    _extractKeywords(recipeTitle: string): string[] {
         const stopWords = new Set(['a', 'an', 'the', 'with', 'and', 'or', 'in', 'on', 'of', 'for', 'to', 'my',
             'easy', 'simple', 'quick', 'best', 'classic', 'homemade', 'style', 'recipe']);
         const words = recipeTitle.toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/)
