@@ -34,6 +34,12 @@ export interface PostAuthor {
   address?: { city?: string };
 }
 
+export interface PostLocation {
+  type: 'Point';
+  coordinates: [number, number]; // [lng, lat]
+  placeName?: string;
+}
+
 export interface Post {
   _id: string;
   authorUserId: PostAuthor;
@@ -46,6 +52,7 @@ export interface Post {
   isOwner: boolean;
   createdAt: string;
   recipeId?: { title: string; imageUrl: string } | null;
+  location?: PostLocation | null;
 }
 
 export interface Comment {
@@ -90,7 +97,7 @@ export const FeedApi = {
   deleteComment: (postId: string, commentId: string) =>
     withRefresh(() => axios.delete(`${API_BASE_URL}/posts/${postId}/comments/${commentId}`, auth())),
 
-  createPost: (data: { title: string; text: string; mediaUrls?: string[] }) =>
+  createPost: (data: { title: string; text: string; mediaUrls?: string[]; location?: { lat: number; lng: number; placeName?: string } }) =>
     withRefresh(async () => {
       const res = await axios.post(`${API_BASE_URL}/posts`, data, auth());
       return res.data.data as Post;

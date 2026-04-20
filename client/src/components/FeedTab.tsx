@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { tokenManager } from '../services/api';
 import { FeedApi, Post, Comment } from '../services/api-feed';
 import { API_BASE_URL } from '../services/api';
+import { MapView } from './MapView';
 import styles from '../styles/FeedTab.module.css';
 
 function getUserIdFromToken(): string | null {
@@ -24,14 +25,15 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-function Avatar({ src, name, size = 32 }: { src?: string; name: string; size?: number }) {
+function Avatar({ src, name, size = 32 }: { src?: string; name?: string; size?: number }) {
   const [err, setErr] = useState(false);
+  const label = name || '?';
   if (src && !err) {
     const fullSrc = src.startsWith('http') ? src : `${API_BASE_URL}${src}`;
     return (
       <img
         src={fullSrc}
-        alt={name}
+        alt={label}
         className={styles.avatar}
         style={{ width: size, height: size }}
         onError={() => setErr(true)}
@@ -40,7 +42,7 @@ function Avatar({ src, name, size = 32 }: { src?: string; name: string; size?: n
   }
   return (
     <div className={styles.avatarFallback} style={{ width: size, height: size, fontSize: size * 0.4 }}>
-      {name.charAt(0).toUpperCase()}
+      {label.charAt(0).toUpperCase()}
     </div>
   );
 }
@@ -150,7 +152,9 @@ function PostCard({ post, currentUserId, onDeleted }: PostCardProps) {
           {post.authorUserId.address?.city && (
             <span className={styles.authorLocation}>{post.authorUserId.address.city}</span>
           )}
-          <span className={styles.postTime}>{timeAgo(post.createdAt)}</span>
+          <span className={styles.postTime}>
+            {timeAgo(post.createdAt)}{post.location?.coordinates ? ' · 📍' : ''}
+          </span>
         </div>
         <div className={styles.postMenuContainer} ref={menuRef}>
           <button className={styles.postMenuBtn} onClick={() => setShowMenu(v => !v)}>⋮</button>
@@ -169,6 +173,7 @@ function PostCard({ post, currentUserId, onDeleted }: PostCardProps) {
       )}
 
       <div className={styles.postContent}>
+        {post.title && <p className={styles.postTitle}>{post.title}</p>}
         <p className={styles.postText}>{post.text}</p>
       </div>
 
@@ -229,17 +234,54 @@ interface CreatePostModalProps {
   onClose: () => void;
 }
 
+async function getLocation(): Promise<{ lat: number; lng: number } | null> {
+  // Try precise browser geolocation first
+  if (navigator.geolocation) {
+    const browserLoc = await new Promise<{ lat: number; lng: number } | null>(resolve => {
+      navigator.geolocation.getCurrentPosition(
+        ({ coords }) => resolve({ lat: coords.latitude, lng: coords.longitude }),
+        () => resolve(null),
+        { timeout: 5000, maximumAge: 60000 }
+      );
+    });
+    if (browserLoc) return browserLoc;
+  }
+  // Fallback: IP-based approximate location (no permission needed)
+  try {
+    const res = await fetch('https://ipapi.co/json/');
+    const data = await res.json();
+    if (data.latitude && data.longitude) return { lat: data.latitude, lng: data.longitude };
+  } catch {}
+  return null;
+}
+
 function CreatePostModal({ onCreated, onClose }: CreatePostModalProps) {
   const [title, setTitle] = useState('');
   const [text, setText] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [locationStatus, setLocationStatus] = useState<'loading' | 'ready' | 'denied'>('loading');
+  const locationRef = useRef<{ lat: number; lng: number } | null>(null);
+
+  useEffect(() => {
+    getLocation().then(loc => {
+      if (loc) { locationRef.current = loc; setLocationStatus('ready'); }
+      else setLocationStatus('denied');
+    });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !text.trim() || submitting) return;
     setSubmitting(true);
+    // Always use cached location or fetch fresh — regardless of prior status
+    const location = locationRef.current ?? await getLocation();
+    if (location) locationRef.current = location;
     try {
-      const post = await FeedApi.createPost({ title: title.trim(), text: text.trim() });
+      const post = await FeedApi.createPost({
+        title: title.trim(),
+        text: text.trim(),
+        ...(location ? { location } : {}),
+      });
       onCreated(post);
       onClose();
     } catch {}
@@ -266,6 +308,11 @@ function CreatePostModal({ onCreated, onClose }: CreatePostModalProps) {
           rows={4}
           maxLength={500}
         />
+        {locationStatus !== 'denied' && (
+          <p className={styles.locationLabel}>
+            {locationStatus === 'loading' ? '🔄 Getting your location…' : '📍 Location will be included'}
+          </p>
+        )}
         <div className={styles.createPostActions}>
           <button type="button" className={styles.cancelBtn} onClick={onClose}>Cancel</button>
           <button type="submit" className={styles.submitBtn} disabled={!title.trim() || !text.trim() || submitting}>
@@ -334,9 +381,9 @@ export function FeedTab() {
     loadPosts(next);
   };
 
-  const handlePostCreated = (post: Post) => {
-    if (feedMode === 'all') setPosts(cur => [post, ...cur]);
-    else loadPosts(feedMode);
+  const handlePostCreated = (_post: Post) => {
+    setFeedMode('all');
+    loadPosts('all');
   };
 
   const handlePostDeleted = (postId: string) => {
@@ -344,31 +391,35 @@ export function FeedTab() {
   };
 
   return (
-    <div className={styles.feedTab}>
-      {/* Action buttons row */}
-      <div className={styles.actionRow}>
-        <button
-          className={`${styles.actionRowBtn} ${feedMode === 'nearby' ? styles.actionRowBtnActive : ''}`}
-          onClick={handleMapView}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
-          </svg>
-          Map View
-        </button>
-        <button
-          className={`${styles.actionRowBtn} ${feedMode === 'mine' ? styles.actionRowBtnActive : ''}`}
-          onClick={handleMyPosts}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-          </svg>
-          My Posts
-        </button>
+    <div className={feedMode === 'nearby' ? styles.feedTabMap : styles.feedTab}>
+      {/* Filter pill tabs */}
+      <div className={styles.pillContainer}>
+        <div className={styles.pillTabs}>
+          <button
+            className={`${styles.pillTab} ${feedMode === 'all' ? styles.pillActive : ''}`}
+            onClick={() => { if (feedMode !== 'all') { setFeedMode('all'); loadPosts('all'); } }}
+          >
+            All Posts
+          </button>
+          <button
+            className={`${styles.pillTab} ${feedMode === 'mine' ? styles.pillActive : ''}`}
+            onClick={handleMyPosts}
+          >
+            My Posts
+          </button>
+          <button
+            className={`${styles.pillTab} ${feedMode === 'nearby' ? styles.pillActive : ''}`}
+            onClick={handleMapView}
+          >
+            Map View
+          </button>
+        </div>
       </div>
 
-      {/* Posts list */}
-      {loading ? (
+      {/* Map view */}
+      {feedMode === 'nearby' ? (
+        <MapView />
+      ) : loading ? (
         <div className={styles.spinner} />
       ) : error ? (
         <div className={styles.errorState}>
@@ -378,7 +429,7 @@ export function FeedTab() {
       ) : posts.length === 0 ? (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>🍽️</div>
-          <p>{feedMode === 'mine' ? "You haven't posted anything yet." : feedMode === 'nearby' ? 'No posts found nearby.' : 'No posts yet. Be the first to share!'}</p>
+          <p>{feedMode === 'mine' ? "You haven't posted anything yet." : 'No posts yet. Be the first to share!'}</p>
         </div>
       ) : (
         posts.map(post => (

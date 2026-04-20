@@ -1,14 +1,71 @@
 .feedTab {
   display: flex;
   flex-direction: column;
-  background-color: #f0f2f5;
+  align-items: center;
+  background-color: #f0f1f3;
   min-height: 100%;
-  padding: 8px 0 72px;
-  gap: 6px;
+  padding: 8px 16px 80px;
+  gap: 10px;
   position: relative;
 }
 
-/* Spinner */
+.feedTabMap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #f0f1f3;
+  position: absolute;
+  inset: 0;
+  padding: 8px 0 0;
+  gap: 10px;
+  overflow: hidden;
+}
+
+/* ── Pill filter tabs (same style as Recipes) ── */
+.pillContainer {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  max-width: 480px;
+  padding: 6px 0 2px;
+  flex-shrink: 0;
+}
+
+.pillTabs {
+  display: flex;
+  background: #e0e2e5;
+  border-radius: 30px;
+  padding: 4px;
+  width: 100%;
+}
+
+.pillTab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 9px 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #666;
+  background: none;
+  border: none;
+  border-radius: 26px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pillTab svg { flex-shrink: 0; }
+
+.pillActive {
+  background: #fff;
+  color: #111;
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
+
+/* ── Spinner ── */
 .spinner {
   width: 28px;
   height: 28px;
@@ -20,6 +77,7 @@
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ── Error ── */
 .errorState {
   display: flex;
   flex-direction: column;
@@ -27,12 +85,7 @@
   gap: 10px;
   margin-top: 48px;
 }
-.errorText {
-  text-align: center;
-  color: #888;
-  font-size: 13px;
-  margin: 0;
-}
+.errorText { text-align: center; color: #888; font-size: 13px; margin: 0; }
 .retryBtn {
   padding: 7px 18px;
   background: #00bc8b;
@@ -45,7 +98,7 @@
 }
 .retryBtn:hover { opacity: 0.88; }
 
-/* Empty state */
+/* ── Empty ── */
 .emptyState {
   display: flex;
   flex-direction: column;
@@ -58,45 +111,21 @@
 }
 .emptyIcon { font-size: 36px; }
 
-/* Action row (Map View / My Posts) */
-.actionRow {
-  display: flex;
-  gap: 8px;
-  padding: 2px 16px 6px;
-  justify-content: center;
-}
-.actionRowBtn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 14px;
-  background: #00bc8b;
-  border: none;
-  border-radius: 20px;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.15s;
-}
-.actionRowBtn:hover { opacity: 0.88; }
-.actionRowBtnActive { background: #009970; }
-
-/* FAB */
+/* ── FAB ── */
 .fab {
   position: fixed;
-  bottom: 72px;
+  bottom: 24px;
   right: 18px;
-  width: 42px;
-  height: 42px;
+  width: 46px;
+  height: 46px;
   background: #00bc8b;
   color: #fff;
   border: none;
-  border-radius: 12px;
-  font-size: 22px;
+  border-radius: 14px;
+  font-size: 24px;
   line-height: 1;
   cursor: pointer;
-  box-shadow: 0 3px 10px rgba(0, 188, 139, 0.4);
+  box-shadow: 0 3px 12px rgba(0, 188, 139, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -105,7 +134,7 @@
 }
 .fab:hover { transform: scale(1.07); opacity: 0.92; }
 
-/* Modal */
+/* ── Create post modal ── */
 .modalOverlay {
   position: fixed;
   inset: 0;
@@ -118,277 +147,188 @@
 }
 .modalForm {
   background: #fff;
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: 16px;
+  padding: 20px;
   width: 100%;
-  max-width: 420px;
+  max-width: 440px;
   display: flex;
   flex-direction: column;
   gap: 10px;
   box-shadow: 0 6px 24px rgba(0,0,0,0.16);
 }
-.modalTitle {
-  font-size: 14px;
-  font-weight: 600;
-  margin: 0;
-  color: #1a1a1a;
-}
-
-/* Create post inputs */
+.modalTitle { font-size: 16px; font-weight: 700; margin: 0; color: #1a1a1a; }
 .createPostInput {
-  padding: 8px 10px;
+  padding: 10px 12px;
   border: 1px solid #e0e0e0;
-  border-radius: 7px;
-  font-size: 13px;
+  border-radius: 10px;
+  font-size: 14px;
   outline: none;
   font-family: inherit;
-  transition: border-color 0.15s;
 }
 .createPostInput:focus { border-color: #00bc8b; }
 .createPostTextarea {
-  padding: 8px 10px;
+  padding: 10px 12px;
   border: 1px solid #e0e0e0;
-  border-radius: 7px;
-  font-size: 13px;
+  border-radius: 10px;
+  font-size: 14px;
   resize: none;
   outline: none;
   font-family: inherit;
-  transition: border-color 0.15s;
 }
 .createPostTextarea:focus { border-color: #00bc8b; }
-.createPostActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 6px;
-}
+.createPostActions { display: flex; justify-content: flex-end; gap: 8px; }
 .cancelBtn {
-  padding: 6px 13px;
+  padding: 8px 16px;
   border: 1px solid #e0e0e0;
-  border-radius: 16px;
+  border-radius: 10px;
   background: #fff;
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
   color: #666;
 }
 .cancelBtn:hover { background: #f5f5f5; }
 .submitBtn {
-  padding: 6px 16px;
+  padding: 8px 20px;
   background: #00bc8b;
   border: none;
-  border-radius: 16px;
+  border-radius: 10px;
   color: #fff;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.15s;
 }
 .submitBtn:disabled { opacity: 0.5; cursor: default; }
 .submitBtn:not(:disabled):hover { opacity: 0.9; }
 
-/* Post card */
+/* ── Post card ── */
 .postCard {
-  margin: 0 16px;
+  width: 100%;
+  max-width: 480px;
   background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
   overflow: hidden;
 }
 
-/* Post header */
+/* ── Post header ── */
 .postHeader {
   display: flex;
   align-items: flex-start;
-  padding: 9px 11px;
-  gap: 8px;
+  padding: 12px 14px 10px;
+  gap: 10px;
 }
-.avatar {
-  border-radius: 50%;
-  object-fit: cover;
-  flex-shrink: 0;
-}
+.avatar { border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .avatarFallback {
   border-radius: 50%;
-  background: #7c6f5e;
+  background: #00bc8b;
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
+  font-weight: 700;
   flex-shrink: 0;
 }
-.authorInfo {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-  gap: 1px;
-}
-.authorName {
-  font-size: 13px;
-  font-weight: 600;
-  color: #1a1a1a;
-}
-.authorLocation {
-  font-size: 11px;
-  color: #8e8e8e;
-}
-.postTime {
-  font-size: 10px;
-  color: #bbb;
-}
+.authorInfo { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: 1px; }
+.authorName { font-size: 14px; font-weight: 600; color: #1a1a1a; }
+.authorLocation { font-size: 12px; color: #8e8e8e; }
+.postTime { font-size: 11px; color: #bbb; }
 
-/* Post owner menu */
-.postMenuContainer {
-  position: relative;
-}
+/* ── Post owner menu ── */
+.postMenuContainer { position: relative; }
 .postMenuBtn {
-  background: none;
-  border: none;
-  font-size: 16px;
-  cursor: pointer;
-  color: #888;
-  padding: 0 3px;
-  line-height: 1;
+  background: none; border: none; font-size: 18px;
+  cursor: pointer; color: #aaa; padding: 0 4px; line-height: 1;
 }
 .postMenu {
-  position: absolute;
-  right: 0;
-  top: 20px;
-  background: #fff;
-  border-radius: 7px;
-  box-shadow: 0 3px 12px rgba(0,0,0,0.12);
-  min-width: 110px;
-  z-index: 10;
-  overflow: hidden;
+  position: absolute; right: 0; top: 22px;
+  background: #fff; border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+  min-width: 120px; z-index: 10; overflow: hidden;
 }
 .postMenuDelete {
-  display: block;
-  width: 100%;
-  padding: 8px 14px;
-  background: none;
-  border: none;
-  text-align: left;
-  font-size: 12px;
-  color: #e74c3c;
-  cursor: pointer;
+  display: block; width: 100%; padding: 10px 16px;
+  background: none; border: none; text-align: left;
+  font-size: 13px; color: #e74c3c; cursor: pointer;
 }
 .postMenuDelete:hover { background: #fff5f5; }
 
-/* Post image */
+/* ── Post image ── */
 .postImage {
   width: 100%;
-  max-height: 220px;
+  max-height: 240px;
   object-fit: cover;
   display: block;
 }
 
-/* Post content */
-.postContent {
-  padding: 7px 12px 3px;
+/* ── Post content ── */
+.postContent { padding: 10px 14px 4px; }
+.postTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111;
+  margin: 0 0 4px;
 }
-.postText {
-  font-size: 13px;
-  color: #333;
-  margin: 0;
-  line-height: 1.45;
-}
+.postText { font-size: 13px; color: #555; margin: 0; line-height: 1.5; }
 
-/* Actions */
+/* ── Actions ── */
 .postActions {
   display: flex;
   align-items: center;
-  padding: 4px 8px 8px;
+  padding: 6px 8px 10px;
   gap: 2px;
 }
 .actionBtn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 16px;
-  font-size: 12px;
-  color: #555;
+  display: flex; align-items: center; gap: 5px;
+  background: none; border: none; cursor: pointer;
+  padding: 5px 10px; border-radius: 20px;
+  font-size: 13px; color: #666;
   transition: background 0.15s;
 }
 .actionBtn:hover { background: #f5f5f5; }
 .liked { color: #e74c3c; }
 .actionBtn.liked { color: #e74c3c; }
-.actionIcon {
-  width: 15px;
-  height: 15px;
-  flex-shrink: 0;
-}
+.actionIcon { width: 16px; height: 16px; flex-shrink: 0; }
 
-/* Comments */
+/* ── Comments ── */
 .commentsSection {
   border-top: 1px solid #f0f0f0;
-  padding: 8px 11px;
+  padding: 10px 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
-.commentRow {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-}
+.commentRow { display: flex; align-items: flex-start; gap: 8px; }
 .commentBubble {
-  flex: 1;
-  background: #f5f5f5;
-  border-radius: 10px;
-  padding: 5px 9px;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
+  flex: 1; background: #f5f5f5; border-radius: 12px;
+  padding: 6px 10px; display: flex; flex-direction: column; gap: 2px;
 }
-.commentAuthor {
-  font-size: 11px;
-  font-weight: 600;
-  color: #1a1a1a;
-}
-.commentText {
-  font-size: 12px;
-  color: #333;
-}
+.commentAuthor { font-size: 12px; font-weight: 600; color: #1a1a1a; }
+.commentText { font-size: 13px; color: #333; }
 .deleteCommentBtn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #bbb;
-  font-size: 10px;
-  padding: 3px;
-  align-self: center;
+  background: none; border: none; cursor: pointer;
+  color: #ccc; font-size: 11px; padding: 3px; align-self: center;
 }
 .deleteCommentBtn:hover { color: #e74c3c; }
-.commentForm {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 2px;
-}
+.commentForm { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
 .commentInput {
-  flex: 1;
-  padding: 6px 10px;
-  border: 1px solid #e0e0e0;
-  border-radius: 16px;
-  font-size: 12px;
-  outline: none;
-  font-family: inherit;
+  flex: 1; padding: 7px 12px;
+  border: 1px solid #e0e0e0; border-radius: 20px;
+  font-size: 13px; outline: none; font-family: inherit;
   background: #f9f9f9;
 }
 .commentInput:focus { border-color: #00bc8b; background: #fff; }
 .commentSubmit {
-  padding: 5px 12px;
-  background: #00bc8b;
-  border: none;
-  border-radius: 16px;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
+  padding: 6px 14px; background: #00bc8b;
+  border: none; border-radius: 20px;
+  color: #fff; font-size: 12px; font-weight: 600; cursor: pointer;
 }
 .commentSubmit:disabled { opacity: 0.4; cursor: default; }
+
+.locationLabel {
+  font-size: 12px;
+  color: #00bc8b;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
