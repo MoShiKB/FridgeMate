@@ -256,7 +256,6 @@ export class InventoryItemService {
 
         if (updates.length > 0) {
           await InventoryItemModel.bulkWrite(updates);
-          console.log(`Updated isRunningLow status for ${updates.length} shared items in fridge ${fridgeId}`);
         }
       }
     } catch (error) {

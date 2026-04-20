@@ -25,7 +25,6 @@ function App() {
   }, []);
 
   const handleLoginSuccess = (email: string) => {
-    console.log('User logged in:', email);
     setIsAuthenticated(true);
   };
 

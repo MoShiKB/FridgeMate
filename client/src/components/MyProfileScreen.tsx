@@ -114,7 +114,6 @@ const onImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 
 
   const onClick = (index: number) => {
-    console.log("clicked index:", index);
     setSelectedDiet(index);
   };
 const onAllergyClick = (label: string) => {

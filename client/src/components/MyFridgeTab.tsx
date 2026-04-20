@@ -1,41 +1,81 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from '../styles/MyFridgeTab.module.css';
+import { FridgeApi, FridgeDto } from '../services/api-fridge';
+import { InventoryItemApi, InventoryItemDto } from '../services/api-inventory';
+import { tokenManager } from '../services/api';
 
-interface FridgeItem {
-  id: string;
-  name: string;
-  quantity: string;
-  category: string;
-  isLowStock: boolean;
-}
-
-// Mock data - replace with API call later
-const MOCK_FRIDGE_ITEMS: FridgeItem[] = [
-  { id: '1', name: 'Chicken Breast', quantity: '500g', category: 'Protein', isLowStock: false },
-  { id: '2', name: 'Eggs', quantity: '4 units', category: 'Protein', isLowStock: false },
-  { id: '3', name: 'Milk', quantity: '200ml', category: 'Dairy', isLowStock: true },
-  { id: '4', name: 'Cheddar Cheese', quantity: '250g', category: 'Dairy', isLowStock: false },
-  { id: '5', name: 'Spinach', quantity: '100g', category: 'Vegetables', isLowStock: true },
-  { id: '6', name: 'Tomatoes', quantity: '6 units', category: 'Vegetables', isLowStock: false },
-];
+type State = 
+  | { status: 'loading' }
+  | { status: 'items'; items: InventoryItemDto[] }
+  | { status: 'empty' }
+  | { status: 'noFridge' }
+  | { status: 'notLoggedIn' }
+  | { status: 'error'; message: string };
 
 export function MyFridgeTab() {
-  // Get running low items
-  const runningLowItems = MOCK_FRIDGE_ITEMS.filter((item) => item.isLowStock);
+  const [state, setState] = useState<State>({ status: 'loading' });
 
-  // Group items by category
-  const groupedByCategory = MOCK_FRIDGE_ITEMS.reduce(
-    (acc, item) => {
-      if (!acc[item.category]) {
-        acc[item.category] = [];
+  useEffect(() => {
+    loadItems();
+  }, []);
+
+  const loadItems = async () => {
+    try {
+      if (!tokenManager.getAccessToken()) {
+        setState({ status: 'notLoggedIn' });
+        return;
       }
-      acc[item.category].push(item);
-      return acc;
-    },
-    {} as Record<string, FridgeItem[]>
-  );
 
-  const categories = Object.keys(groupedByCategory).sort();
+      // Get user's fridge
+      const fridgeResponse = await FridgeApi.getMyFridge();
+      // Response is wrapped in { ok: true, data: {...} }
+      const apiData = fridgeResponse.data as any;
+      const fridge = apiData.data as FridgeDto;
+
+      if (!fridge) {
+        setState({ status: 'noFridge' });
+        return;
+      }
+
+      // Extract fridge ID (MongoDB returns _id, not id)
+      const fridgeId = fridge.id || fridge._id;
+      if (!fridgeId) {
+        throw new Error('Fridge ID not found');
+      }
+
+      // Get items in the fridge
+      const itemsResponse = await InventoryItemApi.getItems(fridgeId);
+      const items = itemsResponse.data.items;
+
+      if (items.length === 0) {
+        setState({ status: 'empty' });
+      } else {
+        setState({ status: 'items', items });
+      }
+    } catch (error) {
+      console.error('Failed to load fridge items:', error);
+      setState({ 
+        status: 'error', 
+        message: error instanceof Error ? error.message : 'Failed to load fridge items'
+      });
+    }
+  };
+
+  const buildFridgeItemList = (items: InventoryItemDto[]) => {
+    const lowItems = items.filter(item => item.isRunningLow);
+    const groupedByCategory: Record<string, InventoryItemDto[]> = {};
+    
+    items.forEach(item => {
+      // Use a generic "Items" category since the API doesn't provide category info
+      const category = 'Items';
+      if (!groupedByCategory[category]) {
+        groupedByCategory[category] = [];
+      }
+      groupedByCategory[category].push(item);
+    });
+
+    return { lowItems, groupedByCategory };
+  };
 
   const WarningIconSVG = () => (
     <svg viewBox="0 0 24 24" fill="currentColor">
@@ -43,10 +83,75 @@ export function MyFridgeTab() {
     </svg>
   );
 
+  if (state.status === 'loading') {
+    return (
+      <div className={styles.myFridgeTab}>
+        <div className={styles.loadingState}>
+          <p>Loading fridge...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (state.status === 'notLoggedIn') {
+    return (
+      <div className={styles.myFridgeTab}>
+        <div className={styles.emptyState}>
+          <div className={styles.emptyStateIcon}>🔓</div>
+          <h3 className={styles.emptyStateTitle}>Not logged in</h3>
+          <p className={styles.emptyStateDescription}>Please log in to view your fridge</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (state.status === 'noFridge') {
+    return (
+      <div className={styles.myFridgeTab}>
+        <div className={styles.emptyState}>
+          <div className={styles.emptyStateIcon}>🏠</div>
+          <h3 className={styles.emptyStateTitle}>No fridge yet</h3>
+          <p className={styles.emptyStateDescription}>Create or join a fridge to get started</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (state.status === 'error') {
+    return (
+      <div className={styles.myFridgeTab}>
+        <div className={styles.emptyState}>
+          <div className={styles.emptyStateIcon}>⚠️</div>
+          <h3 className={styles.emptyStateTitle}>Error loading fridge</h3>
+          <p className={styles.emptyStateDescription}>{state.message}</p>
+          <button onClick={loadItems} className={styles.retryButton}>
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (state.status === 'empty') {
+    return (
+      <div className={styles.myFridgeTab}>
+        <div className={styles.emptyState}>
+          <div className={styles.emptyStateIcon}>🧊</div>
+          <h3 className={styles.emptyStateTitle}>Your fridge is empty</h3>
+          <p className={styles.emptyStateDescription}>No items in your fridge yet</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Status is 'items'
+  const { lowItems, groupedByCategory } = buildFridgeItemList(state.items);
+  const categories = Object.keys(groupedByCategory).sort();
+
   return (
     <div className={styles.myFridgeTab}>
       {/* Running Low Section */}
-      {runningLowItems.length > 0 && (
+      {lowItems.length > 0 && (
         <div className={styles.runningLowSection}>
           <div className={styles.sectionHeader}>
             <div className={styles.warningIcon}>
@@ -58,7 +163,7 @@ export function MyFridgeTab() {
             <p className={styles.runningLowText}>
               You need to restock:{' '}
               <span className={styles.itemsList}>
-                {runningLowItems.map((item) => item.name).join(', ')}
+                {lowItems.map(item => item.name).join(', ')}
               </span>
             </p>
           </div>
@@ -68,18 +173,21 @@ export function MyFridgeTab() {
       {/* Items by Category Section */}
       {categories.length > 0 ? (
         <div className={styles.itemsSection}>
-          {categories.map((category) => (
+          {categories.map(category => (
             <div key={category} className={styles.categorySection}>
               <h3 className={styles.categoryHeader}>{category}</h3>
               <div className={styles.categoryItemsList}>
                 {groupedByCategory[category].map((item, index) => (
-                  <div key={item.id} className={`${styles.itemCard} ${item.isLowStock ? styles.lowStock : ''}`}>
+                  <div
+                    key={item.id}
+                    className={`${styles.itemCard} ${item.isRunningLow ? styles.lowStock : ''}`}
+                  >
                     <div className={styles.itemInfo}>
                       <div className={styles.itemNameWrapper}>
                         <p className={styles.itemName} title={item.name}>
                           {item.name}
                         </p>
-                        {item.isLowStock && (
+                        {item.isRunningLow && (
                           <div className={styles.itemWarningIcon} title="Running low">
                             <WarningIconSVG />
                           </div>
@@ -96,16 +204,8 @@ export function MyFridgeTab() {
             </div>
           ))}
         </div>
-      ) : (
-        /* Empty State */
-        <div className={styles.emptyState}>
-          <div className={styles.emptyStateIcon}>🧊</div>
-          <h3 className={styles.emptyStateTitle}>Your fridge is empty</h3>
-          <p className={styles.emptyStateDescription}>
-            No items in your fridge yet
-          </p>
-        </div>
-      )}
+      ) : null}
     </div>
   );
 }
+

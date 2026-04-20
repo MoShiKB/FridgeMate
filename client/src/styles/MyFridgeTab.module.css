@@ -194,6 +194,46 @@
   max-width: 280px;
 }
 
+/* Loading State */
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.loadingState p {
+  font-size: 14px;
+  color: #8e8e8e;
+  margin: 0;
+}
+
+/* Retry Button */
+.retryButton {
+  background-color: #00bc90;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  margin-top: 8px;
+}
+
+.retryButton:hover {
+  background-color: #00a37d;
+}
+
+.retryButton:active {
+  background-color: #008b68;
+}
+
 
 
 @media (max-width: 480px) {

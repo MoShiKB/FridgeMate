@@ -60,7 +60,7 @@ useEffect(() => {
   })
 .catch((err) => {
   if (err.name === 'CanceledError') {
-    console.log('Request canceled', err.message);
+    // Request was canceled
   } else if (err.response?.status === 404) {
     setHasFridge(false);
     setIsLoading(false);

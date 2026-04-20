@@ -58,7 +58,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
       if (onLoginSuccess) {
         onLoginSuccess(email);
       }
-      console.log('Login successful:', { email });
     } catch (error: any) {
       setIsLoading(false);
       const errorMessage = error?.message || 'Login failed. Please try again.';
