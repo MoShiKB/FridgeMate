@@ -1,5 +1,5 @@
 import { iconProps, styles } from "../styles/MyProfileScreen.styles";
-import { FiCheckCircle, IoArrowBack, IoPersonOutline } from "./icons";
+import { FiCheckCircle, IoArrowBack, IoPersonOutline, FiCamera } from "./icons";
 import { useEffect, useRef, useState } from "react";
 import { tokenManager } from "../services/api";
 import { ProfileApi } from "../services/api-profile";
@@ -169,7 +169,7 @@ if (isLoading) return (
                 }
               </div>
               <button style={styles.cameraBtn} onClick={() => fileInputRef.current?.click()}>
-                📷
+                <FiCamera {...iconProps.cameraIcon} />
               </button>
               <input
                 ref={fileInputRef}
@@ -194,7 +194,7 @@ if (isLoading) return (
             </div>
 
             <div style={styles.formRow}>
-              <label style={styles.label}>📍 Location</label>
+              <label style={styles.label}>Location</label>
               <input
                 style={styles.input}
                 value={location}
