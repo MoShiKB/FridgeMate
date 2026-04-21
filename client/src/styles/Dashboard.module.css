@@ -19,6 +19,14 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  flex: 1;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
 }
 
 .profilePictureContainer {
@@ -97,6 +105,44 @@
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid #ffffff;
+}
+
+.chatButton {
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  color: #ffffff;
+  position: relative;
+}
+
+.chatButton svg {
+  width: 24px;
+  height: 24px;
+  color: #ffffff;
+}
+
+.chatButton::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0);
+  transition: background-color 0.2s ease;
+  pointer-events: none;
+}
+
+.chatButton:hover::before {
+  background-color: rgba(255, 255, 255, 0.15);
 }
 
 .menu {

@@ -1,7 +1,6 @@
 import { iconProps, styles } from "../styles/MyProfileScreen.styles";
 import { FiCheckCircle, IoArrowBack, IoPersonOutline } from "./icons";
 import { useEffect, useRef, useState } from "react";
-import { Chat, UserListPage } from "./chat";
 import { tokenManager } from "../services/api";
 import { ProfileApi } from "../services/api-profile";
 import axios from "axios";
@@ -44,10 +43,6 @@ function MyProfileScreen({ onBack = () => window.history.back() }: MyProfileScre
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fullName, setFullName] = useState("");
   const [location, setLocation] = useState("");
-  const [isUserListOpen, setIsUserListOpen] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [chatId, setChatId] = useState("");
-  const [chatUserName, setChatUserName] = useState("");
   const currentUserId = getUserIdFromToken();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -259,33 +254,6 @@ if (isLoading) return (
             </span>
           </div>
         )}
-{/* Chat Button */}
-      <button style={styles.chatBtn} onClick={() => setIsUserListOpen(true)}>
-        💬 Open Chat with Others
-      </button>
-
-      {isUserListOpen && currentUserId && (
-        <UserListPage
-          currentUserId={currentUserId}
-          onSelectUser={(id, name) => {
-            setChatId(id);
-            setChatUserName(name);
-            setIsUserListOpen(false);
-            setIsChatOpen(true);
-          }}
-          onClose={() => setIsUserListOpen(false)}
-        />
-      )}
-
-      {isChatOpen && chatId && currentUserId && (
-        <Chat
-          chatId={chatId}
-          currentUserId={currentUserId}
-          selectedUserName={chatUserName}
-          onClose={() => setIsChatOpen(false)}
-          onGoBack={() => { setIsChatOpen(false); setIsUserListOpen(true); }}
-        />
-      )}
     </div>
   );
 }
