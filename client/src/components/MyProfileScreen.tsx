@@ -128,10 +128,10 @@ const onSave = async () => {
     if (fullName.trim()) dataToSend.displayName = fullName.trim();
     if (location.trim()) dataToSend.address = { city: location.trim() };
     await ProfileApi.updateMyProfile(currentUserId, dataToSend);
-     setShowSaveToast(true);
-         setTimeout(() => {
-      setShowSaveToast(false);
-    }, 2500);
+    setShowSaveToast(true);
+    setTimeout(() => {
+      onBack();
+    }, 400);
   } catch (err) {
     console.error('Failed to save profile:', err);
   }
@@ -153,52 +153,59 @@ if (isLoading) return (
         <h1 style={styles.title}>My Profile</h1>
       </div>
 
-    {/* Profile Picture Card */}
-<div style={styles.card}>
-  <div style={styles.avatarWrapper}>
+    {/* Two Column Section: Personal Info + Dietary Preferences */}
+    <div style={styles.twoColumnSection}>
+      {/* Personal Information Card with Avatar */}
+      <div style={styles.card}>
+        <h2 style={styles.cardTitle}>Personal Information</h2>
+        <div style={styles.personalInfoCard}>
+          {/* Avatar Section */}
+          <div style={styles.avatarSection}>
+            <div style={styles.avatarWrapper}>
+              <div style={styles.avatarCircle}>
+                {avatarUrl
+                  ? <img src={avatarUrl} alt="profile" style={styles.avatarImg} />
+                  : <IoPersonOutline size={80} color="#bbb" />
+                }
+              </div>
+              <button style={styles.cameraBtn} onClick={() => fileInputRef.current?.click()}>
+                📷
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={onImageChange}
+              />
+            </div>
+          </div>
 
-    <div style={styles.avatarCircle}>
-{avatarUrl
-  ? <img src={avatarUrl} alt="profile" style={styles.avatarImg} />
-  : <IoPersonOutline size={80} color="#bbb" />
-}
-    </div>
+          {/* Form Section */}
+          <div style={styles.formSection}>
+            <div style={styles.formRow}>
+              <label style={styles.label}>Full Name</label>
+              <input
+                style={styles.input}
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Enter your name"
+              />
+            </div>
 
-    <button style={styles.cameraBtn} onClick={() => fileInputRef.current?.click()}>
-      📷
-    </button>
+            <div style={styles.formRow}>
+              <label style={styles.label}>📍 Location</label>
+              <input
+                style={styles.input}
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Location"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <input
-      ref={fileInputRef}
-      type="file"
-      accept="image/*"
-      style={{ display: "none" }}
-      onChange={onImageChange}
-    />
-
-  </div>
-</div>
-{/* Personal Information Card */}
-<div style={styles.card}>
-  <h2 style={styles.cardTitle}>Personal Information</h2>
-
-  <label style={styles.label}>Full Name</label>
-  <input
-    style={styles.input}
-    value={fullName}
-    onChange={(e) => setFullName(e.target.value)}
-    placeholder="Enter your name"
-  />
-
-<label style={styles.label}>📍 Location</label>
-<div style={{ display: 'flex', gap: 8 }}>
-  <input
-    style={styles.input}
-    value={location}
-    onChange={(e) => setLocation(e.target.value)}
-    placeholder="Location"/>
-  </div>
-</div>
       {/* Dietary Preferences Card */}
       <div style={styles.card}>
         <h2 style={styles.cardTitle}>Dietary Preferences</h2>
@@ -220,25 +227,28 @@ if (isLoading) return (
           </div>
         ))}
       </div>
+    </div>
 
 {/* Allergies and Restrictions Card */}
 <div style={styles.card}>
   <h2 style={styles.cardTitle}>Allergies & Restrictions</h2>
-  {allergyOptions.map((label) => (
-<div key={label} style={styles.radioRow}>
-  <input
-    type="checkbox"
-    checked={selectedAllergies.includes(label)}
-    onChange={() => onAllergyClick(label)}
-  />
-  <span 
-    style={styles.radioLabel}
-    onClick={() => onAllergyClick(label)}
-  >
-    {label}
-  </span>
-</div>
-  ))}
+  <div style={styles.allergiesGrid}>
+    {allergyOptions.map((label) => (
+      <div key={label} style={styles.radioRow}>
+        <input
+          type="checkbox"
+          checked={selectedAllergies.includes(label)}
+          onChange={() => onAllergyClick(label)}
+        />
+        <span 
+          style={styles.radioLabel}
+          onClick={() => onAllergyClick(label)}
+        >
+          {label}
+        </span>
+      </div>
+    ))}
+  </div>
 </div>
 
 {/* Save Button */}

@@ -118,6 +118,7 @@ label: {
 },
 input: {
   width: "100%",
+  maxWidth: "300px",
   padding: "12px 14px",
   borderRadius: 10,
   border: "1px solid #e0e0e0",
@@ -126,6 +127,37 @@ input: {
   background: colors.white,
   boxSizing: "border-box" as const,
   outline: "none",
+},
+personalInfoCard: {
+  display: "flex",
+  gap: "24px",
+  alignItems: "flex-start",
+},
+avatarSection: {
+  flexShrink: 0,
+},
+formSection: {
+  flex: 1,
+  minWidth: 0,
+  display: "flex",
+  flexDirection: "column",
+  gap: "16px",
+},
+formRow: {
+  display: "flex",
+  flexDirection: "column",
+  gap: "6px",
+},
+twoColumnSection: {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "16px",
+  marginBottom: 0,
+},
+allergiesGrid: {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr 1fr",
+  gap: "8px 16px",
 },
 saveToast: {
   position: "fixed",
