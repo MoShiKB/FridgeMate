@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Masonry from 'react-masonry-css';
 import { tokenManager } from '../services/api';
 import { FeedApi, Post, Comment } from '../services/api-feed';
+import { ProfileApi } from '../services/api-profile';
 import { API_BASE_URL } from '../services/api';
 import { MapView } from './MapView';
 import styles from '../styles/FeedTab.module.css';
@@ -66,7 +67,21 @@ function PostCard({ post, currentUserId, onDeleted }: PostCardProps) {
   const [submitting, setSubmitting] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [imageErr, setImageErr] = useState(false);
+  const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (currentUserId) {
+      ProfileApi.getMyProfile(currentUserId).request
+        .then(res => {
+          const user = res.data?.data || res.data;
+          setCurrentUserProfile(user);
+        })
+        .catch(err => {
+          console.error('Failed to fetch current user profile:', err);
+        });
+    }
+  }, [currentUserId]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -219,7 +234,11 @@ function PostCard({ post, currentUserId, onDeleted }: PostCardProps) {
             </div>
           ))}
           <form className={styles.commentForm} onSubmit={handleSubmitComment}>
-            <Avatar src={undefined} name={currentUserId ? 'Me' : '?'} size={22} />
+            <Avatar 
+              src={currentUserProfile?.profileImage || null} 
+              name={currentUserProfile?.displayName || 'You'} 
+              size={22} 
+            />
             <input
               className={styles.commentInput}
               placeholder="Add a comment…"
