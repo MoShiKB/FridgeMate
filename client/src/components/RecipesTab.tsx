@@ -111,6 +111,19 @@ function RecipeCard({
   );
 }
 
+const COOKING_TIPS = [
+  'A pinch of salt can enhance sweetness in desserts',
+  'Let meat rest after cooking for juicier results',
+  'Fresh herbs should be added at the end of cooking',
+  'Room temperature eggs blend better in batter',
+  'Toast your spices to unlock deeper flavors',
+  'Always preheat your pan before adding oil',
+  'Acid like lemon juice brightens any dish',
+  'Pat proteins dry for a better sear',
+  'Use a sharp knife — it\'s safer than a dull one',
+  'Season every layer as you cook, not just at the end',
+];
+
 export function RecipesTab({ onPostShared }: { onPostShared: () => void }) {
   const [activeTab, setActiveTab] = useState<TabType>('recommended');
   const [recommended, setRecommended] = useState<Recipe[]>([]);
@@ -120,6 +133,8 @@ export function RecipesTab({ onPostShared }: { onPostShared: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [favoritingId, setFavoritingId] = useState<string | null>(null);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [tipIndex, setTipIndex] = useState(0);
+  const [fadeOut, setFadeOut] = useState(false);
   const hasGeneratedRef = useRef(false);
 
   const loadRecommended = useCallback(async () => {
@@ -156,6 +171,23 @@ export function RecipesTab({ onPostShared }: { onPostShared: () => void }) {
       loadFavorites();
     }
   }, [activeTab, loadRecommended, loadFavorites]);
+
+  // Cycle through cooking tips every 4 seconds
+  useEffect(() => {
+    if (!((activeTab === 'recommended' ? loadingRecommended : loadingFavorites))) {
+      return; // Only cycle tips when loading
+    }
+
+    const interval = setInterval(() => {
+      setFadeOut(true);
+      setTimeout(() => {
+        setTipIndex(prev => (prev + 1) % COOKING_TIPS.length);
+        setFadeOut(false);
+      }, 300);
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [loadingRecommended, loadingFavorites, activeTab]);
 
   const handleToggleFavorite = async (e: React.MouseEvent, recipe: Recipe) => {
     e.stopPropagation();
@@ -221,8 +253,11 @@ export function RecipesTab({ onPostShared }: { onPostShared: () => void }) {
         {isLoading && (
           <div className={styles.loadingState}>
             <Lottie animationData={cookingAnimation} loop autoplay style={{ width: '200px', height: '200px' }} />
-            <p className={styles.loadingText}>
+            <h2 className={styles.loadingTitle}>
               {activeTab === 'recommended' ? 'Generating recipes from your fridge…' : 'Loading favorites…'}
+            </h2>
+            <p className={`${styles.loadingTip} ${fadeOut ? styles.tipFadeOut : styles.tipFadeIn}`}>
+              {COOKING_TIPS[tipIndex]}
             </p>
           </div>
         )}
