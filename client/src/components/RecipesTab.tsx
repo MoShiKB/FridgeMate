@@ -4,6 +4,7 @@ import Lottie from 'lottie-react';
 import styles from '../styles/RecipesTab.module.css';
 import { RecipeApi, Recipe } from '../services/api-recipes';
 import { RecipeDetailView } from './RecipeDetailView';
+import { API_BASE_URL } from '../services/api';
 import cookingAnimation from '../cooking_loading.json';
 
 type TabType = 'recommended' | 'favorites';
@@ -47,7 +48,7 @@ function RecipeCard({
     <div className={styles.recipeCard} onClick={onClick}>
       <div className={styles.imageWrapper}>
         {recipe.imageUrl
-          ? <img src={recipe.imageUrl} alt={recipe.title} className={styles.recipeImage} />
+          ? <img src={`${API_BASE_URL}${recipe.imageUrl}`} alt={recipe.title} className={styles.recipeImage} />
           : <div className={styles.imagePlaceholder}>🍽️</div>
         }
         <button
@@ -288,8 +289,9 @@ export function RecipesTab({ onPostShared }: { onPostShared: () => void }) {
         {!isLoading && !error && currentList.length > 0 && (
           <Masonry
             breakpointCols={{
-              default: 2,
-              900: 1
+              default: 3,
+              900: 2,
+              600: 1
             }}
             className={styles.masonryGrid}
             columnClassName={styles.masonryColumn}
