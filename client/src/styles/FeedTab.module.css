@@ -3,7 +3,7 @@
   flex-direction: column;
   background-color: #f0f1f3;
   min-height: 100%;
-  padding: 8px 20px 20px;
+  padding: 0px 20px 20px;
   position: relative;
   max-width: none;
   width: 100%;
@@ -370,4 +370,26 @@
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+/* ── Load More Indicator ── */
+.loadMoreSpinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.endMessage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  color: #999;
+  font-size: 13px;
+  text-align: center;
+}
+
+.endMessage p {
+  margin: 0;
 }
