@@ -177,7 +177,11 @@ function PostCard({ post, currentUserId, onDeleted }: PostCardProps) {
       )}
 
       <div className={styles.postContent}>
-        {post.title && <p className={styles.postTitle}>{post.title}</p>}
+        {post.title && (
+          <p className={`${styles.postTitle} ${!post.mediaUrls || post.mediaUrls.length === 0 ? styles.postTitleNoMedia : ''}`}>
+            {post.title}
+          </p>
+        )}
         <p className={styles.postText}>{post.text}</p>
       </div>
 
