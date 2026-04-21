@@ -164,7 +164,7 @@ export function Dashboard() {
       <div className={styles.header}>
         <div className={styles.userInfo}>
           <h1 className={styles.welcomeText}>
-            Welcome back, <span className={styles.userName}>{user.name}</span>
+            Welcome back, <span className={styles.userName}>{user.name}</span> 👋
           </h1>
         </div>
 
