@@ -1,12 +1,29 @@
 .feedTab {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: block;
   background-color: #f0f1f3;
   min-height: 100%;
-  padding: 8px 16px 80px;
-  gap: 10px;
+  padding: 8px 20px 20px;
   position: relative;
+  max-width: none;
+  width: 100%;
+}
+
+/* Masonry grid layout */
+.masonryGrid {
+  display: flex;
+  width: auto;
+  margin: 0 -12px;
+}
+
+.masonryColumn {
+  padding-left: 12px;
+  padding-right: 12px;
+  background-clip: padding-box;
+}
+
+/* Header and controls span full width */
+.feedTab > .pillContainer {
+  margin-bottom: 8px;
 }
 
 .feedTabMap {
@@ -21,13 +38,20 @@
   overflow: hidden;
 }
 
-/* ── Pill filter tabs (same style as Recipes) ── */
+/* Pill filter tabs (same style as Recipes) */
 .pillContainer {
   display: flex;
   justify-content: center;
-  width: 100%;
-  max-width: 480px;
-  padding: 6px 0 2px;
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background-color: #f0f1f3;
+  box-sizing: border-box;
+  margin-left: -20px;
+  margin-right: -20px;
+  padding: 10px 32px;
   flex-shrink: 0;
 }
 
@@ -74,6 +98,7 @@
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
   margin: 48px auto;
+  flex-basis: 100%;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -84,6 +109,7 @@
   align-items: center;
   gap: 10px;
   margin-top: 48px;
+  flex-basis: 100%;
 }
 .errorText { text-align: center; color: #888; font-size: 13px; margin: 0; }
 .retryBtn {
@@ -108,6 +134,7 @@
   padding: 48px 20px;
   color: #8e8e8e;
   font-size: 13px;
+  flex-basis: 100%;
 }
 .emptyIcon { font-size: 36px; }
 
@@ -202,12 +229,13 @@
 
 /* ── Post card ── */
 .postCard {
-  width: 100%;
-  max-width: 480px;
   background: #fff;
   border-radius: 16px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.07);
   overflow: hidden;
+  width: 100%;
+  height: fit-content;
+  margin-bottom: 16px;
 }
 
 /* ── Post header ── */
