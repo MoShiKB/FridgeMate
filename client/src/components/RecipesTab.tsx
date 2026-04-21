@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Masonry from 'react-masonry-css';
+import Lottie from 'lottie-react';
 import styles from '../styles/RecipesTab.module.css';
 import { RecipeApi, Recipe } from '../services/api-recipes';
 import { RecipeDetailView } from './RecipeDetailView';
+import cookingAnimation from '../cooking_loading.json';
 
 type TabType = 'recommended' | 'favorites';
 
@@ -218,7 +220,7 @@ export function RecipesTab({ onPostShared }: { onPostShared: () => void }) {
       <div className={styles.content}>
         {isLoading && (
           <div className={styles.loadingState}>
-            <div className={styles.spinner} />
+            <Lottie animationData={cookingAnimation} loop autoplay style={{ width: '200px', height: '200px' }} />
             <p className={styles.loadingText}>
               {activeTab === 'recommended' ? 'Generating recipes from your fridge…' : 'Loading favorites…'}
             </p>
