@@ -180,63 +180,65 @@ if (isLoading) return (
 {/*check if user has fridge*/}
   {hasFridge ? (
 <>
-{/* Shared Fridge Card */}
-
-<div style={styles.card}>
-  <div style={styles.menuRow}>
-    <IoPeopleOutline {...iconProps.peopleIcon} />
-    <span style={styles.menuRowText}>Shared Fridge</span>
-  </div>
-    {/*Green card*/}
-    <div style={styles.greenCard}> 
-
-      {/*Header and members*/}
-    <div style={styles.greenCardHeader}>
-      <div>
-        <p style={styles.greenCardLabel}>Current Fridge</p>
-        <p style={styles.greenCardTitle}>{currentFridgeName}</p>
+  <div style={styles.cardsContainer}>
+    {/* Shared Fridge Card */}
+    <div style={styles.card}>
+      <div style={styles.menuRow}>
+        <IoPeopleOutline {...iconProps.peopleIcon} />
+        <span style={styles.menuRowText}>Shared Fridge</span>
       </div>
-      <span style={styles.membersText}>{members.length} members</span> 
-    </div>
+        {/*Green card*/}
+        <div style={styles.greenCard}> 
 
-     {/* Invite Code */}
-    <div style={styles.inviteBox}>
-      <div>
-        <p style={styles.inviteLabel}>Invite Code</p>
-        <p style={styles.inviteCode}>{inviteCode}</p>
+          {/*Header and members*/}
+        <div style={styles.greenCardHeader}>
+          <div>
+            <p style={styles.greenCardLabel}>Current Fridge</p>
+            <p style={styles.greenCardTitle}>{currentFridgeName}</p>
+          </div>
+          <span style={styles.membersText}>{members.length} members</span> 
+        </div>
+
+         {/* Invite Code */}
+        <div style={styles.inviteBox}>
+          <div>
+            <p style={styles.inviteLabel}>Invite Code</p>
+            <p style={styles.inviteCode}>{inviteCode}</p>
+          </div>
+            <button style={styles.copyBtn} onClick={handleCopyInviteCode}>
+                    <FaRegCopy {...iconProps.copyIcon} />
+                    <span style={styles.copyBtnText} >  Copy </span>
+                  </button>
+        </div>
+         {/* Members List */}
+          <div style={styles.membersGrid}>
+            {members.map((member) => (
+      <div key={member.userId} style={styles.memberRow}>
+       <div style={styles.memberAvatar}>
+        {member.profileImage 
+          ? <img src={member.profileImage} alt={member.displayName} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+          : member.displayName?.[0]
+        }
       </div>
-        <button style={styles.copyBtn} onClick={handleCopyInviteCode}>
-                <FaRegCopy {...iconProps.copyIcon} />
-                <span style={styles.copyBtnText} >  Copy </span>
-              </button>
-    </div>
-     {/* Members List */}
-      {members.map((member) => (
-<div key={member.userId} style={styles.memberRow}>
- <div style={styles.memberAvatar}>
-  {member.profileImage 
-    ? <img src={member.profileImage} alt={member.displayName} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
-    : member.displayName?.[0]
-  }
-</div>
-<span style={styles.memberName}>
-  {member.displayName}
-  {member.userId === currentUserId && ' (Me)'}
-</span>
-</div>
-  ))}
- </div>
- 
+      <span style={styles.memberName}>
+        {member.displayName}
+        {member.userId === currentUserId && ' (Me)'}
+      </span>
+      </div>
+    ))}
+          </div>
+     </div>
+     
 
- {/*leave fridge button*/}
-    <button style={styles.leaveBtn} onClick={handleLeaveFridge}>
-         <SlLogout {...iconProps.leaveIcon} />
-                <span style={styles.scannerBtnText}>Leave Fridge</span>
-    </button>
+     {/*leave fridge button*/}
+        <button style={styles.leaveBtn} onClick={handleLeaveFridge}>
+             <SlLogout {...iconProps.leaveIcon} />
+                    <span style={styles.scannerBtnText}>Leave Fridge</span>
+        </button>
     </div>
-  {/*fridge scanning card*/}
 
-<div style={styles.card}>
+    {/*fridge scanning card*/}
+    <div style={styles.card}>
   <div style={styles.menuRow}>   
     <FiCamera {...iconProps.cameraIcon} />
     <span style={styles.menuRowText}>Fridge Scanner</span>
@@ -285,11 +287,12 @@ if (isLoading) return (
   </div>
 )}
 </div>
+  </div>
 </>
 ) : (
-  <div>
+  <div style={styles.singleCardContainer}>
     {/* No Fridge Card */}
-    <div style={styles.card}>
+    <div style={{...styles.card, maxWidth: "500px"}}>
       <div style={styles.menuRow}>
         <TbFridgeOff {...iconProps.fridgeOffIcon} />
         <div style={styles.menuRowText}>No Fridge Yet</div>

@@ -36,10 +36,8 @@ page: {
 },
   card: {
     background: colors.white,
-    width: "70%",
     borderRadius: 16,
     padding: "21px",
-    margin: "0 auto 24px auto",
     marginBottom: 10,
   },
 cardText: {
@@ -51,6 +49,19 @@ cardText: {
   marginLeft: 0,
   marginRight: 0,
   display: "block",
+},
+cardsContainer: {
+  display: "grid",
+  gridTemplateColumns: "1fr auto",
+  gap: "16px",
+  width: "100%",
+  maxWidth: "1400px",
+  margin: "0 auto",
+  alignItems: "start",
+},
+singleCardContainer: {
+  display: "flex",
+  justifyContent: "center",
 },
 menuRow: {
   display: "flex",
@@ -152,6 +163,12 @@ memberRow: {
   alignItems: "center",
   gap: 12,
   marginBottom: 8,
+},
+membersGrid: {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr 1fr",
+  gap: "8px",
+  marginBottom: 12,
 },
 
 memberAvatar: {
@@ -340,7 +357,7 @@ export const iconProps = {
   },
   copyIcon: {
     size: 14,
-    color: colors.darkTeal,
+    color: colors.white,
   },
   leaveIcon: {
     size: 17,
