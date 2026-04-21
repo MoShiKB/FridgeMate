@@ -9,7 +9,7 @@ import { ProfileApi } from '../services/api-profile';
 import { tokenManager } from '../services/api';
 
 export function Dashboard() {
-  const [activeTab, setActiveTab] = useState<'feed' | 'myFridge' | 'recipes'>('myFridge');
+  const [activeTab, setActiveTab] = useState<'feed' | 'myFridge' | 'recipes'>('feed');
   const [showMenu, setShowMenu] = useState(false);
   const [currentView, setCurrentView] = useState<'tabs' | 'profile' | 'settings'>('tabs');
   const [scrollPositions, setScrollPositions] = useState<Record<string, number>>({});
