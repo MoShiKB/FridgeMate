@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import Masonry from 'react-masonry-css';
 import { tokenManager } from '../services/api';
 import { FeedApi, Post, Comment } from '../services/api-feed';
 import { API_BASE_URL } from '../services/api';
@@ -432,14 +433,23 @@ export function FeedTab() {
           <p>{feedMode === 'mine' ? "You haven't posted anything yet." : 'No posts yet. Be the first to share!'}</p>
         </div>
       ) : (
-        posts.map(post => (
-          <PostCard
-            key={post._id}
-            post={post}
-            currentUserId={currentUserId}
-            onDeleted={handlePostDeleted}
-          />
-        ))
+        <Masonry
+          breakpointCols={{
+            default: 2,
+            900: 1
+          }}
+          className={styles.masonryGrid}
+          columnClassName={styles.masonryColumn}
+        >
+          {posts.map(post => (
+            <PostCard
+              key={post._id}
+              post={post}
+              currentUserId={currentUserId}
+              onDeleted={handlePostDeleted}
+            />
+          ))}
+        </Masonry>
       )}
 
       {/* FAB */}

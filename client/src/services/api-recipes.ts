@@ -61,7 +61,7 @@ export const RecipeApi = {
 
       const genRes = await axios.post(
         `${API_BASE_URL}/ai/recipes/generate`,
-        { ingredients: ingredientNames, count: 5 },
+        { ingredients: ingredientNames, count: 6 },
         auth()
       );
       return genRes.data.recipes as Recipe[];

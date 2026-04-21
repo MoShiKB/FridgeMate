@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import Masonry from 'react-masonry-css';
 import styles from '../styles/RecipesTab.module.css';
 import { RecipeApi, Recipe } from '../services/api-recipes';
 import { RecipeDetailView } from './RecipeDetailView';
@@ -248,7 +249,14 @@ export function RecipesTab({ onPostShared }: { onPostShared: () => void }) {
         )}
 
         {!isLoading && !error && currentList.length > 0 && (
-          <div className={styles.cardList}>
+          <Masonry
+            breakpointCols={{
+              default: 2,
+              900: 1
+            }}
+            className={styles.masonryGrid}
+            columnClassName={styles.masonryColumn}
+          >
             {currentList.map(recipe => (
               <RecipeCard
                 key={recipe._id}
@@ -258,7 +266,7 @@ export function RecipesTab({ onPostShared }: { onPostShared: () => void }) {
                 onClick={() => setSelectedRecipe(recipe)}
               />
             ))}
-          </div>
+          </Masonry>
         )}
       </div>
 
