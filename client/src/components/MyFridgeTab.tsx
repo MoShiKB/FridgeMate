@@ -78,7 +78,7 @@ export function MyFridgeTab() {
     return (
       <div className={styles.myFridgeTab}>
         <div className={styles.loadingState}>
-          <p>Loading fridge...</p>
+          <div className={styles.spinner} />
         </div>
       </div>
     );

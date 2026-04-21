@@ -421,7 +421,9 @@ export function FeedTab() {
       {feedMode === 'nearby' ? (
         <MapView />
       ) : loading ? (
-        <div className={styles.spinner} />
+        <div className={styles.loadingState}>
+          <div className={styles.spinner} />
+        </div>
       ) : error ? (
         <div className={styles.errorState}>
           <p className={styles.errorText}>{error}</p>

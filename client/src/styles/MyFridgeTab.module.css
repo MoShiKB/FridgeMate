@@ -188,6 +188,23 @@
   text-align: center;
 }
 
+/* Spinner */
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 2px solid #e0e0e0;
+  border-top-color: #00bc8b;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin: 48px auto;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .loadingState p {
   font-size: 14px;
   color: #8e8e8e;
