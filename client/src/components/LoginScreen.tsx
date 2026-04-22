@@ -226,7 +226,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
                   type="button"
                   className={`${styles.socialButton} ${styles.googleButton}`}
                   onClick={() => {
-                    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+                    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
                     window.location.href = `${apiUrl}/auth/login/google`;
                   }}
                   disabled={isLoading}
