@@ -205,21 +205,35 @@ export function RecipesTab({ onPostShared }: { onPostShared: () => void }) {
   const handleToggleFavorite = async (e: React.MouseEvent, recipe: Recipe) => {
     e.stopPropagation();
     if (favoritingId) return;
+
+    const wasFavorited = !!recipe.isFavorited;
+    const newFavorited = !wasFavorited;
+
+    const applyTo = (arr: Recipe[]) =>
+      arr.map(r => r._id === recipe._id ? { ...r, isFavorited: newFavorited } : r);
+    const revertIn = (arr: Recipe[]) =>
+      arr.map(r => r._id === recipe._id ? { ...r, isFavorited: wasFavorited } : r);
+
+    // Optimistic update
+    setRecommended(prev => applyTo(prev));
+    setFavorites(prev => wasFavorited ? prev.filter(r => r._id !== recipe._id) : applyTo(prev));
+    if (selectedRecipe?._id === recipe._id)
+      setSelectedRecipe(r => r ? { ...r, isFavorited: newFavorited } : null);
+
     setFavoritingId(recipe._id);
     try {
-      if (recipe.isFavorited) {
+      if (wasFavorited) {
         await RecipeApi.removeFavorite(recipe._id);
-        const update = (r: Recipe) => r._id === recipe._id ? { ...r, isFavorited: false } : r;
-        setRecommended(prev => prev.map(update));
-        setFavorites(prev => prev.filter(r => r._id !== recipe._id));
-        if (selectedRecipe?._id === recipe._id) setSelectedRecipe(r => r ? { ...r, isFavorited: false } : null);
       } else {
         await RecipeApi.addFavorite(recipe._id);
-        const update = (r: Recipe) => r._id === recipe._id ? { ...r, isFavorited: true } : r;
-        setRecommended(prev => prev.map(update));
-        if (selectedRecipe?._id === recipe._id) setSelectedRecipe(r => r ? { ...r, isFavorited: true } : null);
       }
-    } catch { /* ignore */ } finally {
+    } catch {
+      // Revert on failure
+      setRecommended(prev => revertIn(prev));
+      setFavorites(prev => revertIn(prev));
+      if (selectedRecipe?._id === recipe._id)
+        setSelectedRecipe(r => r ? { ...r, isFavorited: wasFavorited } : null);
+    } finally {
       setFavoritingId(null);
     }
   };

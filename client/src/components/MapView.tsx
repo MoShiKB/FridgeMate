@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { FeedApi, Post } from '../services/api-feed';
+import { API_BASE_URL } from '../services/api';
 import styles from '../styles/MapView.module.css';
 
-// Fix default marker icons broken by webpack/CRA bundling
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
@@ -21,6 +21,92 @@ function timeAgo(dateStr: string): string {
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
   return `${Math.floor(hrs / 24)}d ago`;
+}
+
+function LocationMarker({ posts }: { posts: Post[] }) {
+  const [index, setIndex] = useState(0);
+  const [imgErr, setImgErr] = useState(false);
+  const post = posts[index];
+  const [lng, lat] = post.location!.coordinates;
+  const multi = posts.length > 1;
+
+  useEffect(() => { setImgErr(false); }, [index]);
+
+  const prev = (e: React.MouseEvent) => { e.stopPropagation(); setIndex(i => (i - 1 + posts.length) % posts.length); };
+  const next = (e: React.MouseEvent) => { e.stopPropagation(); setIndex(i => (i + 1) % posts.length); };
+
+  const rawImage = post.mediaUrls?.[0];
+  const imageUrl = rawImage
+    ? rawImage.startsWith('http') ? rawImage : `${API_BASE_URL}${rawImage}`
+    : null;
+
+  const rawAvatar = post.authorUserId.profileImage;
+  const avatarUrl = rawAvatar
+    ? rawAvatar.startsWith('http') ? rawAvatar : `${API_BASE_URL}${rawAvatar}`
+    : null;
+
+  const initial = (post.authorUserId.displayName || '?').charAt(0).toUpperCase();
+  const city = post.location?.placeName || post.authorUserId.address?.city;
+
+  return (
+    <Marker position={[lat, lng]}>
+      <Popup minWidth={210} maxWidth={230} className={styles.leafletPopup}>
+        <div className={styles.popupCard}>
+
+          {/* User row */}
+          <div className={styles.popupUserRow}>
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={post.authorUserId.displayName} className={styles.popupAvatar} />
+            ) : (
+              <div className={styles.popupAvatarFallback}>{initial}</div>
+            )}
+            <div className={styles.popupUserInfo}>
+              <span className={styles.popupAuthorName}>{post.authorUserId.displayName}</span>
+              {city && <span className={styles.popupCity}>{city}</span>}
+            </div>
+          </div>
+
+          {/* Image */}
+          {imageUrl && !imgErr && (
+            <img
+              src={imageUrl}
+              alt={post.title}
+              className={styles.popupImage}
+              onError={() => setImgErr(true)}
+            />
+          )}
+
+          {/* Title */}
+          <p className={styles.popupTitle}>{post.title}</p>
+
+          {/* Description */}
+          {post.text && <p className={styles.popupText}>{post.text}</p>}
+
+          {/* Likes & comments */}
+          <div className={styles.popupStats}>
+            <span className={styles.popupStat}>
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              {post.likesCount}
+            </span>
+            <span className={styles.popupStat}>
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              {post.commentsCount}
+            </span>
+            <span className={styles.popupTime}>{timeAgo(post.createdAt)}</span>
+          </div>
+
+          {/* Navigation */}
+          {multi && (
+            <div className={styles.popupNav}>
+              <button className={styles.navBtn} onClick={prev} aria-label="Previous post">‹</button>
+              <span className={styles.popupCounter}>{index + 1} / {posts.length}</span>
+              <button className={styles.navBtn} onClick={next} aria-label="Next post">›</button>
+            </div>
+          )}
+        </div>
+      </Popup>
+    </Marker>
+  );
 }
 
 export function MapView() {
@@ -40,8 +126,18 @@ export function MapView() {
       });
   }, []);
 
-  const defaultCenter: [number, number] = [20, 10];
+  const locationGroups = useMemo(() => {
+    const groups = new Map<string, Post[]>();
+    for (const post of posts) {
+      const [lng, lat] = post.location!.coordinates;
+      const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(post);
+    }
+    return Array.from(groups.values());
+  }, [posts]);
 
+  const defaultCenter: [number, number] = [20, 10];
   const mapCenter: [number, number] = posts.length > 0
     ? [posts[0].location!.coordinates[1], posts[0].location!.coordinates[0]]
     : defaultCenter;
@@ -75,24 +171,9 @@ export function MapView() {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {posts.map(post => {
-          const [lng, lat] = post.location!.coordinates;
-          return (
-            <Marker key={post._id} position={[lat, lng]}>
-              <Popup>
-                <div className={styles.popupContent}>
-                  <p className={styles.popupAuthor}>{post.authorUserId.displayName}</p>
-                  <p className={styles.popupTitle}>{post.title}</p>
-                  {post.text && <p className={styles.popupText}>{post.text}</p>}
-                  <p className={styles.popupTime}>{timeAgo(post.createdAt)}</p>
-                  {post.location?.placeName && (
-                    <p className={styles.popupPlace}>📍 {post.location.placeName}</p>
-                  )}
-                </div>
-              </Popup>
-            </Marker>
-          );
-        })}
+        {locationGroups.map((group, i) => (
+          <LocationMarker key={i} posts={group} />
+        ))}
       </MapContainer>
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import styles from '../styles/RecipeDetailView.module.css';
 import { Recipe } from '../services/api-recipes';
@@ -36,6 +36,25 @@ const ShareArrowIcon = () => (
   </svg>
 );
 
+async function getLocation(): Promise<{ lat: number; lng: number } | null> {
+  if (navigator.geolocation) {
+    const loc = await new Promise<{ lat: number; lng: number } | null>(resolve => {
+      navigator.geolocation.getCurrentPosition(
+        ({ coords }) => resolve({ lat: coords.latitude, lng: coords.longitude }),
+        () => resolve(null),
+        { timeout: 5000, maximumAge: 60000 }
+      );
+    });
+    if (loc) return loc;
+  }
+  try {
+    const res = await fetch('https://ipapi.co/json/');
+    const data = await res.json();
+    if (data.latitude && data.longitude) return { lat: data.latitude, lng: data.longitude };
+  } catch {}
+  return null;
+}
+
 interface ShareModalProps {
   recipe: Recipe;
   onClose: () => void;
@@ -48,6 +67,15 @@ function ShareModal({ recipe, onClose, onPostShared }: ShareModalProps) {
   const [posting, setPosting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
+  const locationRef = useRef<{ lat: number; lng: number } | null>(null);
+
+  useEffect(() => {
+    getLocation().then(loc => { if (loc) locationRef.current = loc; });
+  }, []);
+
+  const recipeImageUrl = recipe.imageUrl
+    ? recipe.imageUrl.startsWith('http') ? recipe.imageUrl : `${API_BASE_URL}${recipe.imageUrl}`
+    : null;
 
   const handleShare = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,8 +85,15 @@ function ShareModal({ recipe, onClose, onPostShared }: ShareModalProps) {
     }
     setPosting(true);
     setError('');
+    const location = locationRef.current ?? await getLocation();
+    if (location) locationRef.current = location;
     try {
-      await FeedApi.createPost({ title: title.trim(), text: text.trim() });
+      await FeedApi.createPost({
+        title: title.trim(),
+        text: text.trim(),
+        ...(recipeImageUrl ? { mediaUrls: [recipeImageUrl] } : {}),
+        ...(location ? { location } : {}),
+      });
       setDone(true);
       setTimeout(() => { onClose(); onPostShared(); }, 1000);
     } catch (err: any) {
@@ -78,6 +113,13 @@ function ShareModal({ recipe, onClose, onPostShared }: ShareModalProps) {
         ) : (
           <form onSubmit={handleShare}>
             <h3 className={styles.shareTitle}>Share your creation</h3>
+            {recipeImageUrl && (
+              <img
+                src={recipeImageUrl}
+                alt={recipe.title}
+                className={styles.shareRecipeImage}
+              />
+            )}
             <input
               className={styles.shareInput}
               value={title}

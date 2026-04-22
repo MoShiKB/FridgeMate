@@ -105,4 +105,21 @@ export const FeedApi = {
 
   deletePost: (postId: string) =>
     withRefresh(() => axios.delete(`${API_BASE_URL}/posts/${postId}`, auth())),
+
+  updatePost: (postId: string, data: { title?: string; text?: string; mediaUrls?: string[] }) =>
+    withRefresh(async () => {
+      const res = await axios.put(`${API_BASE_URL}/posts/${postId}`, data, auth());
+      return res.data.data as Post;
+    }),
+
+  uploadImage: (file: File) =>
+    withRefresh(async () => {
+      const formData = new FormData();
+      formData.append('image', file);
+      const res = await axios.post(`${API_BASE_URL}/upload`, formData, {
+        headers: { ...auth().headers, 'Content-Type': 'multipart/form-data' },
+        withCredentials: true,
+      });
+      return res.data.data.imageUrl as string;
+    }),
 };

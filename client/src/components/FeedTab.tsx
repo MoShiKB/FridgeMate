@@ -53,9 +53,10 @@ interface PostCardProps {
   post: Post;
   currentUserId: string | null;
   onDeleted: (postId: string) => void;
+  onUpdated: (post: Post) => void;
 }
 
-function PostCard({ post, currentUserId, onDeleted }: PostCardProps) {
+function PostCard({ post, currentUserId, onDeleted, onUpdated }: PostCardProps) {
   const [isLiked, setIsLiked] = useState(post.isLiked);
   const [likesCount, setLikesCount] = useState(post.likesCount);
   const [liking, setLiking] = useState(false);
@@ -66,6 +67,7 @@ function PostCard({ post, currentUserId, onDeleted }: PostCardProps) {
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [imageErr, setImageErr] = useState(false);
   const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -155,6 +157,11 @@ function PostCard({ post, currentUserId, onDeleted }: PostCardProps) {
     setShowMenu(false);
   };
 
+  const handleEditPost = () => {
+    setShowMenu(false);
+    setShowEditModal(true);
+  };
+
   const imageUrl = post.mediaUrls?.[0] || (post.recipeId?.imageUrl && !post.recipeId.imageUrl.startsWith('http') ? post.recipeId.imageUrl : null);
   const fullImageUrl = imageUrl
     ? imageUrl.startsWith('http') ? imageUrl : `${API_BASE_URL}${imageUrl}`
@@ -175,16 +182,17 @@ function PostCard({ post, currentUserId, onDeleted }: PostCardProps) {
             {timeAgo(post.createdAt)}
           </span>
         </div>
-        <div className={styles.postMenuContainer} ref={menuRef}>
-          <button className={styles.postMenuBtn} onClick={() => setShowMenu(v => !v)}>⋮</button>
-          {showMenu && (
-            <div className={styles.postMenu}>
-              {post.isOwner && (
+        {post.isOwner && (
+          <div className={styles.postMenuContainer} ref={menuRef}>
+            <button className={styles.postMenuBtn} onClick={() => setShowMenu(v => !v)}>⋮</button>
+            {showMenu && (
+              <div className={styles.postMenu}>
+                <button className={styles.postMenuEdit} onClick={handleEditPost}>Edit post</button>
                 <button className={styles.postMenuDelete} onClick={handleDeletePost}>Delete post</button>
-              )}
-            </div>
-          )}
-        </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {fullImageUrl && !imageErr && (
@@ -234,10 +242,10 @@ function PostCard({ post, currentUserId, onDeleted }: PostCardProps) {
             </div>
           ))}
           <form className={styles.commentForm} onSubmit={handleSubmitComment}>
-            <Avatar 
-              src={currentUserProfile?.profileImage || null} 
-              name={currentUserProfile?.displayName || 'You'} 
-              size={22} 
+            <Avatar
+              src={currentUserProfile?.profileImage || null}
+              name={currentUserProfile?.displayName || 'You'}
+              size={22}
             />
             <input
               className={styles.commentInput}
@@ -252,6 +260,132 @@ function PostCard({ post, currentUserId, onDeleted }: PostCardProps) {
           </form>
         </div>
       )}
+
+      {showEditModal && (
+        <EditPostModal
+          post={post}
+          onClose={() => setShowEditModal(false)}
+          onUpdated={(updated) => { onUpdated(updated); setShowEditModal(false); setImageErr(false); }}
+        />
+      )}
+    </div>
+  );
+}
+
+interface EditPostModalProps {
+  post: Post;
+  onClose: () => void;
+  onUpdated: (post: Post) => void;
+}
+
+function EditPostModal({ post, onClose, onUpdated }: EditPostModalProps) {
+  const [title, setTitle] = useState(post.title);
+  const [text, setText] = useState(post.text);
+  const [submitting, setSubmitting] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(
+    post.mediaUrls?.[0]
+      ? post.mediaUrls[0].startsWith('http') ? post.mediaUrls[0] : `${API_BASE_URL}${post.mediaUrls[0]}`
+      : null
+  );
+  const [keepExistingImage, setKeepExistingImage] = useState(!!post.mediaUrls?.[0]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+    setKeepExistingImage(false);
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setKeepExistingImage(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !text.trim() || submitting) return;
+    setSubmitting(true);
+    try {
+      let mediaUrls: string[];
+      if (imageFile) {
+        const url = await FeedApi.uploadImage(imageFile);
+        mediaUrls = [url];
+      } else if (keepExistingImage && post.mediaUrls?.[0]) {
+        mediaUrls = [post.mediaUrls[0]];
+      } else {
+        mediaUrls = [];
+      }
+      await FeedApi.updatePost(post._id, {
+        title: title.trim(),
+        text: text.trim(),
+        mediaUrls,
+      });
+      onUpdated({ ...post, title: title.trim(), text: text.trim(), mediaUrls });
+    } catch {}
+    setSubmitting(false);
+  };
+
+  return (
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <form className={styles.modalForm} onClick={e => e.stopPropagation()} onSubmit={handleSubmit}>
+        <h3 className={styles.modalTitle}>Edit Post</h3>
+        <input
+          className={styles.createPostInput}
+          placeholder="Title"
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          maxLength={100}
+          autoFocus
+        />
+        <textarea
+          className={styles.createPostTextarea}
+          placeholder="What did you cook? Share your experience…"
+          value={text}
+          onChange={e => setText(e.target.value)}
+          rows={4}
+          maxLength={500}
+        />
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={handleImageChange}
+        />
+        {imagePreview ? (
+          <div className={styles.imagePreviewContainer}>
+            <img src={imagePreview} alt="preview" className={styles.imagePreview} />
+            <div className={styles.imagePreviewActions}>
+              <button type="button" className={styles.changeImageBtn} onClick={() => fileInputRef.current?.click()}>
+                Change photo
+              </button>
+              <button type="button" className={styles.removeImageBtn} onClick={handleRemoveImage}>✕</button>
+            </div>
+          </div>
+        ) : (
+          <button type="button" className={styles.uploadImageBtn} onClick={() => fileInputRef.current?.click()}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+              <rect x="3" y="3" width="18" height="18" rx="3" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <path d="M21 15l-5-5L5 21" />
+            </svg>
+            Add Photo
+          </button>
+        )}
+
+        <div className={styles.createPostActions}>
+          <button type="button" className={styles.cancelBtn} onClick={onClose}>Cancel</button>
+          <button type="submit" className={styles.submitBtn} disabled={!title.trim() || !text.trim() || submitting}>
+            {submitting ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
@@ -287,7 +421,10 @@ function CreatePostModal({ onCreated, onClose }: CreatePostModalProps) {
   const [text, setText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [locationStatus, setLocationStatus] = useState<'loading' | 'ready' | 'denied'>('loading');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const locationRef = useRef<{ lat: number; lng: number } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     getLocation().then(loc => {
@@ -296,17 +433,35 @@ function CreatePostModal({ onCreated, onClose }: CreatePostModalProps) {
     });
   }, []);
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !text.trim() || submitting) return;
     setSubmitting(true);
-    // Always use cached location or fetch fresh — regardless of prior status
     const location = locationRef.current ?? await getLocation();
     if (location) locationRef.current = location;
     try {
+      let mediaUrls: string[] = [];
+      if (imageFile) {
+        const imageUrl = await FeedApi.uploadImage(imageFile);
+        mediaUrls = [imageUrl];
+      }
       const post = await FeedApi.createPost({
         title: title.trim(),
         text: text.trim(),
+        ...(mediaUrls.length ? { mediaUrls } : {}),
         ...(location ? { location } : {}),
       });
       onCreated(post);
@@ -335,6 +490,31 @@ function CreatePostModal({ onCreated, onClose }: CreatePostModalProps) {
           rows={4}
           maxLength={500}
         />
+
+        {/* Image upload */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={handleImageChange}
+        />
+        {imagePreview ? (
+          <div className={styles.imagePreviewContainer}>
+            <img src={imagePreview} alt="preview" className={styles.imagePreview} />
+            <button type="button" className={styles.removeImageBtn} onClick={handleRemoveImage}>✕</button>
+          </div>
+        ) : (
+          <button type="button" className={styles.uploadImageBtn} onClick={() => fileInputRef.current?.click()}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+              <rect x="3" y="3" width="18" height="18" rx="3" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <path d="M21 15l-5-5L5 21" />
+            </svg>
+            Add Photo
+          </button>
+        )}
+
         {locationStatus !== 'denied' && (
           <p className={styles.locationLabel}>
             {locationStatus === 'loading' ? '🔄 Getting your location…' : '📍 Location will be included'}
@@ -498,6 +678,10 @@ export function FeedTab() {
     setPosts(cur => cur.filter(p => p._id !== postId));
   };
 
+  const handlePostUpdated = (updated: Post) => {
+    setPosts(cur => cur.map(p => p._id === updated._id ? { ...p, ...updated } : p));
+  };
+
   return (
     <div 
       ref={scrollContainerRef}
@@ -561,6 +745,7 @@ export function FeedTab() {
                 post={post}
                 currentUserId={currentUserId}
                 onDeleted={handlePostDeleted}
+                onUpdated={handlePostUpdated}
               />
             ))}
           </Masonry>

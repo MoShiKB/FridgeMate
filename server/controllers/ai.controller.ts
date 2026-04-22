@@ -116,6 +116,7 @@ export const AIController = {
                         steps: r.steps,
                         nutrition: r.nutrition,
                         imageUrl: r.imageUrl,
+                        isFavorited: false,
                     })),
                     count: saved.length,
                 });
@@ -136,6 +137,7 @@ export const AIController = {
                 steps: r.steps,
                 nutrition: r.nutrition,
                 imageUrl: r.imageUrl,
+                isFavorited: false,
             })),
             count: saved.length,
         });
