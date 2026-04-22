@@ -1,4 +1,4 @@
-/// <reference types="react-scripts" />
+/// <reference types="vite/client" />npm
 
 declare module '*.module.css' {
   const classes: { [key: string]: string };
