@@ -56,16 +56,159 @@
 .emptyTitle { font-size: 13px; font-weight: 600; color: #111; margin: 0; }
 .emptyDesc { font-size: 12px; color: #888; margin: 0; }
 
-/* Popup */
-.popupContent {
+/* Popup card */
+.leafletPopup :global(.leaflet-popup-content) {
+  margin: 0;
+  padding: 0;
+  width: auto !important;
+}
+.leafletPopup :global(.leaflet-popup-content-wrapper) {
+  padding: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.18);
+}
+
+.popupCard {
+  width: 210px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  min-width: 160px;
-  max-width: 220px;
+  gap: 0;
+  font-family: inherit;
+  overflow: hidden;
 }
-.popupAuthor { font-size: 12px; font-weight: 700; color: #00bc8b; margin: 0; }
-.popupTitle { font-size: 13px; font-weight: 600; color: #111; margin: 0; }
-.popupText { font-size: 12px; color: #555; margin: 0; line-height: 1.4; max-height: 60px; overflow: hidden; }
-.popupTime { font-size: 11px; color: #aaa; margin: 0; }
-.popupPlace { font-size: 11px; color: #888; margin: 0; }
+
+/* User row */
+.popupUserRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px 8px;
+}
+
+.popupAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.popupAvatarFallback {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #00bc8b;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.popupUserInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.popupAuthorName {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1a1a1a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.popupCity {
+  font-size: 11px;
+  color: #8e8e8e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Image */
+.popupImage {
+  width: 100%;
+  height: 130px;
+  object-fit: cover;
+  display: block;
+}
+
+/* Content */
+.popupTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111;
+  margin: 0;
+  padding: 8px 12px 4px;
+  line-height: 1.3;
+}
+
+.popupText {
+  font-size: 12px;
+  color: #555;
+  margin: 0;
+  padding: 0 12px;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Stats row */
+.popupStats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px 8px;
+}
+
+.popupStat {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  color: #888;
+}
+
+.popupTime {
+  font-size: 11px;
+  color: #bbb;
+  margin-left: auto;
+}
+
+/* Navigation */
+.popupNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #f0f0f0;
+  padding: 6px 12px;
+}
+
+.navBtn {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 50%;
+  background: #00bc8b;
+  color: #fff;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0 2px 0;
+  transition: background 0.15s;
+}
+.navBtn:hover { background: #009e76; }
+
+.popupCounter { font-size: 11px; color: #888; margin: 0; }
