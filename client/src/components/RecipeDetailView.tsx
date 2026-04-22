@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import styles from '../styles/RecipeDetailView.module.css';
 import { Recipe } from '../services/api-recipes';
 import { FeedApi } from '../services/api-feed';
+import { API_BASE_URL } from '../services/api';
 
 const ClockIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -128,7 +129,7 @@ export function RecipeDetailView({ recipe, onBack, onFavoriteToggle, isFavoritin
       {/* Hero image */}
       <div className={styles.heroWrapper}>
         {recipe.imageUrl
-          ? <img src={recipe.imageUrl} alt={recipe.title} className={styles.heroImage} />
+          ? <img src={`${API_BASE_URL}${recipe.imageUrl}`} alt={recipe.title} className={styles.heroImage} />
           : <div className={styles.heroPlaceholder}>🍽️</div>
         }
         <div className={styles.heroGradient} />

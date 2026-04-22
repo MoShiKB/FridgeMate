@@ -1,9 +1,9 @@
 import { iconProps, styles } from "../styles/MyProfileScreen.styles";
-import { FiCheckCircle, IoArrowBack, IoPersonOutline } from "./icons";
+import { FiCheckCircle, IoArrowBack, IoPersonOutline, FiCamera } from "./icons";
 import { useEffect, useRef, useState } from "react";
-import { Chat, UserListPage } from "./chat";
 import { tokenManager } from "../services/api";
 import { ProfileApi } from "../services/api-profile";
+import { colors } from "../styles/colors";
 import axios from "axios";
 const dietOptions = [
   { label: "None", emoji: "" },
@@ -44,10 +44,6 @@ function MyProfileScreen({ onBack = () => window.history.back() }: MyProfileScre
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fullName, setFullName] = useState("");
   const [location, setLocation] = useState("");
-  const [isUserListOpen, setIsUserListOpen] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [chatId, setChatId] = useState("");
-  const [chatUserName, setChatUserName] = useState("");
   const currentUserId = getUserIdFromToken();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -133,10 +129,10 @@ const onSave = async () => {
     if (fullName.trim()) dataToSend.displayName = fullName.trim();
     if (location.trim()) dataToSend.address = { city: location.trim() };
     await ProfileApi.updateMyProfile(currentUserId, dataToSend);
-     setShowSaveToast(true);
-         setTimeout(() => {
-      setShowSaveToast(false);
-    }, 2500);
+    setShowSaveToast(true);
+    setTimeout(() => {
+      onBack();
+    }, 400);
   } catch (err) {
     console.error('Failed to save profile:', err);
   }
@@ -149,6 +145,43 @@ if (isLoading) return (
 );
   return (
     <div style={styles.page}>
+      <style>{`
+        input[type="radio"],
+        input[type="checkbox"] {
+          appearance: none;
+          -webkit-appearance: none;
+          width: 16px;
+          height: 16px;
+          cursor: pointer;
+          border: 2px solid #d0d0d0;
+          border-radius: ${styles.radioRow.borderRadius || '4px'};
+          margin-right: 4px;
+          transition: all 0.2s ease;
+          background-color: white;
+          background-size: 10px;
+          background-position: center;
+          background-repeat: no-repeat;
+        }
+        
+        input[type="radio"] {
+          border-radius: 50%;
+        }
+        
+        input[type="checkbox"]:hover,
+        input[type="radio"]:hover {
+          border-color: #00bc90;
+        }
+        
+        input[type="checkbox"]:checked,
+        input[type="radio"]:checked {
+          background-color: #00bc90;
+          border-color: #00bc90;
+        }
+        
+        input[type="checkbox"]:checked {
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+        }
+      `}</style>
   {error && <div style={styles.error}>{error}</div>}
       {/* Header */}
       <div style={styles.header}>
@@ -158,52 +191,59 @@ if (isLoading) return (
         <h1 style={styles.title}>My Profile</h1>
       </div>
 
-    {/* Profile Picture Card */}
-<div style={styles.card}>
-  <div style={styles.avatarWrapper}>
+    {/* Two Column Section: Personal Info + Dietary Preferences */}
+    <div style={styles.twoColumnSection}>
+      {/* Personal Information Card with Avatar */}
+      <div style={styles.card}>
+        <h2 style={styles.cardTitle}>Personal Information</h2>
+        <div style={styles.personalInfoCard}>
+          {/* Avatar Section */}
+          <div style={styles.avatarSection}>
+            <div style={styles.avatarWrapper}>
+              <div style={styles.avatarCircle}>
+                {avatarUrl
+                  ? <img src={avatarUrl} alt="profile" style={styles.avatarImg} />
+                  : <IoPersonOutline size={80} color="#bbb" />
+                }
+              </div>
+              <button style={styles.cameraBtn} onClick={() => fileInputRef.current?.click()}>
+                <FiCamera {...iconProps.cameraIcon} />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={onImageChange}
+              />
+            </div>
+          </div>
 
-    <div style={styles.avatarCircle}>
-{avatarUrl
-  ? <img src={avatarUrl} alt="profile" style={styles.avatarImg} />
-  : <IoPersonOutline size={80} color="#bbb" />
-}
-    </div>
+          {/* Form Section */}
+          <div style={styles.formSection}>
+            <div style={styles.formRow}>
+              <label style={styles.label}>Full Name</label>
+              <input
+                style={styles.input}
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Enter your name"
+              />
+            </div>
 
-    <button style={styles.cameraBtn} onClick={() => fileInputRef.current?.click()}>
-      📷
-    </button>
+            <div style={styles.formRow}>
+              <label style={styles.label}>Location</label>
+              <input
+                style={styles.input}
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Location"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <input
-      ref={fileInputRef}
-      type="file"
-      accept="image/*"
-      style={{ display: "none" }}
-      onChange={onImageChange}
-    />
-
-  </div>
-</div>
-{/* Personal Information Card */}
-<div style={styles.card}>
-  <h2 style={styles.cardTitle}>Personal Information</h2>
-
-  <label style={styles.label}>Full Name</label>
-  <input
-    style={styles.input}
-    value={fullName}
-    onChange={(e) => setFullName(e.target.value)}
-    placeholder="Enter your name"
-  />
-
-<label style={styles.label}>📍 Location</label>
-<div style={{ display: 'flex', gap: 8 }}>
-  <input
-    style={styles.input}
-    value={location}
-    onChange={(e) => setLocation(e.target.value)}
-    placeholder="Location"/>
-  </div>
-</div>
       {/* Dietary Preferences Card */}
       <div style={styles.card}>
         <h2 style={styles.cardTitle}>Dietary Preferences</h2>
@@ -225,25 +265,28 @@ if (isLoading) return (
           </div>
         ))}
       </div>
+    </div>
 
 {/* Allergies and Restrictions Card */}
 <div style={styles.card}>
   <h2 style={styles.cardTitle}>Allergies & Restrictions</h2>
-  {allergyOptions.map((label) => (
-<div key={label} style={styles.radioRow}>
-  <input
-    type="checkbox"
-    checked={selectedAllergies.includes(label)}
-    onChange={() => onAllergyClick(label)}
-  />
-  <span 
-    style={styles.radioLabel}
-    onClick={() => onAllergyClick(label)}
-  >
-    {label}
-  </span>
-</div>
-  ))}
+  <div style={styles.allergiesGrid}>
+    {allergyOptions.map((label) => (
+      <div key={label} style={styles.radioRow}>
+        <input
+          type="checkbox"
+          checked={selectedAllergies.includes(label)}
+          onChange={() => onAllergyClick(label)}
+        />
+        <span 
+          style={styles.radioLabel}
+          onClick={() => onAllergyClick(label)}
+        >
+          {label}
+        </span>
+      </div>
+    ))}
+  </div>
 </div>
 
 {/* Save Button */}
@@ -259,33 +302,6 @@ if (isLoading) return (
             </span>
           </div>
         )}
-{/* Chat Button */}
-      <button style={styles.chatBtn} onClick={() => setIsUserListOpen(true)}>
-        💬 Open Chat with Others
-      </button>
-
-      {isUserListOpen && currentUserId && (
-        <UserListPage
-          currentUserId={currentUserId}
-          onSelectUser={(id, name) => {
-            setChatId(id);
-            setChatUserName(name);
-            setIsUserListOpen(false);
-            setIsChatOpen(true);
-          }}
-          onClose={() => setIsUserListOpen(false)}
-        />
-      )}
-
-      {isChatOpen && chatId && currentUserId && (
-        <Chat
-          chatId={chatId}
-          currentUserId={currentUserId}
-          selectedUserName={chatUserName}
-          onClose={() => setIsChatOpen(false)}
-          onGoBack={() => { setIsChatOpen(false); setIsUserListOpen(true); }}
-        />
-      )}
     </div>
   );
 }

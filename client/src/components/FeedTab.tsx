@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Masonry from 'react-masonry-css';
 import { tokenManager } from '../services/api';
 import { FeedApi, Post, Comment } from '../services/api-feed';
+import { ProfileApi } from '../services/api-profile';
 import { API_BASE_URL } from '../services/api';
 import { MapView } from './MapView';
 import styles from '../styles/FeedTab.module.css';
@@ -65,7 +66,22 @@ function PostCard({ post, currentUserId, onDeleted }: PostCardProps) {
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [imageErr, setImageErr] = useState(false);
+  const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (currentUserId) {
+      ProfileApi.getMyProfile(currentUserId).request
+        .then(res => {
+          const user = res.data?.data || res.data;
+          setCurrentUserProfile(user);
+        })
+        .catch(err => {
+          console.error('Failed to fetch current user profile:', err);
+        });
+    }
+  }, [currentUserId]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -139,7 +155,7 @@ function PostCard({ post, currentUserId, onDeleted }: PostCardProps) {
     setShowMenu(false);
   };
 
-  const imageUrl = post.mediaUrls?.[0] || post.recipeId?.imageUrl;
+  const imageUrl = post.mediaUrls?.[0] || (post.recipeId?.imageUrl && !post.recipeId.imageUrl.startsWith('http') ? post.recipeId.imageUrl : null);
   const fullImageUrl = imageUrl
     ? imageUrl.startsWith('http') ? imageUrl : `${API_BASE_URL}${imageUrl}`
     : null;
@@ -150,11 +166,13 @@ function PostCard({ post, currentUserId, onDeleted }: PostCardProps) {
         <Avatar src={post.authorUserId.profileImage} name={post.authorUserId.displayName} />
         <div className={styles.authorInfo}>
           <span className={styles.authorName}>{post.authorUserId.displayName}</span>
-          {post.authorUserId.address?.city && (
-            <span className={styles.authorLocation}>{post.authorUserId.address.city}</span>
+          {(post.location?.placeName || post.authorUserId.address?.city) && (
+            <span className={styles.authorLocation}>
+              {post.location?.placeName || post.authorUserId.address?.city}
+            </span>
           )}
           <span className={styles.postTime}>
-            {timeAgo(post.createdAt)}{post.location?.coordinates ? ' · 📍' : ''}
+            {timeAgo(post.createdAt)}
           </span>
         </div>
         <div className={styles.postMenuContainer} ref={menuRef}>
@@ -169,12 +187,16 @@ function PostCard({ post, currentUserId, onDeleted }: PostCardProps) {
         </div>
       </div>
 
-      {fullImageUrl && (
-        <img src={fullImageUrl} alt={post.title} className={styles.postImage} />
+      {fullImageUrl && !imageErr && (
+        <img src={fullImageUrl} alt={post.title} className={styles.postImage} onError={() => { console.error('Image failed to load:', fullImageUrl); setImageErr(true); }} />
       )}
 
       <div className={styles.postContent}>
-        {post.title && <p className={styles.postTitle}>{post.title}</p>}
+        {post.title && (
+          <p className={`${styles.postTitle} ${!post.mediaUrls || post.mediaUrls.length === 0 ? styles.postTitleNoMedia : ''}`}>
+            {post.title}
+          </p>
+        )}
         <p className={styles.postText}>{post.text}</p>
       </div>
 
@@ -212,7 +234,11 @@ function PostCard({ post, currentUserId, onDeleted }: PostCardProps) {
             </div>
           ))}
           <form className={styles.commentForm} onSubmit={handleSubmitComment}>
-            <Avatar src={undefined} name={currentUserId ? 'Me' : '?'} size={22} />
+            <Avatar 
+              src={currentUserProfile?.profileImage || null} 
+              name={currentUserProfile?.displayName || 'You'} 
+              size={22} 
+            />
             <input
               className={styles.commentInput}
               placeholder="Add a comment…"
@@ -333,58 +359,139 @@ export function FeedTab() {
   const [error, setError] = useState<string | null>(null);
   const [feedMode, setFeedMode] = useState<FeedMode>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const currentUserId = getUserIdFromToken();
+  const POSTS_PER_PAGE = 30;
 
-  const loadPosts = (mode: FeedMode) => {
-    setLoading(true);
-    setError(null);
+  const loadPosts = (mode: FeedMode, pageNum = 1, append = false) => {
+    if (pageNum === 1) {
+      setLoading(true);
+      setError(null);
+    } else {
+      setLoadingMore(true);
+    }
 
     if (mode === 'mine') {
       FeedApi.getMyPosts()
-        .then(data => { setPosts(data.items); setLoading(false); })
-        .catch(err => { setError(err?.response?.data?.message || err?.message || 'Failed to load'); setLoading(false); });
+        .then(data => {
+          if (append) {
+            setPosts(prev => [...prev, ...data.items]);
+          } else {
+            setPosts(data.items);
+          }
+          setHasMore(false);
+          if (pageNum === 1) setLoading(false);
+          setLoadingMore(false);
+        })
+        .catch(err => {
+          setError(err?.response?.data?.message || err?.message || 'Failed to load');
+          if (pageNum === 1) setLoading(false);
+          setLoadingMore(false);
+        });
       return;
     }
 
     if (mode === 'nearby') {
       if (!navigator.geolocation) {
         setError('Geolocation is not supported by your browser');
-        setLoading(false);
+        if (pageNum === 1) setLoading(false);
+        setLoadingMore(false);
         return;
       }
       navigator.geolocation.getCurrentPosition(
         ({ coords }) => {
-          FeedApi.getPosts(1, 20, { lat: coords.latitude, lng: coords.longitude, radiusKm: 50 })
-            .then(data => { setPosts(data.items); setLoading(false); })
-            .catch(err => { setError(err?.response?.data?.message || err?.message || 'Failed to load'); setLoading(false); });
+          FeedApi.getPosts(pageNum, POSTS_PER_PAGE, { lat: coords.latitude, lng: coords.longitude, radiusKm: 50 })
+            .then(data => {
+              if (append) {
+                setPosts(prev => [...prev, ...data.items]);
+              } else {
+                setPosts(data.items);
+              }
+              setHasMore(data.items.length === POSTS_PER_PAGE);
+              if (pageNum === 1) setLoading(false);
+              setLoadingMore(false);
+            })
+            .catch(err => {
+              setError(err?.response?.data?.message || err?.message || 'Failed to load');
+              if (pageNum === 1) setLoading(false);
+              setLoadingMore(false);
+            });
         },
-        () => { setError('Location access denied'); setLoading(false); }
+        () => {
+          setError('Location access denied');
+          if (pageNum === 1) setLoading(false);
+          setLoadingMore(false);
+        }
       );
       return;
     }
 
-    FeedApi.getPosts()
-      .then(data => { setPosts(data.items); setLoading(false); })
-      .catch(err => { setError(err?.response?.data?.message || err?.message || 'Failed to load feed'); setLoading(false); });
+    FeedApi.getPosts(pageNum, POSTS_PER_PAGE)
+      .then(data => {
+        if (append) {
+          setPosts(prev => [...prev, ...data.items]);
+        } else {
+          setPosts(data.items);
+        }
+        setHasMore(data.items.length === POSTS_PER_PAGE);
+        if (pageNum === 1) setLoading(false);
+        setLoadingMore(false);
+      })
+      .catch(err => {
+        setError(err?.response?.data?.message || err?.message || 'Failed to load feed');
+        if (pageNum === 1) setLoading(false);
+        setLoadingMore(false);
+      });
   };
 
-  useEffect(() => { loadPosts('all'); }, []);
+  useEffect(() => {
+    loadPosts('all', 1);
+    setPage(1);
+  }, []);
+
+  useEffect(() => {
+    if (feedMode === 'nearby') return; // Don't add scroll listener to map view
+    
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      if (loadingMore || !hasMore || loading) return;
+      
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      if (scrollTop + clientHeight >= scrollHeight - 500) {
+        // User is within 500px of bottom
+        const nextPage = page + 1;
+        setPage(nextPage);
+        loadPosts(feedMode, nextPage, true);
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [page, feedMode, loadingMore, hasMore, loading]);
 
   const handleMapView = () => {
     const next: FeedMode = feedMode === 'nearby' ? 'all' : 'nearby';
     setFeedMode(next);
-    loadPosts(next);
+    setPage(1);
+    loadPosts(next, 1);
   };
 
   const handleMyPosts = () => {
     const next: FeedMode = feedMode === 'mine' ? 'all' : 'mine';
     setFeedMode(next);
-    loadPosts(next);
+    setPage(1);
+    loadPosts(next, 1);
   };
 
   const handlePostCreated = (_post: Post) => {
     setFeedMode('all');
-    loadPosts('all');
+    setPage(1);
+    loadPosts('all', 1);
   };
 
   const handlePostDeleted = (postId: string) => {
@@ -392,13 +499,17 @@ export function FeedTab() {
   };
 
   return (
-    <div className={feedMode === 'nearby' ? styles.feedTabMap : styles.feedTab}>
+    <div 
+      ref={scrollContainerRef}
+      className={feedMode === 'nearby' ? styles.feedTabMap : styles.feedTab}
+      style={{ overflow: feedMode === 'nearby' ? 'hidden' : 'auto', height: '100%' }}
+    >
       {/* Filter pill tabs */}
       <div className={styles.pillContainer}>
         <div className={styles.pillTabs}>
           <button
             className={`${styles.pillTab} ${feedMode === 'all' ? styles.pillActive : ''}`}
-            onClick={() => { if (feedMode !== 'all') { setFeedMode('all'); loadPosts('all'); } }}
+            onClick={() => { if (feedMode !== 'all') { setFeedMode('all'); setPage(1); loadPosts('all', 1); } }}
           >
             All Posts
           </button>
@@ -421,11 +532,13 @@ export function FeedTab() {
       {feedMode === 'nearby' ? (
         <MapView />
       ) : loading ? (
-        <div className={styles.spinner} />
+        <div className={styles.loadingState}>
+          <div className={styles.spinner} />
+        </div>
       ) : error ? (
         <div className={styles.errorState}>
           <p className={styles.errorText}>{error}</p>
-          <button className={styles.retryBtn} onClick={() => loadPosts(feedMode)}>Try again</button>
+          <button className={styles.retryBtn} onClick={() => { setPage(1); loadPosts(feedMode, 1); }}>Try again</button>
         </div>
       ) : posts.length === 0 ? (
         <div className={styles.emptyState}>
@@ -433,23 +546,37 @@ export function FeedTab() {
           <p>{feedMode === 'mine' ? "You haven't posted anything yet." : 'No posts yet. Be the first to share!'}</p>
         </div>
       ) : (
-        <Masonry
-          breakpointCols={{
-            default: 2,
-            900: 1
-          }}
-          className={styles.masonryGrid}
-          columnClassName={styles.masonryColumn}
-        >
-          {posts.map(post => (
-            <PostCard
-              key={post._id}
-              post={post}
-              currentUserId={currentUserId}
-              onDeleted={handlePostDeleted}
-            />
-          ))}
-        </Masonry>
+        <>
+          <Masonry
+            breakpointCols={{
+              default: 2,
+              900: 1
+            }}
+            className={styles.masonryGrid}
+            columnClassName={styles.masonryColumn}
+          >
+            {posts.map(post => (
+              <PostCard
+                key={post._id}
+                post={post}
+                currentUserId={currentUserId}
+                onDeleted={handlePostDeleted}
+              />
+            ))}
+          </Masonry>
+          
+          {loadingMore && (
+            <div className={styles.loadMoreSpinner}>
+              <div className={styles.spinner} />
+            </div>
+          )}
+          
+          {!hasMore && posts.length > 0 && (
+            <div className={styles.endMessage}>
+              <p>You've reached the end!</p>
+            </div>
+          )}
+        </>
       )}
 
       {/* FAB */}

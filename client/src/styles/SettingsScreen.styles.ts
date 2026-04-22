@@ -36,10 +36,8 @@ page: {
 },
   card: {
     background: colors.white,
-    width: "70%",
     borderRadius: 16,
     padding: "21px",
-    margin: "0 auto 24px auto",
     marginBottom: 10,
   },
 cardText: {
@@ -51,6 +49,19 @@ cardText: {
   marginLeft: 0,
   marginRight: 0,
   display: "block",
+},
+cardsContainer: {
+  display: "grid",
+  gridTemplateColumns: "1fr auto",
+  gap: "16px",
+  width: "100%",
+  maxWidth: "1400px",
+  margin: "0 auto",
+  alignItems: "start",
+},
+singleCardContainer: {
+  display: "flex",
+  justifyContent: "center",
 },
 menuRow: {
   display: "flex",
@@ -109,7 +120,7 @@ scannerBtn: {
   gap: "10px",
   borderRadius: 12,
   border: "none",
-  backgroundColor: colors.buttons,
+  backgroundColor: colors.accentGreen,
   color: colors.white,
   fontSize: 16,
   fontWeight: 600,
@@ -135,7 +146,7 @@ inviteCode: {
   color: colors.darkTeal,
 },
 copyBtn: {
-  background: colors.buttons,
+  background: colors.accentGreen,
   color: colors.white,
   border: "none",
   borderRadius: 10,
@@ -152,6 +163,12 @@ memberRow: {
   alignItems: "center",
   gap: 12,
   marginBottom: 8,
+},
+membersGrid: {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr 1fr",
+  gap: "8px",
+  marginBottom: 12,
 },
 
 memberAvatar: {
@@ -222,7 +239,7 @@ createBtn: {
   alignItems: "center",
   gap: "10px",
   borderRadius: 12,
-  background: colors.buttons,
+  background: colors.accentGreen,
   color: colors.white,
   fontSize: 16,
   fontWeight: 600,
@@ -237,9 +254,9 @@ joinBtn: {
   alignItems: "center",
   gap: "10px",
   borderRadius: 12,
-  border: `2px solid ${colors.buttons}`,
+  border: `2px solid ${colors.accentGreen}`,
   background: colors.white,
-  color: colors.buttons,
+  color: colors.accentGreen,
   fontSize: 16,
   fontWeight: 600,
   cursor: "pointer",
@@ -296,7 +313,7 @@ sendScanBtn: {
   width: 50,
   height: 50,
   borderRadius: '50%',
-  background: colors.buttons,
+  background: colors.accentGreen,
   color: colors.white,
   border: 'none',
   cursor: 'pointer',
@@ -328,11 +345,11 @@ export const iconProps = {
   },
   peopleIcon: {
     size: 20,
-    color: colors.buttons,
+    color: colors.accentGreen,
   },
   cameraIcon: {
     size: 17,
-    color: colors.buttons,
+    color: colors.accentGreen,
   },
   uploadIcon: {
     size: 17,
@@ -340,7 +357,7 @@ export const iconProps = {
   },
   copyIcon: {
     size: 14,
-    color: colors.darkTeal,
+    color: colors.white,
   },
   leaveIcon: {
     size: 17,

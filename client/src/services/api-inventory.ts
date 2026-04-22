@@ -17,7 +17,7 @@ export interface InventoryItemDto {
 export const InventoryItemApi = {
   getItems(fridgeId: string) {
     return axios.get<PaginatedResponse<InventoryItemDto>>(
-      `${API_BASE_URL}/fridges/${fridgeId}/items`,
+      `${API_BASE_URL}/fridges/${fridgeId}/items?limit=500`,
       {
         headers: {
           Authorization: `Bearer ${getToken()}`,

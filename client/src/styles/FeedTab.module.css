@@ -1,8 +1,9 @@
 .feedTab {
-  display: block;
+  display: flex;
+  flex-direction: column;
   background-color: #f0f1f3;
   min-height: 100%;
-  padding: 8px 20px 20px;
+  padding: 0px 20px 20px;
   position: relative;
   max-width: none;
   width: 100%;
@@ -89,6 +90,18 @@
   box-shadow: 0 1px 4px rgba(0,0,0,0.12);
 }
 
+/* ── Loading State ── */
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 16px;
+  padding: 32px 16px;
+  text-align: center;
+}
+
 /* ── Spinner ── */
 .spinner {
   width: 28px;
@@ -97,8 +110,6 @@
   border-top-color: #00bc8b;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
-  margin: 48px auto;
-  flex-basis: 100%;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -150,14 +161,15 @@
   border: none;
   border-radius: 14px;
   font-size: 24px;
-  line-height: 1;
   cursor: pointer;
   box-shadow: 0 3px 12px rgba(0, 188, 139, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
   z-index: 20;
   transition: transform 0.15s, opacity 0.15s;
+  margin-top: -2px;
 }
 .fab:hover { transform: scale(1.07); opacity: 0.92; }
 
@@ -296,6 +308,9 @@
   color: #111;
   margin: 0 0 4px;
 }
+.postTitleNoMedia {
+  margin-top: -8px;
+}
 .postText { font-size: 13px; color: #555; margin: 0; line-height: 1.5; }
 
 /* ── Actions ── */
@@ -359,4 +374,26 @@
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+/* ── Load More Indicator ── */
+.loadMoreSpinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+}
+
+.endMessage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  color: #999;
+  font-size: 13px;
+  text-align: center;
+}
+
+.endMessage p {
+  margin: 0;
 }

@@ -63,18 +63,9 @@ export function MyFridgeTab() {
 
   const buildFridgeItemList = (items: InventoryItemDto[]) => {
     const lowItems = items.filter(item => item.isRunningLow);
-    const groupedByCategory: Record<string, InventoryItemDto[]> = {};
-    
-    items.forEach(item => {
-      // Use a generic "Items" category since the API doesn't provide category info
-      const category = 'Items';
-      if (!groupedByCategory[category]) {
-        groupedByCategory[category] = [];
-      }
-      groupedByCategory[category].push(item);
-    });
+    const normalItems = items.filter(item => !item.isRunningLow);
 
-    return { lowItems, groupedByCategory };
+    return { lowItems, normalItems };
   };
 
   const WarningIconSVG = () => (
@@ -87,7 +78,7 @@ export function MyFridgeTab() {
     return (
       <div className={styles.myFridgeTab}>
         <div className={styles.loadingState}>
-          <p>Loading fridge...</p>
+          <div className={styles.spinner} />
         </div>
       </div>
     );
@@ -145,66 +136,47 @@ export function MyFridgeTab() {
   }
 
   // Status is 'items'
-  const { lowItems, groupedByCategory } = buildFridgeItemList(state.items);
-  const categories = Object.keys(groupedByCategory).sort();
+  const { lowItems, normalItems } = buildFridgeItemList(state.items);
+  const allItems = [...lowItems, ...normalItems];
 
   return (
     <div className={styles.myFridgeTab}>
-      {/* Running Low Section */}
+      {/* Running Low Alert */}
       {lowItems.length > 0 && (
         <div className={styles.runningLowSection}>
           <div className={styles.sectionHeader}>
             <div className={styles.warningIcon}>
               <WarningIconSVG />
             </div>
-            <h2 className={styles.sectionTitle}>Running low on ingredients</h2>
-          </div>
-          <div className={styles.runningLowList}>
-            <p className={styles.runningLowText}>
-              You need to restock:{' '}
-              <span className={styles.itemsList}>
-                {lowItems.map(item => item.name).join(', ')}
-              </span>
-            </p>
+            <h2 className={styles.sectionTitle}>
+              Running low on {lowItems.length} {lowItems.length === 1 ? 'item' : 'items'}
+            </h2>
           </div>
         </div>
       )}
 
-      {/* Items by Category Section */}
-      {categories.length > 0 ? (
-        <div className={styles.itemsSection}>
-          {categories.map(category => (
-            <div key={category} className={styles.categorySection}>
-              <h3 className={styles.categoryHeader}>{category}</h3>
-              <div className={styles.categoryItemsList}>
-                {groupedByCategory[category].map((item, index) => (
-                  <div
-                    key={item.id}
-                    className={`${styles.itemCard} ${item.isRunningLow ? styles.lowStock : ''}`}
-                  >
-                    <div className={styles.itemInfo}>
-                      <div className={styles.itemNameWrapper}>
-                        <p className={styles.itemName} title={item.name}>
-                          {item.name}
-                        </p>
-                        {item.isRunningLow && (
-                          <div className={styles.itemWarningIcon} title="Running low">
-                            <WarningIconSVG />
-                          </div>
-                        )}
-                      </div>
-                      <p className={styles.itemQuantity}>{item.quantity}</p>
-                    </div>
-                    {index < groupedByCategory[category].length - 1 && (
-                      <div className={styles.divider} />
-                    )}
-                  </div>
-                ))}
-              </div>
+      {/* Items Grid */}
+      <div className={styles.itemsGrid}>
+        {allItems.map((item) => (
+          <div
+            key={item.id}
+            className={`${styles.itemCard} ${item.isRunningLow ? styles.lowStock : ''}`}
+          >
+            <div className={styles.itemHeader}>
+              <h3 className={styles.itemName}>{item.name}</h3>
+              {item.isRunningLow && (
+                <div className={styles.lowStockBadge} title="Running low">
+                  <WarningIconSVG />
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-      ) : null}
+            <div className={styles.itemFooter}>
+              <span className={styles.quantityLabel}>Qty</span>
+              <span className={styles.quantityValue}>{item.quantity}</span>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

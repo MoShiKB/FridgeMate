@@ -4,12 +4,23 @@ import { FeedTab } from '../components/FeedTab';
 import { RecipesTab } from '../components/RecipesTab';
 import SettingsScreen from '../components/SettingsScreen';
 import MyProfileScreen from '../components/MyProfileScreen';
+import { Chat, UserListPage } from '../components/chat';
 import styles from '../styles/Dashboard.module.css';
 import { ProfileApi } from '../services/api-profile';
 import { tokenManager } from '../services/api';
 
+function getCurrentUserId(): string | null {
+  const token = tokenManager.getAccessToken();
+  if (!token) return null;
+  try {
+    return JSON.parse(atob(token.split('.')[1])).userId || null;
+  } catch {
+    return null;
+  }
+}
+
 export function Dashboard() {
-  const [activeTab, setActiveTab] = useState<'feed' | 'myFridge' | 'recipes'>('myFridge');
+  const [activeTab, setActiveTab] = useState<'feed' | 'myFridge' | 'recipes'>('feed');
   const [showMenu, setShowMenu] = useState(false);
   const [currentView, setCurrentView] = useState<'tabs' | 'profile' | 'settings'>('tabs');
   const [scrollPositions, setScrollPositions] = useState<Record<string, number>>({});
@@ -17,8 +28,13 @@ export function Dashboard() {
     name: 'Loading...',
     profilePicture: null,
   });
+  const [isUserListOpen, setIsUserListOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatId, setChatId] = useState('');
+  const [chatUserName, setChatUserName] = useState('');
   const menuRef = useRef<HTMLDivElement>(null);
   const tabContentRef = useRef<HTMLDivElement>(null);
+  const currentUserId = getCurrentUserId();
 
   // Fetch user data function (can be called anytime)
   const fetchUserData = async () => {
@@ -164,29 +180,41 @@ export function Dashboard() {
       <div className={styles.header}>
         <div className={styles.userInfo}>
           <h1 className={styles.welcomeText}>
-            Welcome back, <span className={styles.userName}>{user.name}</span>
+            Welcome back, <span className={styles.userName}>{user.name}</span> 👋
           </h1>
         </div>
 
-        {/* Profile Menu Button */}
-        <div className={styles.menuContainer} ref={menuRef}>
+        <div className={styles.headerActions}>
+          {/* Chat Button */}
           <button
-            className={styles.profileMenuButton}
-            onClick={() => setShowMenu(!showMenu)}
-            title="Menu"
+            className={styles.chatButton}
+            onClick={() => setIsUserListOpen(true)}
+            title="Chat"
           >
-            {user.profilePicture ? (
-              <img 
-                src={user.profilePicture} 
-                alt={user.name} 
-                className={styles.profileMenuImage}
-              />
-            ) : (
-              <div className={styles.profileMenuPlaceholder}>
-                {user.name.charAt(0).toUpperCase()}
-              </div>
-            )}
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
           </button>
+
+          {/* Profile Menu Button */}
+          <div className={styles.menuContainer} ref={menuRef}>
+            <button
+              className={styles.profileMenuButton}
+              onClick={() => setShowMenu(!showMenu)}
+              title="Menu"
+            >
+              {user.profilePicture ? (
+                <img 
+                  src={user.profilePicture} 
+                  alt={user.name} 
+                  className={styles.profileMenuImage}
+                />
+              ) : (
+                <div className={styles.profileMenuPlaceholder}>
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+            </button>
 
           {/* Menu Dropdown */}
           {showMenu && (
@@ -205,6 +233,7 @@ export function Dashboard() {
               </button>
             </div>
           )}
+        </div>
         </div>
       </div>
 
@@ -255,6 +284,30 @@ export function Dashboard() {
         <div className={styles.overlay}>
           <SettingsScreen onBack={handleBack} />
         </div>
+      )}
+
+      {/* Chat Components */}
+      {isUserListOpen && currentUserId && (
+        <UserListPage
+          currentUserId={currentUserId}
+          onSelectUser={(id, name) => {
+            setChatId(id);
+            setChatUserName(name);
+            setIsUserListOpen(false);
+            setIsChatOpen(true);
+          }}
+          onClose={() => setIsUserListOpen(false)}
+        />
+      )}
+
+      {isChatOpen && chatId && currentUserId && (
+        <Chat
+          chatId={chatId}
+          currentUserId={currentUserId}
+          selectedUserName={chatUserName}
+          onClose={() => setIsChatOpen(false)}
+          onGoBack={() => { setIsChatOpen(false); setIsUserListOpen(true); }}
+        />
       )}
     </div>
   );

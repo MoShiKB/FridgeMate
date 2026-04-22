@@ -5,7 +5,7 @@
   width: 400px;
   height: 60vh;
   min-height: 420px;
-  background: #fff;
+  background: #f0f1f3;
   border-radius: 16px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
   display: flex;
@@ -21,7 +21,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  background: #54A096;
+  background: linear-gradient(135deg, #00bc8b 0%, #00bc90 100%);
   color: #fff;
 }
 
@@ -79,7 +79,7 @@
   flex: 1;
   overflow-y: auto;
   padding: 8px 12px;
-  background: #E8F3F1;
+  background: #f0f1f3;
 }
 
 .body::-webkit-scrollbar {
@@ -143,7 +143,7 @@
 }
 
 .mine {
-  background: #54A096;
+  background: #00bc90;
   color: #fff;
   border-top-right-radius: 3px;
 }
@@ -216,7 +216,7 @@
 }
 
 .sendBtn:hover {
-  background: #2D5D57;
+  background: #00a87a;
 }
 
 .sendDisabled {
