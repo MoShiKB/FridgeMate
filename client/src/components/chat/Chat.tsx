@@ -10,7 +10,7 @@ interface MessageSender {
 
 interface Message {
   _id: string;
-  sender: MessageSender | string;
+  sender: MessageSender | string | null;
   content: string;
   status: string;
   createdAt: string;
@@ -24,9 +24,10 @@ interface ChatProps {
   onGoBack: () => void;
 }
 
-function getSenderId(sender: any): string {
+function getSenderId(sender: Message['sender']): string {
+  if (!sender) return '';
   if (typeof sender === 'string') return sender;
-  return sender.id || sender._id || '';
+  return (sender as any).id || sender._id || '';
 }
 
 export const Chat: React.FC<ChatProps> = ({
@@ -113,7 +114,6 @@ export const Chat: React.FC<ChatProps> = ({
           <div className={styles.headerAvatar}>{selectedUserName[0]?.toUpperCase()}</div>
           <div className={styles.headerText}>
             <span className={styles.headerName}>{selectedUserName}</span>
-            <span className={styles.headerStatus}>Online</span>
           </div>
         </div>
         <button className={styles.closeButton} onClick={onClose}>&times;</button>
