@@ -765,7 +765,9 @@ export function FeedTab() {
       )}
 
       {/* FAB */}
-      <button className={styles.fab} onClick={() => setShowCreateModal(true)}>+</button>
+      {feedMode !== 'nearby' && (
+        <button className={styles.fab} onClick={() => setShowCreateModal(true)}>+</button>
+      )}
 
       {/* Create post modal */}
       {showCreateModal && (

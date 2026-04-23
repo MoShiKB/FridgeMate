@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { FeedApi, Post } from '../services/api-feed';
@@ -132,8 +132,27 @@ function LocationMarker({ posts }: { posts: Post[] }) {
   );
 }
 
-export function MapView() {
-  const [posts, setPosts] = useState<Post[]>([]);
+function FitBounds({ posts }: { posts: Post[] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (posts.length === 0) return;
+    if (posts.length === 1) {
+      const [lng, lat] = posts[0].location!.coordinates;
+      map.setView([lat, lng], 10);
+      return;
+    }
+    const lats = posts.map(p => p.location!.coordinates[1]);
+    const lngs = posts.map(p => p.location!.coordinates[0]);
+    const bounds = L.latLngBounds(
+      [Math.min(...lats), Math.min(...lngs)],
+      [Math.max(...lats), Math.max(...lngs)]
+    );
+    map.fitBounds(bounds, { padding: [50, 50], maxZoom: 10 });
+  }, [posts, map]);
+  return null;
+}
+
+export function MapView() {  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -186,7 +205,7 @@ export function MapView() {
       )}
       <MapContainer
         center={mapCenter}
-        zoom={posts.length === 1 ? 8 : 2}
+        zoom={2}
         className={styles.map}
         scrollWheelZoom={true}
       >
@@ -194,6 +213,7 @@ export function MapView() {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        <FitBounds posts={posts} />
         {locationGroups.map((group, i) => (
           <LocationMarker key={i} posts={group} />
         ))}
