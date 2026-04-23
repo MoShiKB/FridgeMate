@@ -2,19 +2,18 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import { FeedApi, Post } from '../services/api-feed';
 import { API_BASE_URL } from '../services/api';
 import styles from '../styles/MapView.module.css';
 
-const markerIcon2x = require('leaflet/dist/images/marker-icon-2x.png');
-const markerIcon = require('leaflet/dist/images/marker-icon.png');
-const markerShadow = require('leaflet/dist/images/marker-shadow.png');
-
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x.default || markerIcon2x,
-  iconUrl: markerIcon.default || markerIcon,
-  shadowUrl: markerShadow.default || markerShadow,
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
 });
 
 const customMarkerIcon = L.divIcon({
