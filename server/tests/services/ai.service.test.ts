@@ -88,7 +88,10 @@ describe('AIService Tests', () => {
 
             await expect(AIService.generateRecipes({
                 ingredients: ['eggs']
-            })).rejects.toThrow('rate limit exceeded');
+            })).rejects.toMatchObject({
+                status: 429,
+                message: expect.stringMatching(/busy/i),
+            });
         });
 
         it('should handle empty AI response', async () => {
@@ -250,17 +253,18 @@ describe('AIService Tests', () => {
     });
 
     describe('detectFridgeItems', () => {
-        it('should detect items from image', async () => {
-            const mockItems = [
-                { name: 'egg', quantity: '6' },
-                { name: 'milk', quantity: '1 liter' },
-            ];
+        it('should detect items from a valid image', async () => {
             mockGenerateContent.mockResolvedValueOnce({
-                text: JSON.stringify(mockItems),
+                text: JSON.stringify({
+                    imageIssue: null,
+                    items: [
+                        { name: 'egg', quantity: '6' },
+                        { name: 'milk', quantity: '1 liter' },
+                    ],
+                }),
             });
 
-            const buffer = Buffer.from('fake-image');
-            const result = await AIService.detectFridgeItems(buffer, 'image/jpeg');
+            const result = await AIService.detectFridgeItems(Buffer.from('fake-image'), 'image/jpeg');
 
             expect(result).toHaveLength(2);
             expect(result[0].name).toBe('egg');
@@ -269,12 +273,61 @@ describe('AIService Tests', () => {
 
         it('should handle markdown-wrapped JSON in response', async () => {
             mockGenerateContent.mockResolvedValueOnce({
-                text: '```json\n[{"name":"apple","quantity":"3"}]\n```',
+                text: '```json\n{"imageIssue":null,"items":[{"name":"apple","quantity":"3"}]}\n```',
             });
 
             const result = await AIService.detectFridgeItems(Buffer.from('img'), 'image/png');
             expect(result).toHaveLength(1);
             expect(result[0].name).toBe('apple');
+        });
+
+        it('should accept a legacy raw array response (backward compatible fallback)', async () => {
+            mockGenerateContent.mockResolvedValueOnce({
+                text: JSON.stringify([{ name: 'apple', quantity: '3' }]),
+            });
+
+            const result = await AIService.detectFridgeItems(Buffer.from('img'), 'image/png');
+            expect(result).toHaveLength(1);
+            expect(result[0].name).toBe('apple');
+        });
+
+        it('should throw BAD_SCAN_IMAGE when the photo is too blurry', async () => {
+            mockGenerateContent.mockResolvedValueOnce({
+                text: JSON.stringify({ imageIssue: 'too_blurry', items: [] }),
+            });
+
+            await expect(
+                AIService.detectFridgeItems(Buffer.from('img'), 'image/jpeg')
+            ).rejects.toMatchObject({ status: 400, code: 'BAD_SCAN_IMAGE' });
+        });
+
+        it('should throw BAD_SCAN_IMAGE when the photo is not a fridge', async () => {
+            mockGenerateContent.mockResolvedValueOnce({
+                text: JSON.stringify({ imageIssue: 'not_a_fridge', items: [] }),
+            });
+
+            await expect(
+                AIService.detectFridgeItems(Buffer.from('img'), 'image/jpeg')
+            ).rejects.toMatchObject({ status: 400, code: 'BAD_SCAN_IMAGE' });
+        });
+
+        it('should throw BAD_SCAN_IMAGE when the photo is too dark', async () => {
+            mockGenerateContent.mockResolvedValueOnce({
+                text: JSON.stringify({ imageIssue: 'too_dark', items: [] }),
+            });
+
+            await expect(
+                AIService.detectFridgeItems(Buffer.from('img'), 'image/jpeg')
+            ).rejects.toMatchObject({ status: 400, code: 'BAD_SCAN_IMAGE' });
+        });
+
+        it('should return empty items when imageIssue is null but fridge is empty', async () => {
+            mockGenerateContent.mockResolvedValueOnce({
+                text: JSON.stringify({ imageIssue: null, items: [] }),
+            });
+
+            const result = await AIService.detectFridgeItems(Buffer.from('img'), 'image/jpeg');
+            expect(result).toEqual([]);
         });
 
         it('should throw 502 on empty response', async () => {
@@ -303,36 +356,20 @@ describe('AIService Tests', () => {
 
         it('should filter out items missing name or quantity', async () => {
             mockGenerateContent.mockResolvedValueOnce({
-                text: JSON.stringify([
-                    { name: 'egg', quantity: '6' },
-                    { name: '', quantity: '3' },
-                    { name: 'milk', quantity: '' },
-                    { name: 'butter', quantity: '1 block' },
-                ]),
+                text: JSON.stringify({
+                    imageIssue: null,
+                    items: [
+                        { name: 'egg', quantity: '6' },
+                        { name: '', quantity: '3' },
+                        { name: 'milk', quantity: '' },
+                        { name: 'butter', quantity: '1 block' },
+                    ],
+                }),
             });
 
             const result = await AIService.detectFridgeItems(Buffer.from('img'), 'image/jpeg');
             expect(result).toHaveLength(2);
             expect(result.map(i => i.name)).toEqual(['egg', 'butter']);
-        });
-
-        it('should return empty array when AI returns non-array object', async () => {
-            mockGenerateContent.mockResolvedValueOnce({
-                text: JSON.stringify({ items: [] }),
-            });
-
-            const result = await AIService.detectFridgeItems(Buffer.from('img'), 'image/jpeg');
-            expect(result).toEqual([]);
-        });
-
-        it('should handle incomplete JSON with trailing object', async () => {
-            mockGenerateContent.mockResolvedValueOnce({
-                text: '[{"name":"egg","quantity":"6"},{"name":"milk"',
-            });
-
-            const result = await AIService.detectFridgeItems(Buffer.from('img'), 'image/jpeg');
-            expect(result).toHaveLength(1);
-            expect(result[0].name).toBe('egg');
         });
     });
 

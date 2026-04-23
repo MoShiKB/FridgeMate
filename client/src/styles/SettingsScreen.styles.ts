@@ -230,6 +230,37 @@ copyToastText: {
   fontSize: 16,
   fontWeight: 500,
 },
+
+// Error-variant of the toast used for scan failures (bad image, AI error, etc.).
+errorToast: {
+  position: "fixed",
+  bottom: "24px",
+  right: "24px",
+  backgroundColor: colors.errorRed,
+  color: colors.white,
+  padding: "20px 24px",
+  borderRadius: 16,
+  boxShadow: "0 8px 24px rgba(211, 47, 47, 0.32)",
+  display: "flex",
+  alignItems: "flex-start",
+  gap: "12px",
+  zIndex: 9999,
+  minWidth: "320px",
+  maxWidth: "420px",
+},
+
+errorToastIcon: {
+  fontSize: 24,
+  color: colors.white,
+  flexShrink: 0,
+  marginTop: 2,
+},
+
+errorToastText: {
+  fontSize: 15,
+  fontWeight: 500,
+  lineHeight: 1.4,
+},
 createBtn: {
   width: "60%",
   padding: "10px",

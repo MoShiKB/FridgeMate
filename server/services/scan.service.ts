@@ -81,6 +81,12 @@ export class ScanService {
       }
     }
 
+    if (addedItemIds.length > 0) {
+      await InventoryItemModel.deleteMany({
+        fridgeId: new mongoose.Types.ObjectId(fridgeId),
+        _id: { $nin: addedItemIds },
+      });
+    }
 
     const scan = await ScanModel.create({
       fridgeId: new mongoose.Types.ObjectId(fridgeId),

@@ -5,7 +5,7 @@ import { tokenManager } from '../services/api';
 import { useRef } from "react";
 
 /*icons*/
-import { IoPeopleOutline, IoArrowBack, IoSend, IoClose, FiCamera, FiCheckCircle, TbFridgeOff, 
+import { IoPeopleOutline, IoArrowBack, IoSend, IoClose, FiCamera, FiCheckCircle, FiAlertCircle, TbFridgeOff, 
   TbUpload, FaRegCopy, SlLogout } from "./icons";
          
 const fridgeScannerText ="Upload photos of your fridge contents and we'll automatically detect items and add them to your inventory.";
@@ -27,7 +27,8 @@ const [currentFridgeName, setCurrentFridgeName] = useState("");
 const [inviteCode, setInviteCode] = useState("");
 const fridgeScanInputRef = useRef<HTMLInputElement>(null);
 const [isScanning, setIsScanning] = useState(false);
-const [showScanToast, setShowScanToast] = useState(false);
+const [scanSuccessMsg, setScanSuccessMsg] = useState<string | null>(null);
+const [scanErrorMsg, setScanErrorMsg] = useState<string | null>(null);
 const [isLoading, setIsLoading] = useState(true);
 const [showCopyToast, setShowCopyToast] = useState(false);const currentUserId = tokenManager.getAccessToken() 
   ? JSON.parse(atob(tokenManager.getAccessToken()!.split('.')[1])).userId 
@@ -140,20 +141,64 @@ const onFridgeScan = (e: React.ChangeEvent<HTMLInputElement>) => {
 const handleSendScan = async () => {
   if (fridgeImages.length === 0) return;
   setIsScanning(true);
-  try {
-    for (const url of fridgeImages) {
+  setScanSuccessMsg(null);
+  setScanErrorMsg(null);
+
+  // Track each photo's outcome so we can summarize at the end.
+  // The server returns HTTP 201 with { data: { status: 'completed' | 'failed', error? } }
+  // even when the scan failed (bad image, AI error, etc.), so success cannot be
+  // inferred from HTTP status alone — we must inspect each response body.
+  let successCount = 0;
+  const failureReasons: string[] = [];
+
+  for (const url of fridgeImages) {
+    try {
       const blob = await fetch(url).then(r => r.blob());
       const file = new File([blob], 'fridge.jpg', { type: blob.type });
-      await FridgeApi.scanFridge(file);
+      const res = await FridgeApi.scanFridge(file);
+      const scan = res?.data;
+
+      if (scan?.status === 'completed') {
+        successCount += 1;
+      } else {
+        failureReasons.push(scan?.error || 'Scan failed, please try again.');
+      }
+    } catch (err) {
+      console.error('Scan request failed:', err);
+      failureReasons.push('Network error, please check your connection and try again.');
     }
-    setFridgeImages([]);
-    setShowScanToast(true);
-     setTimeout(() => setShowScanToast(false), 2500);
-  } catch (err) {
-    console.error('Scan failed:', err);
-    alert('Scan failed, try again.');
-  } finally {
-    setIsScanning(false);
+  }
+
+  setFridgeImages([]);
+  setIsScanning(false);
+
+  const total = successCount + failureReasons.length;
+
+  if (failureReasons.length === 0) {
+    // All succeeded.
+    setScanSuccessMsg(
+      total === 1
+        ? 'Items added to your fridge!'
+        : `Items added from ${successCount} photo(s).`
+    );
+    setTimeout(() => setScanSuccessMsg(null), 2500);
+  } else {
+    // Build a single summary message for the red toast.
+    // If every photo failed for the same reason, show that reason verbatim.
+    // Otherwise surface the first reason and note how many photos failed.
+    const uniqueReasons = Array.from(new Set(failureReasons));
+    const reason = uniqueReasons.length === 1
+      ? uniqueReasons[0]
+      : failureReasons[0];
+
+    const message = successCount > 0
+      ? `Added items from ${successCount} photo(s). ${failureReasons.length} couldn't be scanned: ${reason}`
+      : failureReasons.length === 1
+        ? reason
+        : `${failureReasons.length} photos couldn't be scanned: ${reason}`;
+
+    setScanErrorMsg(message);
+    setTimeout(() => setScanErrorMsg(null), 4500);
   }
 };
 if (isLoading) return (
@@ -274,12 +319,22 @@ if (isLoading) return (
 </button>
   </div>
 )}
-{/*scan complete toast*/}
-{showScanToast && (
+{/*scan success toast*/}
+{scanSuccessMsg && (
   <div style={styles.copyToast}>
     <FiCheckCircle style={styles.copyToastIcon} />
     <span style={styles.copyToastText}>
-      Items added to your fridge!
+      {scanSuccessMsg}
+    </span>
+  </div>
+)}
+
+{/*scan error toast — surfaces server-provided BAD_SCAN_IMAGE / AI error message*/}
+{scanErrorMsg && (
+  <div style={styles.errorToast}>
+    <FiAlertCircle style={styles.errorToastIcon} />
+    <span style={styles.errorToastText}>
+      {scanErrorMsg}
     </span>
   </div>
 )}

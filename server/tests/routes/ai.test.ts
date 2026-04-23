@@ -6,6 +6,10 @@ jest.mock('@google/genai', () => ({
     }))
 }));
 
+jest.mock('axios');
+import axios from 'axios';
+const mockedAxios = axios as jest.Mocked<typeof axios>;
+
 import request from 'supertest';
 import app from '../../index';
 import { token } from '../setup';
@@ -13,6 +17,7 @@ import { token } from '../setup';
 describe('AI Controller Tests', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        mockedAxios.get.mockResolvedValue({ data: { meals: null, results: [] } } as any);
     });
 
     describe('POST /ai/recipes/generate', () => {
@@ -108,18 +113,63 @@ describe('AI Controller Tests', () => {
             expect(res.statusCode).toBe(401);
         });
 
-        it('should handle AI rate limit error', async () => {
+        it('should fall back to MealDB recipes when Gemini is rate limited', async () => {
             mockGenerateContent.mockRejectedValueOnce(
                 new Error('Resource exhausted: 429 quota exceeded')
             );
+
+            mockedAxios.get.mockImplementation((url: string) => {
+                if (url.includes('filter.php')) {
+                    return Promise.resolve({
+                        data: { meals: [{ idMeal: '52977', strMeal: 'Cheese Omelette', strMealThumb: 'https://example.com/omelette.jpg' }] },
+                    } as any);
+                }
+                if (url.includes('lookup.php')) {
+                    return Promise.resolve({
+                        data: {
+                            meals: [{
+                                idMeal: '52977',
+                                strMeal: 'Cheese Omelette',
+                                strMealThumb: 'https://example.com/omelette.jpg',
+                                strCategory: 'Breakfast',
+                                strInstructions: 'Beat the eggs.\nAdd cheese.\nCook until golden brown on both sides.',
+                                strIngredient1: 'eggs',
+                                strMeasure1: '3',
+                                strIngredient2: 'cheese',
+                                strMeasure2: '50g',
+                            }],
+                        },
+                    } as any);
+                }
+                return Promise.reject(new Error(`Unexpected axios GET: ${url}`));
+            });
 
             const res = await request(app)
                 .post('/ai/recipes/generate')
                 .set('Authorization', token)
                 .send({ ingredients: ['eggs', 'cheese'] });
 
-            expect(res.statusCode).toBe(429);
-            expect(res.body.message).toContain('rate limit');
+            expect(res.statusCode).toBe(200);
+            expect(res.body.message).toBe('Recipes from recipe database');
+            expect(res.body.recipes).toHaveLength(1);
+            expect(res.body.recipes[0].title).toBe('Cheese Omelette');
+        });
+
+        it('should return 503 when Gemini is rate limited AND MealDB has no recipes', async () => {
+            mockGenerateContent.mockRejectedValueOnce(
+                new Error('Resource exhausted: 429 quota exceeded')
+            );
+
+            // MealDB returns no meals → fallback has nothing to return.
+            mockedAxios.get.mockResolvedValue({ data: { meals: null } } as any);
+
+            const res = await request(app)
+                .post('/ai/recipes/generate')
+                .set('Authorization', token)
+                .send({ ingredients: ['eggs', 'cheese'] });
+
+            expect(res.statusCode).toBe(503);
+            expect(res.body.error).toMatch(/unavailable/i);
         });
 
         it('should handle AI service error', async () => {

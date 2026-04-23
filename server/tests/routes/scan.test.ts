@@ -65,14 +65,18 @@ describe('Scan Routes', () => {
         await User.findByIdAndUpdate(userId, { activeFridgeId: fridge._id });
     });
 
+    const mockAIScan = (items: { name: string; quantity: string }[], imageIssue: string | null = null) => {
+        mockGenerateContent.mockResolvedValueOnce({
+            text: JSON.stringify({ imageIssue, items })
+        });
+    };
+
     describe('POST /fridges/me/scans', () => {
         it('should upload image and return detected items', async () => {
-            mockGenerateContent.mockResolvedValueOnce({
-                text: JSON.stringify([
-                    { name: 'egg', quantity: '6' },
-                    { name: 'milk', quantity: '1 liter' }
-                ])
-            });
+            mockAIScan([
+                { name: 'egg', quantity: '6' },
+                { name: 'milk', quantity: '1 liter' }
+            ]);
 
             const res = await request(app)
                 .post('/fridges/me/scans')
@@ -104,9 +108,7 @@ describe('Scan Routes', () => {
                 isRunningLow: true
             });
 
-            mockGenerateContent.mockResolvedValueOnce({
-                text: JSON.stringify([{ name: 'egg', quantity: '12' }])
-            });
+            mockAIScan([{ name: 'egg', quantity: '12' }]);
 
             const res = await request(app)
                 .post('/fridges/me/scans')
@@ -123,9 +125,7 @@ describe('Scan Routes', () => {
         });
 
         it('should create items with SHARED ownership', async () => {
-            mockGenerateContent.mockResolvedValueOnce({
-                text: JSON.stringify([{ name: 'cheese', quantity: '1 block' }])
-            });
+            mockAIScan([{ name: 'cheese', quantity: '1 block' }]);
 
             const res = await request(app)
                 .post('/fridges/me/scans')
@@ -137,6 +137,85 @@ describe('Scan Routes', () => {
             const item = await InventoryItem.findOne({ fridgeId, name: 'cheese' });
             expect(item).not.toBeNull();
             expect(item!.ownership).toBe('SHARED');
+        });
+
+        it('should replace fridge contents: remove items not seen in the new scan', async () => {
+            // Pre-existing items in the fridge
+            await InventoryItem.create([
+                { fridgeId, ownerId: userId, name: 'milk', quantity: '1 liter', ownership: 'SHARED', isRunningLow: false },
+                { fridgeId, ownerId: userId, name: 'eggs', quantity: '6', ownership: 'SHARED', isRunningLow: false },
+                { fridgeId, ownerId: userId, name: 'cheese', quantity: '1 block', ownership: 'PRIVATE', isRunningLow: false }
+            ]);
+
+            // New scan only sees milk (updated quantity) and bread (new item).
+            // Eggs and cheese are NOT detected, so they should be removed.
+            mockAIScan([
+                { name: 'milk', quantity: '500ml' },
+                { name: 'bread', quantity: '1 loaf' }
+            ]);
+
+            const res = await request(app)
+                .post('/fridges/me/scans')
+                .set('Authorization', token)
+                .attach('image', FIXTURE_IMAGE);
+
+            expect(res.statusCode).toBe(201);
+            expect(res.body.data.status).toBe('completed');
+
+            const remaining = await InventoryItem.find({ fridgeId });
+            const names = remaining.map(i => i.name).sort();
+            expect(names).toEqual(['bread', 'milk']);
+
+            const milk = remaining.find(i => i.name === 'milk');
+            expect(milk!.quantity).toBe('500ml');
+        });
+
+        it('should NOT wipe the fridge when the scan returns zero items (safety guard)', async () => {
+            // Pre-existing items in the fridge
+            await InventoryItem.create([
+                { fridgeId, ownerId: userId, name: 'milk', quantity: '1 liter', ownership: 'SHARED', isRunningLow: false },
+                { fridgeId, ownerId: userId, name: 'eggs', quantity: '6', ownership: 'SHARED', isRunningLow: false }
+            ]);
+
+            // AI returns a valid but empty response (e.g. fridge looks empty OR AI glitch).
+            mockAIScan([]);
+
+            const res = await request(app)
+                .post('/fridges/me/scans')
+                .set('Authorization', token)
+                .attach('image', FIXTURE_IMAGE);
+
+            expect(res.statusCode).toBe(201);
+            expect(res.body.data.status).toBe('completed');
+            expect(res.body.data.detectedItems).toHaveLength(0);
+            expect(res.body.data.addedItemIds).toHaveLength(0);
+
+            // Existing items must still be there.
+            const remaining = await InventoryItem.find({ fridgeId });
+            expect(remaining).toHaveLength(2);
+        });
+
+        it('should return failed scan with BAD_SCAN_IMAGE error when AI flags the photo as unusable', async () => {
+            await InventoryItem.create({
+                fridgeId, ownerId: userId, name: 'milk', quantity: '1 liter', ownership: 'SHARED', isRunningLow: false
+            });
+
+            mockGenerateContent.mockResolvedValueOnce({
+                text: JSON.stringify({ imageIssue: 'too_blurry', items: [] })
+            });
+
+            const res = await request(app)
+                .post('/fridges/me/scans')
+                .set('Authorization', token)
+                .attach('image', FIXTURE_IMAGE);
+
+            expect(res.statusCode).toBe(201);
+            expect(res.body.data.status).toBe('failed');
+            expect(res.body.data.error).toMatch(/blurry/i);
+
+            // A bad-image scan must not touch inventory.
+            const remaining = await InventoryItem.find({ fridgeId });
+            expect(remaining).toHaveLength(1);
         });
 
         it('should return failed scan when AI detection fails', async () => {
@@ -180,9 +259,7 @@ describe('Scan Routes', () => {
         });
 
         it('should handle empty AI detection result', async () => {
-            mockGenerateContent.mockResolvedValueOnce({
-                text: JSON.stringify([])
-            });
+            mockAIScan([]);
 
             const res = await request(app)
                 .post('/fridges/me/scans')

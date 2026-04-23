@@ -6,6 +6,17 @@ export const RecipeController = {
     async addToFavorites(req: Request, res: Response) {
         const userId = (req as AuthedRequest).user.userId;
         const { id } = req.params;
+        const existing = await RecipeService.getById(id);
+        if (!existing) {
+            return res.status(404).json({ error: 'Recipe not found' });
+        }
+
+        const alreadyFavorited = (existing.favoritedBy || []).some(
+            (uid: any) => uid.toString() === userId
+        );
+        if (alreadyFavorited) {
+            return res.status(409).json({ error: 'Recipe already in favorites' });
+        }
 
         const recipe = await RecipeService.addToFavorites(id, userId);
         if (!recipe) {
