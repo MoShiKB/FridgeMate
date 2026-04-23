@@ -212,3 +212,44 @@
 .navBtn:hover { background: #009e76; }
 
 .popupCounter { font-size: 11px; color: #888; margin: 0; }
+
+/* Modern Leaflet Zoom Controls */
+:global(.leaflet-control-zoom) {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+:global(.leaflet-control-zoom-in),
+:global(.leaflet-control-zoom-out) {
+  width: 44px !important;
+  height: 44px !important;
+  background: #fff !important;
+  border: none !important;
+  border-radius: 10px !important;
+  color: #333 !important;
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+  transition: all 0.2s ease !important;
+  margin-bottom: 8px !important;
+  line-height: 1 !important;
+}
+
+:global(.leaflet-control-zoom-in:hover),
+:global(.leaflet-control-zoom-out:hover) {
+  background: #00bc8b !important;
+  color: #fff !important;
+  box-shadow: 0 4px 12px rgba(0, 188, 139, 0.3) !important;
+  transform: translateY(-2px) !important;
+}
+
+:global(.leaflet-control-zoom-in:active),
+:global(.leaflet-control-zoom-out:active) {
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 6px rgba(0, 188, 139, 0.2) !important;
+}
