@@ -7,7 +7,7 @@ export const styles: Record<string, CSSProperties> = {
     alignItems: "center",
     gap: 12,
     padding: "16px 24px",
-    background: "#fff",
+    background: colors.white,
     borderBottom: "1px solid #e0e0e0",
   },
   backBtn: {

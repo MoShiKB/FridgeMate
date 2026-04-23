@@ -213,7 +213,7 @@ if (isLoading) return (
       <div key={member.userId} style={styles.memberRow}>
        <div style={styles.memberAvatar}>
         {member.profileImage 
-          ? <img src={member.profileImage} alt={member.displayName} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+          ? <img src={member.profileImage} alt={member.displayName} style={styles.memberAvatarImg} />
           : member.displayName?.[0]
         }
       </div>
