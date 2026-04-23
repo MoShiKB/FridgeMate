@@ -168,8 +168,8 @@ export function RecipesTab({ onPostShared }: { onPostShared: () => void }) {
     setLoadingFavorites(true);
     setError(null);
     try {
-      const data = await RecipeApi.getFavorites();
-      setFavorites(data.items);
+  const data = await RecipeApi.getFavorites();
+setFavorites(data.items.map(r => ({ ...r, isFavorited: true })));
     } catch (err: any) {
       setError(err?.response?.data?.message || err?.message || 'Failed to load favorites');
     } finally {
@@ -216,7 +216,10 @@ export function RecipesTab({ onPostShared }: { onPostShared: () => void }) {
 
     // Optimistic update
     setRecommended(prev => applyTo(prev));
-    setFavorites(prev => wasFavorited ? prev.filter(r => r._id !== recipe._id) : applyTo(prev));
+  setFavorites(prev => wasFavorited 
+  ? prev.filter(r => r._id !== recipe._id) 
+  : [...prev, { ...recipe, isFavorited: true }]
+);
     if (selectedRecipe?._id === recipe._id)
       setSelectedRecipe(r => r ? { ...r, isFavorited: newFavorited } : null);
 
@@ -227,17 +230,16 @@ export function RecipesTab({ onPostShared }: { onPostShared: () => void }) {
       } else {
         await RecipeApi.addFavorite(recipe._id);
       }
-    } catch {
-      // Revert on failure
-      setRecommended(prev => revertIn(prev));
-      setFavorites(prev => revertIn(prev));
-      if (selectedRecipe?._id === recipe._id)
-        setSelectedRecipe(r => r ? { ...r, isFavorited: wasFavorited } : null);
-    } finally {
-      setFavoritingId(null);
-    }
+} catch (err) {
+  console.error('Favorite error:', err);
+  setRecommended(prev => revertIn(prev));
+  setFavorites(prev => revertIn(prev));
+  if (selectedRecipe?._id === recipe._id)
+    setSelectedRecipe(r => r ? { ...r, isFavorited: wasFavorited } : null);
+} finally {
+  setFavoritingId(null);
+}
   };
-
   const isLoading = activeTab === 'recommended' ? loadingRecommended : loadingFavorites;
   const currentList = activeTab === 'recommended' ? recommended : favorites;
 

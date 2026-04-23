@@ -336,6 +336,12 @@ spinnerWrapper: {
   alignItems: 'center',
   height: '100vh',
 },
+memberAvatarImg: {
+  width: '100%',
+  height: '100%',
+  borderRadius: '50%',
+  objectFit: 'cover' as const,
+},
 };
 
 export const iconProps = {
