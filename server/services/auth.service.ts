@@ -101,10 +101,8 @@ export const AuthService = {
     if (!user) {
       const displayName = userName?.trim() || normalizedEmail.split("@")[0];
       const randomPass = await bcrypt.hash(String(Date.now()) + normalizedEmail, SALT_ROUNDS);
-
       user = await UserModel.create({
         email: normalizedEmail,
-        userName: null, // Google users don't have a username initially
         displayName,
         password: randomPass,
         profileImage,
