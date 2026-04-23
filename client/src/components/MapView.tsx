@@ -1,20 +1,38 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { FeedApi, Post } from '../services/api-feed';
 import { API_BASE_URL } from '../services/api';
 import styles from '../styles/MapView.module.css';
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
+const markerIcon2x = require('leaflet/dist/images/marker-icon-2x.png');
+const markerIcon = require('leaflet/dist/images/marker-icon.png');
+const markerShadow = require('leaflet/dist/images/marker-shadow.png');
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIcon,
-  shadowUrl: markerShadow,
+  iconRetinaUrl: markerIcon2x.default || markerIcon2x,
+  iconUrl: markerIcon.default || markerIcon,
+  shadowUrl: markerShadow.default || markerShadow,
+});
+
+const customMarkerIcon = L.divIcon({
+  className: '',
+  html: `
+    <div style="
+      width: 28px;
+      height: 28px;
+      background: #00bc8b;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      border: 3px solid #fff;
+      box-shadow: 0 3px 10px rgba(0,188,139,0.45);
+    "></div>
+  `,
+  iconSize: [28, 28],
+  iconAnchor: [14, 28],
+  popupAnchor: [0, -30],
 });
 
 function timeAgo(dateStr: string): string {
@@ -53,24 +71,11 @@ function LocationMarker({ posts }: { posts: Post[] }) {
   const city = post.location?.placeName || post.authorUserId.address?.city;
 
   return (
-    <Marker position={[lat, lng]}>
-      <Popup minWidth={210} maxWidth={230} className={styles.leafletPopup}>
+    <Marker position={[lat, lng]} icon={customMarkerIcon}>
+      <Popup minWidth={360} maxWidth={400} className={styles.leafletPopup}>
         <div className={styles.popupCard}>
 
-          {/* User row */}
-          <div className={styles.popupUserRow}>
-            {avatarUrl ? (
-              <img src={avatarUrl} alt={post.authorUserId.displayName} className={styles.popupAvatar} />
-            ) : (
-              <div className={styles.popupAvatarFallback}>{initial}</div>
-            )}
-            <div className={styles.popupUserInfo}>
-              <span className={styles.popupAuthorName}>{post.authorUserId.displayName}</span>
-              {city && <span className={styles.popupCity}>{city}</span>}
-            </div>
-          </div>
-
-          {/* Image */}
+          {/* Image - Full width at top */}
           {imageUrl && !imgErr && (
             <img
               src={imageUrl}
@@ -80,26 +85,40 @@ function LocationMarker({ posts }: { posts: Post[] }) {
             />
           )}
 
-          {/* Title */}
-          <p className={styles.popupTitle}>{post.title}</p>
+          <div className={styles.popupContent}>
+            {/* User row */}
+            <div className={styles.popupUserRow}>
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={post.authorUserId.displayName} className={styles.popupAvatar} />
+              ) : (
+                <div className={styles.popupAvatarFallback}>{initial}</div>
+              )}
+              <div className={styles.popupUserInfo}>
+                <span className={styles.popupAuthorName}>{post.authorUserId.displayName}</span>
+                {city && <span className={styles.popupCity}>{city}</span>}
+              </div>
+            </div>
 
-          {/* Description */}
-          {post.text && <p className={styles.popupText}>{post.text}</p>}
+            {/* Title */}
+            <p className={styles.popupTitle}>{post.title}</p>
 
-          {/* Likes & comments */}
-          <div className={styles.popupStats}>
-            <span className={styles.popupStat}>
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-              {post.likesCount}
-            </span>
-            <span className={styles.popupStat}>
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              {post.commentsCount}
-            </span>
-            <span className={styles.popupTime}>{timeAgo(post.createdAt)}</span>
+            {/* Description */}
+            {post.text && <p className={styles.popupText}>{post.text}</p>}
+
+            {/* Likes & comments */}
+            <div className={styles.popupStats}>
+              <span className={styles.popupStat}>
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                {post.likesCount}
+              </span>
+              <span className={styles.popupStat}>
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                {post.commentsCount}
+              </span>
+            </div>
           </div>
 
-          {/* Navigation */}
+          {/* Navigation - Only shown if multiple posts */}
           {multi && (
             <div className={styles.popupNav}>
               <button className={styles.navBtn} onClick={prev} aria-label="Previous post">‹</button>
@@ -113,8 +132,27 @@ function LocationMarker({ posts }: { posts: Post[] }) {
   );
 }
 
-export function MapView() {
-  const [posts, setPosts] = useState<Post[]>([]);
+function FitBounds({ posts }: { posts: Post[] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (posts.length === 0) return;
+    if (posts.length === 1) {
+      const [lng, lat] = posts[0].location!.coordinates;
+      map.setView([lat, lng], 10);
+      return;
+    }
+    const lats = posts.map(p => p.location!.coordinates[1]);
+    const lngs = posts.map(p => p.location!.coordinates[0]);
+    const bounds = L.latLngBounds(
+      [Math.min(...lats), Math.min(...lngs)],
+      [Math.max(...lats), Math.max(...lngs)]
+    );
+    map.fitBounds(bounds, { padding: [50, 50], maxZoom: 10 });
+  }, [posts, map]);
+  return null;
+}
+
+export function MapView() {  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -167,7 +205,7 @@ export function MapView() {
       )}
       <MapContainer
         center={mapCenter}
-        zoom={posts.length === 1 ? 8 : 2}
+        zoom={2}
         className={styles.map}
         scrollWheelZoom={true}
       >
@@ -175,6 +213,7 @@ export function MapView() {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        <FitBounds posts={posts} />
         {locationGroups.map((group, i) => (
           <LocationMarker key={i} posts={group} />
         ))}
