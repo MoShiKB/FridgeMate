@@ -3,8 +3,9 @@ import { FiCheckCircle, IoArrowBack, IoPersonOutline, FiCamera } from "./icons";
 import { useEffect, useRef, useState } from "react";
 import { tokenManager } from "../services/api";
 import { ProfileApi } from "../services/api-profile";
-import { colors } from "../styles/colors";
 import axios from "axios";
+import '../styles/MyProfileScreen.module.css';
+
 const dietOptions = [
   { label: "None", emoji: "" },
   { label: "Vegetarian", emoji: "🥘" },
@@ -49,6 +50,7 @@ function MyProfileScreen({ onBack = () => window.history.back() }: MyProfileScre
   const [isLoading, setIsLoading] = useState(true);
   const [showSaveToast, setShowSaveToast] = useState(false);
   const [img,setImg] = useState<string | null>(null);
+
 useEffect(() => {
   if (!currentUserId) return;
 
@@ -145,43 +147,6 @@ if (isLoading) return (
 );
   return (
     <div style={styles.page}>
-      <style>{`
-        input[type="radio"],
-        input[type="checkbox"] {
-          appearance: none;
-          -webkit-appearance: none;
-          width: 16px;
-          height: 16px;
-          cursor: pointer;
-          border: 2px solid #d0d0d0;
-          border-radius: ${styles.radioRow.borderRadius || '4px'};
-          margin-right: 4px;
-          transition: all 0.2s ease;
-          background-color: white;
-          background-size: 10px;
-          background-position: center;
-          background-repeat: no-repeat;
-        }
-        
-        input[type="radio"] {
-          border-radius: 50%;
-        }
-        
-        input[type="checkbox"]:hover,
-        input[type="radio"]:hover {
-          border-color: #00bc90;
-        }
-        
-        input[type="checkbox"]:checked,
-        input[type="radio"]:checked {
-          background-color: #00bc90;
-          border-color: #00bc90;
-        }
-        
-        input[type="checkbox"]:checked {
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
-        }
-      `}</style>
   {error && <div style={styles.error}>{error}</div>}
       {/* Header */}
       <div style={styles.header}>
@@ -203,7 +168,7 @@ if (isLoading) return (
               <div style={styles.avatarCircle}>
                 {avatarUrl
                   ? <img src={avatarUrl} alt="profile" style={styles.avatarImg} />
-                  : <IoPersonOutline size={80} color="#bbb" />
+                  : <IoPersonOutline {...iconProps.personIcon} />
                 }
               </div>
               <button style={styles.cameraBtn} onClick={() => fileInputRef.current?.click()}>

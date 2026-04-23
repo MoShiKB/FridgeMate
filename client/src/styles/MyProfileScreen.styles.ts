@@ -209,5 +209,9 @@ export const iconProps = {
   cameraIcon: {
     size: 18,
     color: colors.white,
-  },
+  },  
+    personIcon: { 
+      size: 80, 
+      color: "#bbb" 
+    },
 };
