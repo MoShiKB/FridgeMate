@@ -3,14 +3,11 @@ import { useEffect, useState } from "react";
 import { FridgeApi } from '../services/api-settings';
 import { tokenManager } from '../services/api';
 import { useRef } from "react";
-/*icons*/
-import { IoPeopleOutline ,IoArrowBack, IoSend, IoClose} from "react-icons/io5";
-import { FiCamera,FiCheckCircle } from "react-icons/fi";
-import { TbFridgeOff, TbUpload } from "react-icons/tb";
-import { FaRegCopy } from "react-icons/fa";
-import { SlLogout } from "react-icons/sl";
 
-{/*texts*/}
+/*icons*/
+import { IoPeopleOutline, IoArrowBack, IoSend, IoClose, FiCamera, FiCheckCircle, TbFridgeOff, 
+  TbUpload, FaRegCopy, SlLogout } from "./icons";
+         
 const fridgeScannerText ="Upload photos of your fridge contents and we'll automatically detect items and add them to your inventory.";
 
 interface Member {
