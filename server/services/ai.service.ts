@@ -318,27 +318,57 @@ Format:
     },
 
 
-    /**
-     * Checks if a specific item is considered "running low" based on quantity and household size.
-     */
+    // Detects fridge items from a photo.
     async detectFridgeItems(imageBuffer: Buffer, mimeType: string): Promise<{ name: string; quantity: string }[]> {
         const base64Image = imageBuffer.toString('base64');
 
-        const prompt = `You are a smart kitchen assistant. Analyze this photo of the inside of a fridge (or of food items).
-Identify every distinct food item you can see in the image. For each item, estimate its quantity in a human-friendly format (e.g. "2", "1 bag", "500ml", "half a block").
+        const prompt = `You are a smart kitchen assistant. This photo is supposed to show the inside of a fridge, a pantry shelf, a countertop with groceries, or a set of food/grocery items that someone wants to log into their fridge inventory.
 
-Respond with ONLY a JSON array of objects. Each object must have:
-- "name": the food item name (lowercase, singular form preferred, e.g. "egg" not "eggs")
-- "quantity": estimated quantity as a string
+STEP 1 — Classify the image. Choose EXACTLY ONE value for "imageIssue":
 
-Example:
-[
-  { "name": "egg", "quantity": "6" },
-  { "name": "milk", "quantity": "1 liter" },
-  { "name": "cheddar cheese", "quantity": "1 block" }
-]
+"not_a_fridge" — the image does NOT clearly show a fridge interior, pantry shelf, countertop with groceries, or packaged/unpackaged food items. Use this for:
+  • animals (cats, dogs, fish, sharks, birds, any wildlife or pet)
+  • people, faces, selfies, body parts
+  • landscapes, sky, outdoor scenes, buildings, vehicles
+  • electronics, clothing, furniture, tools, documents
+  • empty rooms, walls, floors
+  • abstract images, screenshots, memes, drawings
+  • cooked/plated meals on a restaurant table (this is a plate of food, not a fridge inventory)
+  • anything that is not raw/packaged food items in a storage context
 
-If no food items are visible, return an empty array: []`;
+"too_blurry" — the image DOES show a fridge/shelf/food, but it is so out of focus or motion-blurred that individual items cannot be reliably identified.
+
+"too_dark" — the image DOES show a fridge/shelf/food, but lighting is so poor that items cannot be seen.
+
+null — the image clearly shows a fridge interior, a pantry/shelf, a countertop with groceries, or a group of food/grocery items that you can identify.
+
+BE STRICT. If the subject is anything other than food-storage content (e.g. a shark, a sunset, a person), set imageIssue to "not_a_fridge" even if there happens to be a fridge in the background. When in doubt between null and "not_a_fridge", choose "not_a_fridge" — it's better to ask the user for a better photo than to hallucinate items.
+
+STEP 2 — If and only if imageIssue is null, list every distinct food item you can identify. For each item give:
+- "name": lowercase, singular where natural (e.g. "egg" not "eggs", "tomato" not "tomatoes")
+- "quantity": a SHORT, DEFINITE string. See quantity rules below.
+
+QUANTITY RULES — read carefully, these are strict:
+1. NEVER use hedge words or approximations. BANNED words and symbols: "about", "approximately", "approx", "around", "roughly", "circa", "ca.", "~", "maybe", "some", "several", "a few", "a couple", "or so", "ish", "plus or minus", "more or less".
+2. Pick ONE concrete value. If you cannot see the exact count, PICK YOUR BEST SINGLE INTEGER based on what's visible (e.g. write "6" not "about 6" or "5-7"). Do not output ranges.
+3. If the item is in an obvious standard package (bottle, carton, bag, jar, can, box, loaf, block), count the packages: "1 bottle", "2 cartons", "1 bag". Do not add "about" in front.
+4. For liquids or bulk goods, give a definite number + unit: "500ml", "1 liter", "250g". Never "approximately 500ml".
+5. For unavoidably fuzzy items (e.g. a pile of peppercorns) use a short non-hedged descriptor like "small pile", "handful", "partial bag" — never "some peppercorns" or "a few peppercorns".
+
+GOOD quantities: "6", "1 bottle", "2 cartons", "500ml", "1 loaf", "small pile", "half a block".
+BAD quantities (NEVER produce these): "about 6", "approximately 1 liter", "~500ml", "around 2 cartons", "a few eggs", "some milk", "5-7", "6 or 7".
+
+If imageIssue is NOT null, "items" MUST be an empty array.
+An empty "items" array with imageIssue = null is valid and means the fridge is genuinely empty of visible food.
+
+Respond with ONLY a JSON object in this EXACT shape (no prose, no markdown):
+{
+  "imageIssue": null | "too_blurry" | "not_a_fridge" | "too_dark",
+  "items": [
+    { "name": "egg", "quantity": "6" },
+    { "name": "milk", "quantity": "1 liter" }
+  ]
+}`;
 
         try {
             const response = await ai.models.generateContent({
@@ -362,26 +392,14 @@ If no food items are visible, return an empty array: []`;
             const textContent = response.text ?? '';
             if (!textContent) throw new ApiError(502, 'No response from AI');
 
-            let cleanedText = textContent.trim();
-            const codeBlockMatch = cleanedText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-            if (codeBlockMatch) cleanedText = codeBlockMatch[1];
-            const jsonMatch = cleanedText.match(/\[[\s\S]*\]/);
-            if (jsonMatch) {
-                cleanedText = jsonMatch[0];
-            } else if (cleanedText.includes('[')) {
-                cleanedText = cleanedText.substring(cleanedText.indexOf('['));
-                cleanedText = cleanedText.replace(/,\s*$/, '');
-                // Remove any incomplete trailing object like { "name": "egg"
-                cleanedText = cleanedText.replace(/,?\s*\{[^}]*$/, '');
-                cleanedText += ']';
+            const parsed = parseScanResponse(textContent);
+
+            if (parsed.imageIssue) {
+                throw new ApiError(400, badImageMessage(parsed.imageIssue), 'BAD_SCAN_IMAGE');
             }
-            cleanedText = cleanedText.replace(/,\s*([}\]])/g, '$1');
 
-            const items = JSON.parse(cleanedText);
-            if (!Array.isArray(items)) throw new ApiError(502, 'AI did not return an array');
-
-            return items
-                .filter((item: any) => item.name && item.quantity)
+            return parsed.items
+                .filter((item: any) => item && item.name && item.quantity)
                 .map((item: any) => ({
                     name: String(item.name).trim(),
                     quantity: String(item.quantity).trim(),
@@ -522,6 +540,65 @@ Each object must match this structure exactly:
 "difficulty" MUST be exactly one of: "Easy", "Medium", or "Hard".`;
 
     return prompt;
+}
+
+type ScanImageIssue = 'too_blurry' | 'not_a_fridge' | 'too_dark';
+
+interface ScanAIResponse {
+    imageIssue: ScanImageIssue | null;
+    items: { name: string; quantity: string }[];
+}
+
+function badImageMessage(issue: ScanImageIssue): string {
+    switch (issue) {
+        case 'too_blurry':
+            return 'The photo is too blurry to detect items. Please retake with a clearer shot.';
+        case 'not_a_fridge':
+            return "This doesn't look like a fridge or food. Please upload a photo of your fridge contents.";
+        case 'too_dark':
+            return 'The photo is too dark to detect items. Please retake with better lighting.';
+    }
+}
+
+// Parses the AI scan response. Accepts the canonical { imageIssue, items } shape,
+// but falls back to a raw JSON array for resilience (the model occasionally drops
+// the wrapper object even when asked not to).
+function parseScanResponse(text: string): ScanAIResponse {
+    let cleaned = text.trim();
+
+    const codeBlockMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (codeBlockMatch) cleaned = codeBlockMatch[1].trim();
+
+    let parsed: any;
+    try {
+        parsed = JSON.parse(cleaned);
+    } catch {
+        const objMatch = cleaned.match(/\{[\s\S]*\}/);
+        const arrMatch = cleaned.match(/\[[\s\S]*\]/);
+        const candidate = objMatch?.[0] ?? arrMatch?.[0];
+        if (!candidate) throw new ApiError(502, 'AI did not return valid JSON');
+        try {
+            parsed = JSON.parse(candidate.replace(/,\s*([}\]])/g, '$1'));
+        } catch {
+            throw new ApiError(502, 'AI did not return valid JSON');
+        }
+    }
+
+    if (Array.isArray(parsed)) {
+        return { imageIssue: null, items: parsed };
+    }
+
+    if (parsed && typeof parsed === 'object') {
+        const rawIssue = parsed.imageIssue;
+        const imageIssue: ScanImageIssue | null =
+            rawIssue === 'too_blurry' || rawIssue === 'not_a_fridge' || rawIssue === 'too_dark'
+                ? rawIssue
+                : null;
+        const items = Array.isArray(parsed.items) ? parsed.items : [];
+        return { imageIssue, items };
+    }
+
+    throw new ApiError(502, 'AI returned an unexpected response shape');
 }
 
 function parseRecipeResponse(text: string): GeneratedRecipe[] {
