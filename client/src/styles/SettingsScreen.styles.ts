@@ -12,6 +12,37 @@ export const styles: Record<string, CSSProperties> = {
     background:colors.white,
     borderBottom: `1px solid ${colors.bordwhite}`,
   },
+  headerContent: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    width: "100%",
+  },
+  logoAndTitle: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+  },
+  headerLogo: {
+    width: 32,
+    height: 32,
+    objectFit: "contain",
+    flexShrink: 0,
+  },
+  headerTitleContainer: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 0,
+  },
+  headerAppName: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: "#00bc90",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    margin: 0,
+  },
   backBtn: {
     background: "none",
     border: "none",

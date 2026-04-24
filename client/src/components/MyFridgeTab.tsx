@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import styles from '../styles/MyFridgeTab.module.css';
 import { FridgeApi, FridgeDto } from '../services/api-fridge';
 import { InventoryItemApi, InventoryItemDto } from '../services/api-inventory';
@@ -12,12 +12,17 @@ type State =
   | { status: 'notLoggedIn' }
   | { status: 'error'; message: string };
 
-export function MyFridgeTab() {
+export const MyFridgeTab = forwardRef(function MyFridgeTab(_, ref) {
   const [state, setState] = useState<State>({ status: 'loading' });
+  const [lastScannedAt, setLastScannedAt] = useState<string | null>(null);
 
   useEffect(() => {
     loadItems();
   }, []);
+
+  useImperativeHandle(ref, () => ({
+    loadItems,
+  }));
 
   const loadItems = async () => {
     try {
@@ -36,6 +41,9 @@ export function MyFridgeTab() {
         setState({ status: 'noFridge' });
         return;
       }
+
+      // Store lastScannedAt from fridge data
+      setLastScannedAt((fridge as any).lastScannedAt || null);
 
       // Extract fridge ID (MongoDB returns _id, not id)
       const fridgeId = fridge.id || fridge._id;
@@ -126,6 +134,12 @@ export function MyFridgeTab() {
   if (state.status === 'empty') {
     return (
       <div className={styles.myFridgeTab}>
+        {/* Last Scanned Info */}
+        {lastScannedAt && (
+          <div style={{ padding: '6px 16px', fontSize: '12px', color: '#888', borderBottom: '1px solid #f0f0f0' }}>
+            last updated on {lastScannedAt}
+          </div>
+        )}
         <div className={styles.emptyState}>
           <div className={styles.emptyStateIcon}>🧊</div>
           <h3 className={styles.emptyStateTitle}>Your fridge is empty</h3>
@@ -141,6 +155,13 @@ export function MyFridgeTab() {
 
   return (
     <div className={styles.myFridgeTab}>
+      {/* Last Scanned Info */}
+      {lastScannedAt && (
+        <div style={{ padding: '6px 16px', fontSize: '12px', color: '#888', borderBottom: '1px solid #f0f0f0' }}>
+          last updated on {lastScannedAt}
+        </div>
+      )}
+
       {/* Running Low Alert */}
       {lowItems.length > 0 && (
         <div className={styles.runningLowSection}>
@@ -179,5 +200,5 @@ export function MyFridgeTab() {
       </div>
     </div>
   );
-}
+});
 

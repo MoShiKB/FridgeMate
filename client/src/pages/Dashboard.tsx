@@ -34,6 +34,7 @@ export function Dashboard() {
   const [chatUserName, setChatUserName] = useState('');
   const menuRef = useRef<HTMLDivElement>(null);
   const tabContentRef = useRef<HTMLDivElement>(null);
+  const myFridgeTabRef = useRef<{ loadItems: () => void }>(null);
   const currentUserId = getCurrentUserId();
 const [showScanToast, setShowScanToast] = useState(false);
   // Fetch user data function (can be called anytime)
@@ -176,8 +177,12 @@ const [showScanToast, setShowScanToast] = useState(false);
 
   return (
     <div className={styles.dashboard}>
-      {/* Header with welcome message and profile */}
+      {/* Header with logo, app name, welcome message and profile */}
       <div className={styles.header}>
+        <div className={styles.logoSection}>
+          <img src="/assets/images/logo.png" alt="FridgeMate" className={styles.logo} />
+          <span className={styles.appName}>FridgeMate</span>
+        </div>
         <div className={styles.userInfo}>
           <h1 className={styles.welcomeText}>
             Welcome back, <span className={styles.userName}>{user.name}</span> 👋
@@ -270,7 +275,7 @@ const [showScanToast, setShowScanToast] = useState(false);
       {/* Tab Content */}
       <div className={styles.tabContent} ref={tabContentRef}>
         {activeTab === 'feed' && <FeedTab />}
-        {activeTab === 'myFridge' && <MyFridgeTab />}
+        {activeTab === 'myFridge' && <MyFridgeTab ref={myFridgeTabRef} />}
         {activeTab === 'recipes' && <RecipesTab onPostShared={() => setActiveTab('feed')} />}
       </div>
 
@@ -287,6 +292,8 @@ const [showScanToast, setShowScanToast] = useState(false);
   onScanComplete={() => {
     setShowScanToast(true);
     setTimeout(() => setShowScanToast(false), 3000);
+    // Refresh My Fridge Tab data when scan completes successfully
+    myFridgeTabRef.current?.loadItems();
   }}/>
         </div>
       )}

@@ -9,6 +9,37 @@ import cookingAnimation from '../cooking_loading.json';
 
 type TabType = 'recommended' | 'favorites';
 
+// Sanitize server error messages to show only user-friendly generic messages
+function sanitizeErrorMessage(error: string): string {
+  const lowerError = error.toLowerCase();
+  
+  // Token/quota errors
+  if (lowerError.includes('token') || lowerError.includes('quota') || lowerError.includes('429')) {
+    return 'We ran out of recipe generation capacity. Please try again later.';
+  }
+  
+  // Network/connection errors
+  if (lowerError.includes('enotfound') || lowerError.includes('econnrefused') || 
+      lowerError.includes('network') || lowerError.includes('not reachable') ||
+      lowerError.includes('connect') || lowerError.includes('timeout') ||
+      lowerError.includes('mongodb')) {
+    return 'Unable to connect to the service. Please check your connection and try again.';
+  }
+  
+  // Database errors
+  if (lowerError.includes('database') || lowerError.includes('db') || lowerError.includes('server')) {
+    return 'Service temporarily unavailable. Please try again later.';
+  }
+  
+  // Authorization errors
+  if (lowerError.includes('unauthorized') || lowerError.includes('forbidden') || lowerError.includes('401') || lowerError.includes('403')) {
+    return 'Please log in again and try.';
+  }
+  
+  // Generic fallback
+  return 'Something went wrong. Please try again.';
+}
+
 const ClockIcon = () => (
   <svg viewBox="0 0 960 960" fill="currentColor">
     <path d="M340.5,811.5Q275,783 226,734Q177,685 148.5,619.5Q120,554 120,480Q120,436 130,394.5Q140,353 159,316.5Q178,280 204.5,248.5Q231,217 264,192L536,464L480,520L264,304Q234,340 217,384.5Q200,429 200,480Q200,596 282,678Q364,760 480,760Q596,760 678,678Q760,596 760,480Q760,373 691.5,295.5Q623,218 520,204L520,280L440,280L440,120Q450,120 460,120Q470,120 480,120Q554,120 619.5,148.5Q685,177 734,226Q783,275 811.5,340.5Q840,406 840,480Q840,554 811.5,619.5Q783,685 734,734Q685,783 619.5,811.5Q554,840 480,840Q406,840 340.5,811.5ZM251.5,508.5Q240,497 240,480Q240,463 251.5,451.5Q263,440 280,440Q297,440 308.5,451.5Q320,463 320,480Q320,497 308.5,508.5Q297,520 280,520Q263,520 251.5,508.5ZM451.5,708.5Q440,697 440,680Q440,663 451.5,651.5Q463,640 480,640Q497,640 508.5,651.5Q520,663 520,680Q520,697 508.5,708.5Q497,720 480,720Q463,720 451.5,708.5ZM651.5,508.5Q640,497 640,480Q640,463 651.5,451.5Q663,440 680,440Q697,440 708.5,451.5Q720,463 720,480Q720,497 708.5,508.5Q697,520 680,520Q663,520 651.5,508.5Z" />
@@ -165,10 +196,12 @@ const [loadingRecommended, setLoadingRecommended] = useState(() => loadCachedRec
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [tipIndex, setTipIndex] = useState(0);
   const [fadeOut, setFadeOut] = useState(false);
+  const [recommendedError, setRecommendedError] = useState<string | null>(null);
   const hasLoadedRef = useRef(recommended.length > 0);
 
   const loadRecommended = useCallback(async () => {
     setLoadingRecommended(true);
+    setRecommendedError(null);
     setError(null);
     try {
       const recipes = await RecipeApi.getRecommended();
@@ -176,7 +209,9 @@ const [loadingRecommended, setLoadingRecommended] = useState(() => loadCachedRec
       saveCachedRecipes(recipes);
       hasLoadedRef.current = true;
     } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to generate recipes');
+      const errorMsg = err?.response?.data?.message || err?.message || 'Failed to generate recipes. Please try again.';
+      setRecommendedError(errorMsg);
+      setError(errorMsg);
     } finally {
       setLoadingRecommended(false);
     }
@@ -274,6 +309,7 @@ useEffect(() => {
   };
   const isLoading = activeTab === 'recommended' ? loadingRecommended : loadingFavorites;
   const currentList = activeTab === 'recommended' ? recommended : favorites;
+  const currentError = activeTab === 'recommended' ? recommendedError : error;
 
   // Detail view
   if (selectedRecipe) {
@@ -324,30 +360,73 @@ useEffect(() => {
   </div>
 )}
 
-        {!isLoading && error && (
-          <div className={styles.errorState}>
-            <p>{error}</p>
-            <button className={styles.retryBtn} onClick={activeTab === 'recommended' ? loadRecommended : loadFavorites}>
-              Try again
+        {!isLoading && activeTab === 'recommended' && recommendedError && (
+          <div className={styles.emptyState}>
+            <div className={styles.emptyIcon}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '56px', height: '56px', color: '#f54444' }}>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <circle cx="12" cy="16" r="0.5" fill="currentColor" />
+              </svg>
+            </div>
+            <p className={styles.emptyTitle}>Couldn't Generate Recipes</p>
+            <p className={styles.emptyDesc} style={{ marginBottom: '24px' }}>
+              {sanitizeErrorMessage(recommendedError)}
+            </p>
+            <button className={styles.retryBtn} onClick={loadRecommended} style={{ marginTop: '16px' }}>
+              Try Again
             </button>
           </div>
         )}
 
-        {!isLoading && !error && currentList.length === 0 && (
+        {!isLoading && activeTab === 'favorites' && error && (
           <div className={styles.emptyState}>
-            <div className={styles.emptyIcon}>{activeTab === 'recommended' ? '🧊' : '⭐'}</div>
+            <div className={styles.emptyIcon}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '56px', height: '56px', color: '#f54444' }}>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <circle cx="12" cy="16" r="0.5" fill="currentColor" />
+              </svg>
+            </div>
+            <p className={styles.emptyTitle}>Couldn't Load Favorites</p>
+            <p className={styles.emptyDesc} style={{ marginBottom: '24px' }}>{sanitizeErrorMessage(error)}</p>
+            <button className={styles.retryBtn} onClick={loadFavorites} style={{ marginTop: '16px' }}>
+              Try Again
+            </button>
+          </div>
+        )}
+
+        {!isLoading && !recommendedError && currentList.length === 0 && (
+          <div className={styles.emptyState}>
+            <div className={styles.emptyIcon}>
+              {activeTab === 'recommended' ? (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '56px', height: '56px', color: '#00bc8b' }}>
+                  <path d="M4 9h16v10c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2V9z" />
+                  <path d="M8 9V7c0-1.1.9-2 2-2h4c1.1 0 2 .9 2 2v2M10 13v4M14 13v4M7 13h10" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '56px', height: '56px', color: '#f5c518' }}>
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+              )}
+            </div>
             <p className={styles.emptyTitle}>
-              {activeTab === 'recommended' ? 'No fridge items found' : 'No favorites yet'}
+              {activeTab === 'recommended' ? 'No Recipes Yet' : 'No Favorites Yet'}
             </p>
-            <p className={styles.emptyDesc}>
+            <p className={styles.emptyDesc} style={{ marginBottom: '24px' }}>
               {activeTab === 'recommended'
                 ? 'Add ingredients to your fridge to get recipe recommendations'
                 : 'Save recipes from the Recommended tab'}
             </p>
+            {activeTab === 'recommended' && (
+              <button className={styles.retryBtn} onClick={loadRecommended} style={{ marginTop: '16px' }}>
+                Generate Recipes
+              </button>
+            )}
           </div>
         )}
 
-        {!isLoading && !error && currentList.length > 0 && (
+        {!isLoading && !recommendedError && !error && currentList.length > 0 && (
           <Masonry
             breakpointCols={{
               default: 3,
@@ -371,7 +450,7 @@ useEffect(() => {
       </div>
 
       {/* Floating generate button */}
-      {activeTab === 'recommended' && !isLoading && (
+      {activeTab === 'recommended' && !isLoading && !recommendedError && (
         <button className={styles.generateBtn} onClick={loadRecommended}>
           Generate New Recipes
         </button>

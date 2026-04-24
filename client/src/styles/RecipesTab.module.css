@@ -400,7 +400,14 @@
   width: 100%;
 }
 
-.emptyIcon { font-size: 56px; line-height: 1; }
+.emptyIcon { 
+  font-size: 56px; 
+  line-height: 1; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
 
 .emptyTitle {
   font-size: 17px;

@@ -33,6 +33,7 @@ const [hasFridge, setHasFridge] = useState(false);
 const [fridgeName, setFridgeName] = useState(""); 
 const [currentFridgeName, setCurrentFridgeName] = useState("");
 const [inviteCode, setInviteCode] = useState("");
+const [lastScannedAt, setLastScannedAt] = useState<string | null>(null);
 const fridgeScanInputRef = useRef<HTMLInputElement>(null);
 const [isScanning, setIsScanning] = useState(false);
 const [scanErrorMsg, setScanErrorMsg] = useState<string | null>(null);
@@ -66,6 +67,7 @@ useEffect(() => {
     setHasFridge(true);
     setInviteCode(res.data.data.inviteCode);
     setCurrentFridgeName(res.data.data.name);
+    setLastScannedAt(res.data.data.lastScannedAt || null);
     setIsLoading(false);
   })
 .catch((err) => {
@@ -191,6 +193,11 @@ const handleSendScan = async () => {
   if (successCount > 0 && lastChanges) {
     setScanChanges(lastChanges);
     setScanPhotoCount(successCount);
+    // Refresh fridge data to get updated lastScannedAt
+    const { request } = FridgeApi.getMyFridge();
+    request.then((res) => {
+      setLastScannedAt(res.data.data.lastScannedAt || null);
+    }).catch((err) => console.error('Error refreshing fridge:', err));
     onScanComplete?.();
   }
 
@@ -225,10 +232,18 @@ if (isLoading) return (
     <div style={styles.page}>
       {/* Header */}
       <div style={styles.header}>
-        <button style={styles.backBtn} onClick={onBack}>
-          <IoArrowBack {...iconProps.backIcon} />
-        </button>
-        <h1 style={styles.title}>Settings</h1>
+        <div style={styles.headerContent}>
+          <button style={styles.backBtn} onClick={onBack}>
+            <IoArrowBack {...iconProps.backIcon} />
+          </button>
+          <div style={styles.logoAndTitle}>
+            <img src="/assets/images/logo.png" alt="FridgeMate" style={styles.headerLogo} />
+            <div style={styles.headerTitleContainer}>
+              <span style={styles.headerAppName}>FridgeMate</span>
+              <h1 style={styles.title}>Settings</h1>
+            </div>
+          </div>
+        </div>
       </div>
       
 {/*check if user has fridge*/}
@@ -296,7 +311,14 @@ if (isLoading) return (
     <div style={styles.card}>
       <div style={styles.menuRow}>
         <FiCamera {...iconProps.cameraIcon} />
-        <span style={styles.menuRowText}>Fridge Scanner</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <span style={styles.menuRowText}>Fridge Scanner</span>
+          {lastScannedAt && (
+            <span style={{ fontSize: '12px', color: '#888', fontWeight: 'normal' }}>
+              last updated on {lastScannedAt}
+            </span>
+          )}
+        </div>
       </div>
 
       <div style={styles.scannerBody}>
