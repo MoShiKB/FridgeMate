@@ -256,6 +256,7 @@ function PostCard({ post, currentUserId, onDeleted, onUpdated }: PostCardProps) 
       onFavoriteToggle={() => {}}
       isFavoriting={false}
       onPostShared={() => {}}
+      hideShareBtn={true}
     />
   </div>
 )}
