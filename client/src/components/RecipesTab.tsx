@@ -353,6 +353,9 @@ useEffect(() => {
       <>
         <Lottie animationData={cookingAnimation} loop autoplay style={{ width: '200px', height: '200px' }} />
         <h2 className={styles.loadingTitle}>Generating recipes from your fridge…</h2>
+        <p className={`${styles.loadingTip} ${fadeOut ? styles.tipFadeOut : styles.tipFadeIn}`}>
+          {COOKING_TIPS[tipIndex]}
+        </p>
       </>
     ) : (
       <div className={styles.spinner} />
