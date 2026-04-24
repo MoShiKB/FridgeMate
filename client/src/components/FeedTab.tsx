@@ -6,6 +6,8 @@ import { ProfileApi } from '../services/api-profile';
 import { API_BASE_URL } from '../services/api';
 import { MapView } from './MapView';
 import styles from '../styles/FeedTab.module.css';
+import { RecipeApi, Recipe } from '../services/api-recipes';
+import { RecipeDetailView } from './RecipeDetailView';
 
 function getUserIdFromToken(): string | null {
   const token = tokenManager.getAccessToken();
@@ -73,7 +75,8 @@ function PostCard({ post, currentUserId, onDeleted, onUpdated }: PostCardProps) 
   const [imageErr, setImageErr] = useState(false);
   const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-
+  const [recipeToView, setRecipeToView] = useState<Recipe | null>(null);
+  const [loadingRecipe, setLoadingRecipe] = useState(false);
   useEffect(() => {
     if (currentUserId) {
       ProfileApi.getMyProfile(currentUserId).request
@@ -223,7 +226,40 @@ function PostCard({ post, currentUserId, onDeleted, onUpdated }: PostCardProps) 
         )}
         <p className={styles.postText}>{post.text}</p>
       </div>
+{post.recipeId && (
+  <div className={styles.recipePreview} onClick={async () => {
+    setLoadingRecipe(true);
+    try {
+      const recipe = await RecipeApi.getById((post.recipeId as any)._id);
+      setRecipeToView(recipe);
+    } catch {}
+    setLoadingRecipe(false);
+  }} style={{ cursor: 'pointer' }}>
+    {post.recipeId.imageUrl && (
+      <img 
+        src={post.recipeId.imageUrl.startsWith('http') ? post.recipeId.imageUrl : `${API_BASE_URL}${post.recipeId.imageUrl}`}
+        alt={post.recipeId.title}
+        className={styles.recipePreviewImg}
+      />
+    )}
+    <span className={styles.recipePreviewTitle}>
+      🍽️ {loadingRecipe ? 'Loading…' : post.recipeId.title}
+    </span>
+  </div>
+)}
 
+{recipeToView && (
+<div className={styles.recipeDetailOverlay}>
+    <RecipeDetailView
+      recipe={recipeToView}
+      onBack={() => setRecipeToView(null)}
+      onFavoriteToggle={() => {}}
+      isFavoriting={false}
+      onPostShared={() => {}}
+      hideShareBtn={true}
+    />
+  </div>
+)}
       <div className={styles.postActions}>
         <button
           className={`${styles.actionBtn} ${isLiked ? styles.liked : ''}`}

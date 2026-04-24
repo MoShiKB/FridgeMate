@@ -158,7 +158,7 @@ export function RecipesTab({ onPostShared }: { onPostShared: () => void }) {
   const [activeTab, setActiveTab] = useState<TabType>('recommended');
   const [recommended, setRecommended] = useState<Recipe[]>(loadCachedRecipes);
   const [favorites, setFavorites] = useState<Recipe[]>([]);
-  const [loadingRecommended, setLoadingRecommended] = useState(false);
+const [loadingRecommended, setLoadingRecommended] = useState(() => loadCachedRecipes().length === 0);
   const [loadingFavorites, setLoadingFavorites] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [favoritingId, setFavoritingId] = useState<string | null>(null);
@@ -182,26 +182,40 @@ export function RecipesTab({ onPostShared }: { onPostShared: () => void }) {
     }
   }, []);
 
-  const loadFavorites = useCallback(async () => {
-    setLoadingFavorites(true);
-    setError(null);
-    try {
-  const data = await RecipeApi.getFavorites();
-setFavorites(data.items.map(r => ({ ...r, isFavorited: true })));
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to load favorites');
-    } finally {
-      setLoadingFavorites(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (activeTab === 'recommended' && !hasLoadedRef.current) {
-      loadRecommended();
-    } else if (activeTab === 'favorites') {
-      loadFavorites();
-    }
-  }, [activeTab, loadRecommended, loadFavorites]);
+const loadFavorites = useCallback(async () => {
+  setLoadingFavorites(true);
+  setError(null);
+  try {
+    const data = await RecipeApi.getFavorites();
+    const favItems = data.items.map(r => ({ ...r, isFavorited: true }));
+    setFavorites(favItems);
+    
+    const favIds = new Set(favItems.map(r => r._id));
+    setRecommended(prev => prev.map(r => ({ 
+      ...r, 
+      isFavorited: favIds.has(r._id) 
+    })));
+  } catch (err: any) {
+    setError(err?.response?.data?.message || err?.message || 'Failed to load favorites');
+  } finally {
+    setLoadingFavorites(false);
+  }
+}, []);
+useEffect(() => {
+  if (activeTab === 'recommended' && !hasLoadedRef.current) {
+    loadRecommended();
+  } else if (activeTab === 'favorites') {
+    loadFavorites();
+  } else if (activeTab === 'recommended' && hasLoadedRef.current) {
+    RecipeApi.getFavorites().then(data => {
+      const favIds = new Set(data.items.map((r: any) => r._id));
+      setRecommended(prev => prev.map(r => ({
+        ...r,
+        isFavorited: favIds.has(r._id)
+      })));
+    }).catch(() => {});
+  }
+}, [activeTab, loadRecommended, loadFavorites]);
 
   // Cycle through cooking tips every 4 seconds
   useEffect(() => {
@@ -297,17 +311,18 @@ setFavorites(data.items.map(r => ({ ...r, isFavorited: true })));
       </div>
 
       <div className={styles.content}>
-        {isLoading && (
-          <div className={styles.loadingState}>
-            <Lottie animationData={cookingAnimation} loop autoplay style={{ width: '200px', height: '200px' }} />
-            <h2 className={styles.loadingTitle}>
-              {activeTab === 'recommended' ? 'Generating recipes from your fridge…' : 'Loading favorites…'}
-            </h2>
-            <p className={`${styles.loadingTip} ${fadeOut ? styles.tipFadeOut : styles.tipFadeIn}`}>
-              {COOKING_TIPS[tipIndex]}
-            </p>
-          </div>
-        )}
+{isLoading && (
+  <div className={styles.loadingState}>
+    {activeTab === 'recommended' ? (
+      <>
+        <Lottie animationData={cookingAnimation} loop autoplay style={{ width: '200px', height: '200px' }} />
+        <h2 className={styles.loadingTitle}>Generating recipes from your fridge…</h2>
+      </>
+    ) : (
+      <div className={styles.spinner} />
+    )}
+  </div>
+)}
 
         {!isLoading && error && (
           <div className={styles.errorState}>

@@ -103,7 +103,7 @@ export const FeedApi = {
       return res.data.data as Comment;
     }),
 
-  createPost: (data: { title: string; text: string; mediaUrls?: string[]; location?: { lat: number; lng: number; placeName?: string } }) =>
+  createPost: (data: { title: string; text: string; mediaUrls?: string[]; location?: { lat: number; lng: number; placeName?: string };recipeId?: string; }) =>
     withRefresh(async () => {
       const res = await axios.post(`${API_BASE_URL}/posts`, data, auth());
       return res.data.data as Post;
