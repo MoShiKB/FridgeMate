@@ -159,7 +159,7 @@ export function MyFridgeTab() {
       <div className={styles.itemsGrid}>
         {allItems.map((item) => (
           <div
-            key={item.id}
+            key={item.id || item._id}
             className={`${styles.itemCard} ${item.isRunningLow ? styles.lowStock : ''}`}
           >
             <div className={styles.itemHeader}>
