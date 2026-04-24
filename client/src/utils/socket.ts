@@ -1,11 +1,13 @@
 import { io, Socket } from 'socket.io-client';
 import { API_BASE_URL, tokenManager } from '../services/api';
 
+const SOCKET_URL = new URL(API_BASE_URL).origin;
+
 let socket: Socket | null = null;
 
 export function getSocket(): Socket {
   if (!socket) {
-    socket = io(API_BASE_URL, {
+    socket = io(SOCKET_URL, {
       auth: { token: tokenManager.getAccessToken() },
       autoConnect: false,
     });
