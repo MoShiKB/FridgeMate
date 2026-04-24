@@ -25,9 +25,10 @@ interface Member {
 
 interface SettingsScreenProps {
   onBack?: () => void;
+   onScanComplete?: () => void;
 }
 
-function SettingsScreen({ onBack = () => window.history.back() }: SettingsScreenProps) {
+function SettingsScreen({ onBack = () => window.history.back(), onScanComplete }: SettingsScreenProps) {
 const [hasFridge, setHasFridge] = useState(false);
 const [fridgeName, setFridgeName] = useState(""); 
 const [currentFridgeName, setCurrentFridgeName] = useState("");
@@ -190,6 +191,7 @@ const handleSendScan = async () => {
   if (successCount > 0 && lastChanges) {
     setScanChanges(lastChanges);
     setScanPhotoCount(successCount);
+    onScanComplete?.();
   }
 
   if (failureReasons.length > 0) {
