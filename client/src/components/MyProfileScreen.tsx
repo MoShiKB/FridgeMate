@@ -201,8 +201,8 @@ if (isLoading) return (
               <input
                 style={styles.input}
                 value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Location"
+                readOnly
+                placeholder="Detecting location…"
               />
             </div>
           </div>

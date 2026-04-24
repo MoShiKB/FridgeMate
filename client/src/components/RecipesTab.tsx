@@ -124,6 +124,23 @@ function RecipeCard({
   );
 }
 
+const RECIPE_CACHE_KEY = 'fridgemate_cached_recipes';
+
+function loadCachedRecipes(): Recipe[] {
+  try {
+    const raw = localStorage.getItem(RECIPE_CACHE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCachedRecipes(recipes: Recipe[]) {
+  try {
+    localStorage.setItem(RECIPE_CACHE_KEY, JSON.stringify(recipes));
+  } catch {}
+}
+
 const COOKING_TIPS = [
   'A pinch of salt can enhance sweetness in desserts',
   'Let meat rest after cooking for juicier results',
@@ -139,7 +156,7 @@ const COOKING_TIPS = [
 
 export function RecipesTab({ onPostShared }: { onPostShared: () => void }) {
   const [activeTab, setActiveTab] = useState<TabType>('recommended');
-  const [recommended, setRecommended] = useState<Recipe[]>([]);
+  const [recommended, setRecommended] = useState<Recipe[]>(loadCachedRecipes);
   const [favorites, setFavorites] = useState<Recipe[]>([]);
   const [loadingRecommended, setLoadingRecommended] = useState(false);
   const [loadingFavorites, setLoadingFavorites] = useState(false);
@@ -148,7 +165,7 @@ export function RecipesTab({ onPostShared }: { onPostShared: () => void }) {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [tipIndex, setTipIndex] = useState(0);
   const [fadeOut, setFadeOut] = useState(false);
-  const hasGeneratedRef = useRef(false);
+  const hasLoadedRef = useRef(recommended.length > 0);
 
   const loadRecommended = useCallback(async () => {
     setLoadingRecommended(true);
@@ -156,7 +173,8 @@ export function RecipesTab({ onPostShared }: { onPostShared: () => void }) {
     try {
       const recipes = await RecipeApi.getRecommended();
       setRecommended(recipes);
-      hasGeneratedRef.current = true;
+      saveCachedRecipes(recipes);
+      hasLoadedRef.current = true;
     } catch (err: any) {
       setError(err?.response?.data?.message || err?.message || 'Failed to generate recipes');
     } finally {
@@ -178,7 +196,7 @@ setFavorites(data.items.map(r => ({ ...r, isFavorited: true })));
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'recommended' && !hasGeneratedRef.current) {
+    if (activeTab === 'recommended' && !hasLoadedRef.current) {
       loadRecommended();
     } else if (activeTab === 'favorites') {
       loadFavorites();

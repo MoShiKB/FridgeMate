@@ -369,11 +369,33 @@
 }
 .commentAuthor { font-size: 12px; font-weight: 600; color: #1a1a1a; }
 .commentText { font-size: 13px; color: #333; }
+.commentOwnerActions { display: flex; align-items: center; gap: 2px; align-self: center; }
+.editCommentBtn {
+  background: none; border: none; cursor: pointer;
+  color: #ccc; font-size: 12px; padding: 3px;
+}
+.editCommentBtn:hover { color: #00bc8b; }
 .deleteCommentBtn {
   background: none; border: none; cursor: pointer;
-  color: #ccc; font-size: 11px; padding: 3px; align-self: center;
+  color: #ccc; font-size: 11px; padding: 3px;
 }
 .deleteCommentBtn:hover { color: #e74c3c; }
+.commentEditRow { display: flex; flex-direction: column; gap: 4px; }
+.commentEditInput {
+  padding: 4px 8px; border: 1px solid #00bc8b; border-radius: 8px;
+  font-size: 13px; outline: none; font-family: inherit; background: #fff;
+}
+.commentEditActions { display: flex; gap: 6px; }
+.commentSaveBtn {
+  padding: 3px 10px; background: #00bc8b; border: none; border-radius: 10px;
+  color: #fff; font-size: 11px; font-weight: 600; cursor: pointer;
+}
+.commentSaveBtn:disabled { opacity: 0.4; cursor: default; }
+.commentCancelBtn {
+  padding: 3px 10px; background: none; border: 1px solid #ddd; border-radius: 10px;
+  color: #666; font-size: 11px; cursor: pointer;
+}
+.commentCancelBtn:hover { border-color: #aaa; }
 .commentForm { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
 .commentInput {
   flex: 1; padding: 7px 12px;
