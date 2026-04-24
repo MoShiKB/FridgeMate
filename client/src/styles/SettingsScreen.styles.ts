@@ -667,6 +667,14 @@ memberAvatarImg: {
   borderRadius: '50%',
   objectFit: 'cover' as const,
 },
+scanSpinner: {
+  width: 24,
+  height: 24,
+  borderRadius: '50%',
+  border: '3px solid rgba(255,255,255,0.3)',
+  borderTop: '3px solid #fff',
+  animation: 'spin 0.8s linear infinite',
+},
 };
 
 export const iconProps = {

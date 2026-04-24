@@ -8,7 +8,7 @@ import { Chat, UserListPage } from '../components/chat';
 import styles from '../styles/Dashboard.module.css';
 import { ProfileApi } from '../services/api-profile';
 import { tokenManager } from '../services/api';
-
+import { FiCheckCircle } from '../components/icons';
 function getCurrentUserId(): string | null {
   const token = tokenManager.getAccessToken();
   if (!token) return null;
@@ -35,7 +35,7 @@ export function Dashboard() {
   const menuRef = useRef<HTMLDivElement>(null);
   const tabContentRef = useRef<HTMLDivElement>(null);
   const currentUserId = getCurrentUserId();
-
+const [showScanToast, setShowScanToast] = useState(false);
   // Fetch user data function (can be called anytime)
   const fetchUserData = async () => {
     try {
@@ -282,7 +282,12 @@ export function Dashboard() {
       )}
       {currentView === 'settings' && (
         <div className={styles.overlay}>
-          <SettingsScreen onBack={handleBack} />
+       <SettingsScreen 
+  onBack={handleBack}
+  onScanComplete={() => {
+    setShowScanToast(true);
+    setTimeout(() => setShowScanToast(false), 3000);
+  }}/>
         </div>
       )}
 
@@ -309,6 +314,12 @@ export function Dashboard() {
           onGoBack={() => { setIsChatOpen(false); setIsUserListOpen(true); }}
         />
       )}
+{showScanToast && (
+  <div className={styles.scanToast}>
+    <FiCheckCircle size={24} />
+    <span className={styles.scanToastText}>Items added to your fridge!</span>
+  </div>
+)}
     </div>
   );
 }

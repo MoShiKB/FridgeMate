@@ -25,9 +25,10 @@ interface Member {
 
 interface SettingsScreenProps {
   onBack?: () => void;
+   onScanComplete?: () => void;
 }
 
-function SettingsScreen({ onBack = () => window.history.back() }: SettingsScreenProps) {
+function SettingsScreen({ onBack = () => window.history.back(), onScanComplete }: SettingsScreenProps) {
 const [hasFridge, setHasFridge] = useState(false);
 const [fridgeName, setFridgeName] = useState(""); 
 const [currentFridgeName, setCurrentFridgeName] = useState("");
@@ -190,6 +191,7 @@ const handleSendScan = async () => {
   if (successCount > 0 && lastChanges) {
     setScanChanges(lastChanges);
     setScanPhotoCount(successCount);
+    onScanComplete?.();
   }
 
   if (failureReasons.length > 0) {
@@ -219,8 +221,8 @@ if (isLoading) return (
 );
   return (
     <div>
+    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     <div style={styles.page}>
-
       {/* Header */}
       <div style={styles.header}>
         <button style={styles.backBtn} onClick={onBack}>
@@ -342,7 +344,11 @@ if (isLoading) return (
               </div>
             ))}
             <button style={styles.sendScanBtn} onClick={handleSendScan}>
-              {isScanning ? '...' : <IoSend {...iconProps.sendIcon} />}
+{isScanning ? (
+  <div style={styles.scanSpinner} />
+) : (
+  <IoSend {...iconProps.sendIcon} />
+)}
             </button>
           </div>
         )}
