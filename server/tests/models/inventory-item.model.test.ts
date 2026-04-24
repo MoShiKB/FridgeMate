@@ -20,7 +20,7 @@ describe('InventoryItemModel', () => {
             expect(json).toHaveProperty('id');
             expect(json).not.toHaveProperty('_id');
             expect(json).not.toHaveProperty('__v');
-            expect(json.id).toBe(item._id.toString());
+            expect((json as any).id).toBe(item._id.toString());
         });
     });
 
