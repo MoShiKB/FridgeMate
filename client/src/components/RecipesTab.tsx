@@ -311,17 +311,18 @@ useEffect(() => {
       </div>
 
       <div className={styles.content}>
-        {isLoading && (
-          <div className={styles.loadingState}>
-            <Lottie animationData={cookingAnimation} loop autoplay style={{ width: '200px', height: '200px' }} />
-            <h2 className={styles.loadingTitle}>
-              {activeTab === 'recommended' ? 'Generating recipes from your fridge…' : 'Loading favorites…'}
-            </h2>
-            <p className={`${styles.loadingTip} ${fadeOut ? styles.tipFadeOut : styles.tipFadeIn}`}>
-              {COOKING_TIPS[tipIndex]}
-            </p>
-          </div>
-        )}
+{isLoading && (
+  <div className={styles.loadingState}>
+    {activeTab === 'recommended' ? (
+      <>
+        <Lottie animationData={cookingAnimation} loop autoplay style={{ width: '200px', height: '200px' }} />
+        <h2 className={styles.loadingTitle}>Generating recipes from your fridge…</h2>
+      </>
+    ) : (
+      <div className={styles.spinner} />
+    )}
+  </div>
+)}
 
         {!isLoading && error && (
           <div className={styles.errorState}>
