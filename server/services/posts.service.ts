@@ -37,10 +37,13 @@ export class PostsService {
     }
     if (opts.near?.lat !== undefined && opts.near?.lng !== undefined) {
       const radiusMeters = (opts.near.radiusKm ?? 50) * 1000;
+      const EARTH_RADIUS_METERS = 6378137;
       q.location = {
-        $near: {
-          $geometry: { type: "Point", coordinates: [opts.near.lng, opts.near.lat] },
-          $maxDistance: radiusMeters,
+        $geoWithin: {
+          $centerSphere: [
+            [opts.near.lng, opts.near.lat],
+            radiusMeters / EARTH_RADIUS_METERS,
+          ],
         },
       };
     }
