@@ -68,6 +68,8 @@ function PostCard({ post, currentUserId, onDeleted, onUpdated }: PostCardProps) 
   const [submitting, setSubmitting] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState('');
   const [imageErr, setImageErr] = useState(false);
   const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -126,6 +128,20 @@ function PostCard({ post, currentUserId, onDeleted, onUpdated }: PostCardProps) 
       await FeedApi.deleteComment(post._id, commentId);
       setComments(prev => prev.filter(c => c._id !== commentId));
       setCommentCount(c => c - 1);
+    } catch {}
+  };
+
+  const handleStartEditComment = (comment: Comment) => {
+    setEditingCommentId(comment._id);
+    setEditingText(comment.text);
+  };
+
+  const handleSaveEditComment = async (commentId: string) => {
+    if (!editingText.trim()) return;
+    try {
+      await FeedApi.updateComment(post._id, commentId, editingText.trim());
+      setComments(prev => prev.map(c => c._id === commentId ? { ...c, text: editingText.trim() } : c));
+      setEditingCommentId(null);
     } catch {}
   };
 
@@ -234,10 +250,32 @@ function PostCard({ post, currentUserId, onDeleted, onUpdated }: PostCardProps) 
               <Avatar src={comment.authorUserId.profileImage} name={comment.authorUserId.displayName} size={22} />
               <div className={styles.commentBubble}>
                 <span className={styles.commentAuthor}>{comment.authorUserId.displayName}</span>
-                <span className={styles.commentText}>{comment.text}</span>
+                {editingCommentId === comment._id ? (
+                  <div className={styles.commentEditRow}>
+                    <input
+                      className={styles.commentEditInput}
+                      value={editingText}
+                      onChange={e => setEditingText(e.target.value)}
+                      autoFocus
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') handleSaveEditComment(comment._id);
+                        if (e.key === 'Escape') setEditingCommentId(null);
+                      }}
+                    />
+                    <div className={styles.commentEditActions}>
+                      <button className={styles.commentSaveBtn} onClick={() => handleSaveEditComment(comment._id)} disabled={!editingText.trim()}>Save</button>
+                      <button className={styles.commentCancelBtn} onClick={() => setEditingCommentId(null)}>Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <span className={styles.commentText}>{comment.text}</span>
+                )}
               </div>
-              {comment.isOwner && (
-                <button className={styles.deleteCommentBtn} onClick={() => handleDeleteComment(comment._id)}>✕</button>
+              {comment.isOwner && editingCommentId !== comment._id && (
+                <div className={styles.commentOwnerActions}>
+                  <button className={styles.editCommentBtn} onClick={() => handleStartEditComment(comment)}>✎</button>
+                  <button className={styles.deleteCommentBtn} onClick={() => handleDeleteComment(comment._id)}>✕</button>
+                </div>
               )}
             </div>
           ))}
@@ -395,7 +433,17 @@ interface CreatePostModalProps {
   onClose: () => void;
 }
 
-async function getLocation(): Promise<{ lat: number; lng: number } | null> {
+async function reverseGeocode(lat: number, lng: number): Promise<string | undefined> {
+  try {
+    const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`);
+    const data = await res.json();
+    return data.city || data.locality || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function getLocation(): Promise<{ lat: number; lng: number; placeName?: string } | null> {
   // Try precise browser geolocation first
   if (navigator.geolocation) {
     const browserLoc = await new Promise<{ lat: number; lng: number } | null>(resolve => {
@@ -405,13 +453,19 @@ async function getLocation(): Promise<{ lat: number; lng: number } | null> {
         { timeout: 5000, maximumAge: 60000 }
       );
     });
-    if (browserLoc) return browserLoc;
+    if (browserLoc) {
+      const placeName = await reverseGeocode(browserLoc.lat, browserLoc.lng);
+      return { ...browserLoc, placeName };
+    }
   }
   // Fallback: IP-based approximate location (no permission needed)
   try {
     const res = await fetch('https://ipapi.co/json/');
     const data = await res.json();
-    if (data.latitude && data.longitude) return { lat: data.latitude, lng: data.longitude };
+    if (data.latitude && data.longitude) {
+      const placeName = data.city || undefined;
+      return { lat: data.latitude, lng: data.longitude, placeName };
+    }
   } catch {}
   return null;
 }
@@ -423,7 +477,7 @@ function CreatePostModal({ onCreated, onClose }: CreatePostModalProps) {
   const [locationStatus, setLocationStatus] = useState<'loading' | 'ready' | 'denied'>('loading');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const locationRef = useRef<{ lat: number; lng: number } | null>(null);
+  const locationRef = useRef<{ lat: number; lng: number; placeName?: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {

@@ -111,10 +111,8 @@ export const AuthService = {
         activeFridgeId: null,
       });
     } else {
-      const updates: any = {};
-      if (profileImage && user.profileImage !== profileImage) updates.profileImage = profileImage;
-      if (Object.keys(updates).length) {
-        await UserModel.updateOne({ _id: user._id }, { $set: updates });
+      if (profileImage && !user.profileImage) {
+        user.profileImage = profileImage;
       }
     }
 

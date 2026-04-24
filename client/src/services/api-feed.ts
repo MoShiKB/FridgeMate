@@ -97,6 +97,12 @@ export const FeedApi = {
   deleteComment: (postId: string, commentId: string) =>
     withRefresh(() => axios.delete(`${API_BASE_URL}/posts/${postId}/comments/${commentId}`, auth())),
 
+  updateComment: (postId: string, commentId: string, text: string) =>
+    withRefresh(async () => {
+      const res = await axios.put(`${API_BASE_URL}/posts/${postId}/comments/${commentId}`, { text }, auth());
+      return res.data.data as Comment;
+    }),
+
   createPost: (data: { title: string; text: string; mediaUrls?: string[]; location?: { lat: number; lng: number; placeName?: string } }) =>
     withRefresh(async () => {
       const res = await axios.post(`${API_BASE_URL}/posts`, data, auth());
