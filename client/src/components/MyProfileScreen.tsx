@@ -3,7 +3,6 @@ import { FiCheckCircle, IoArrowBack, IoPersonOutline, FiCamera } from "./icons";
 import { useEffect, useRef, useState } from "react";
 import { tokenManager } from "../services/api";
 import { ProfileApi } from "../services/api-profile";
-import axios from "axios";
 import '../styles/MyProfileScreen.module.css';
 
 const dietOptions = [
@@ -44,12 +43,11 @@ function MyProfileScreen({ onBack = () => window.history.back() }: MyProfileScre
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fullName, setFullName] = useState("");
-  const [location, setLocation] = useState("");
+  const [email, setEmail] = useState("");
   const currentUserId = getUserIdFromToken();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showSaveToast, setShowSaveToast] = useState(false);
-  const [img,setImg] = useState<string | null>(null);
 
 useEffect(() => {
   if (!currentUserId) return;
@@ -60,22 +58,12 @@ useEffect(() => {
 
   request.then((res) => {
     setFullName(res.data.displayName || '');
+    setEmail(res.data.email || '');
     setSelectedAllergies(res.data.allergies || []);
     setIsLoading(false);
     if (res.data.profileImage) setAvatarUrl(res.data.profileImage);
     const dietIndex = dietOptions.findIndex(d => d.label.toUpperCase() === res.data.dietPreference);
     setSelectedDiet(dietIndex >= 0 ? dietIndex : 0);
-
-    if (res.data.address?.city) {
-      setLocation(res.data.address.city);
-    } else {
-      navigator.geolocation?.getCurrentPosition((position) => {
-        const { latitude, longitude } = position.coords;
-        axios.get(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`)
-          .then(r => setLocation(r.data.city || r.data.locality || ''))
-          .catch(() => {});
-      });
-    }
   })
   .catch((err) => {
     if (err.name === 'CanceledError') {
@@ -129,7 +117,6 @@ const onSave = async () => {
       allergies: selectedAllergies,
     };
     if (fullName.trim()) dataToSend.displayName = fullName.trim();
-    if (location.trim()) dataToSend.address = { city: location.trim() };
     await ProfileApi.updateMyProfile(currentUserId, dataToSend);
     setShowSaveToast(true);
     setTimeout(() => {
@@ -197,12 +184,12 @@ if (isLoading) return (
             </div>
 
             <div style={styles.formRow}>
-              <label style={styles.label}>Location</label>
+              <label style={styles.label}>Email</label>
               <input
                 style={styles.input}
-                value={location}
-                readOnly
-                placeholder="Detecting location…"
+                value={email}
+                disabled
+                placeholder="Email"
               />
             </div>
           </div>
