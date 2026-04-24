@@ -182,26 +182,40 @@ export function RecipesTab({ onPostShared }: { onPostShared: () => void }) {
     }
   }, []);
 
-  const loadFavorites = useCallback(async () => {
-    setLoadingFavorites(true);
-    setError(null);
-    try {
-  const data = await RecipeApi.getFavorites();
-setFavorites(data.items.map(r => ({ ...r, isFavorited: true })));
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to load favorites');
-    } finally {
-      setLoadingFavorites(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (activeTab === 'recommended' && !hasLoadedRef.current) {
-      loadRecommended();
-    } else if (activeTab === 'favorites') {
-      loadFavorites();
-    }
-  }, [activeTab, loadRecommended, loadFavorites]);
+const loadFavorites = useCallback(async () => {
+  setLoadingFavorites(true);
+  setError(null);
+  try {
+    const data = await RecipeApi.getFavorites();
+    const favItems = data.items.map(r => ({ ...r, isFavorited: true }));
+    setFavorites(favItems);
+    
+    const favIds = new Set(favItems.map(r => r._id));
+    setRecommended(prev => prev.map(r => ({ 
+      ...r, 
+      isFavorited: favIds.has(r._id) 
+    })));
+  } catch (err: any) {
+    setError(err?.response?.data?.message || err?.message || 'Failed to load favorites');
+  } finally {
+    setLoadingFavorites(false);
+  }
+}, []);
+useEffect(() => {
+  if (activeTab === 'recommended' && !hasLoadedRef.current) {
+    loadRecommended();
+  } else if (activeTab === 'favorites') {
+    loadFavorites();
+  } else if (activeTab === 'recommended' && hasLoadedRef.current) {
+    RecipeApi.getFavorites().then(data => {
+      const favIds = new Set(data.items.map((r: any) => r._id));
+      setRecommended(prev => prev.map(r => ({
+        ...r,
+        isFavorited: favIds.has(r._id)
+      })));
+    }).catch(() => {});
+  }
+}, [activeTab, loadRecommended, loadFavorites]);
 
   // Cycle through cooking tips every 4 seconds
   useEffect(() => {
