@@ -221,8 +221,8 @@ if (isLoading) return (
 );
   return (
     <div>
+    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     <div style={styles.page}>
-
       {/* Header */}
       <div style={styles.header}>
         <button style={styles.backBtn} onClick={onBack}>
@@ -344,7 +344,11 @@ if (isLoading) return (
               </div>
             ))}
             <button style={styles.sendScanBtn} onClick={handleSendScan}>
-              {isScanning ? '...' : <IoSend {...iconProps.sendIcon} />}
+{isScanning ? (
+  <div style={styles.scanSpinner} />
+) : (
+  <IoSend {...iconProps.sendIcon} />
+)}
             </button>
           </div>
         )}
