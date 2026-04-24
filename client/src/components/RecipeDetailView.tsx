@@ -92,6 +92,7 @@ function ShareModal({ recipe, onClose, onPostShared }: ShareModalProps) {
         text: text.trim(),
         ...(recipeImageUrl ? { mediaUrls: [recipeImageUrl] } : {}),
         ...(location ? { location } : {}),
+        recipeId: recipe._id,
       });
       setDone(true);
       setTimeout(() => { onClose(); onPostShared(); }, 1000);
@@ -155,9 +156,10 @@ interface RecipeDetailViewProps {
   onFavoriteToggle: (recipe: Recipe) => void;
   isFavoriting: boolean;
   onPostShared: () => void;
+  hideShareBtn?: boolean;
 }
 
-export function RecipeDetailView({ recipe, onBack, onFavoriteToggle, isFavoriting, onPostShared }: RecipeDetailViewProps) {
+export function RecipeDetailView({ recipe, onBack, onFavoriteToggle, isFavoriting, onPostShared, hideShareBtn = false }: RecipeDetailViewProps) {
   const [showShare, setShowShare] = useState(false);
 
   const hasNutrition = recipe.nutrition && (
@@ -274,11 +276,12 @@ export function RecipeDetailView({ recipe, onBack, onFavoriteToggle, isFavoritin
         </div>
       )}
 
-      <button className={styles.shareBtn} onClick={() => setShowShare(true)}>
-        <ShareArrowIcon />
-        Share your creation
-      </button>
-
+{!hideShareBtn && (
+  <button className={styles.shareBtn} onClick={() => setShowShare(true)}>
+    <ShareArrowIcon />
+    Share your creation
+  </button>
+)}
       {showShare && (
         <ShareModal recipe={recipe} onClose={() => setShowShare(false)} onPostShared={onPostShared} />
       )}
