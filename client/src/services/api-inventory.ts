@@ -5,7 +5,8 @@ import { PaginatedResponse } from './api-fridge';
 const getToken = () => localStorage.getItem('accessToken');
 
 export interface InventoryItemDto {
-  id: string;
+  id?: string;
+  _id?: string;
   fridgeId: string;
   ownerId: string;
   name: string;
