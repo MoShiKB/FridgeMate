@@ -34,24 +34,36 @@ const ShareArrowIcon = () => (
     <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
   </svg>
 );
+async function getLocation(): Promise<{ lat: number; lng: number; placeName?: string } | null> {
+  let coords: { lat: number; lng: number } | null = null;
 
-async function getLocation(): Promise<{ lat: number; lng: number } | null> {
   if (navigator.geolocation) {
-    const loc = await new Promise<{ lat: number; lng: number } | null>(resolve => {
+    coords = await new Promise(resolve => {
       navigator.geolocation.getCurrentPosition(
-        ({ coords }) => resolve({ lat: coords.latitude, lng: coords.longitude }),
+        ({ coords: c }) => resolve({ lat: c.latitude, lng: c.longitude }),
         () => resolve(null),
         { timeout: 5000, maximumAge: 60000 }
       );
     });
-    if (loc) return loc;
   }
+
+  if (!coords) {
+    try {
+      const res = await fetch('https://ipapi.co/json/');
+      const data = await res.json();
+      if (data.latitude && data.longitude) coords = { lat: data.latitude, lng: data.longitude };
+    } catch {}
+  }
+
+  if (!coords) return null;
+
   try {
-    const res = await fetch('https://ipapi.co/json/');
+    const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${coords.lat}&longitude=${coords.lng}&localityLanguage=en`);
     const data = await res.json();
-    if (data.latitude && data.longitude) return { lat: data.latitude, lng: data.longitude };
+    return { ...coords, placeName: data.city || data.locality || undefined };
   } catch {}
-  return null;
+
+  return coords;
 }
 
 interface ShareModalProps {
