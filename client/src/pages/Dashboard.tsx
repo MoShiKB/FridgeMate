@@ -177,8 +177,12 @@ const [showScanToast, setShowScanToast] = useState(false);
 
   return (
     <div className={styles.dashboard}>
-      {/* Header with welcome message and profile */}
+      {/* Header with logo, app name, welcome message and profile */}
       <div className={styles.header}>
+        <div className={styles.logoSection}>
+          <img src="/assets/images/logo.png" alt="FridgeMate" className={styles.logo} />
+          <span className={styles.appName}>FridgeMate</span>
+        </div>
         <div className={styles.userInfo}>
           <h1 className={styles.welcomeText}>
             Welcome back, <span className={styles.userName}>{user.name}</span> 👋

@@ -137,10 +137,18 @@ if (isLoading) return (
   {error && <div style={styles.error}>{error}</div>}
       {/* Header */}
       <div style={styles.header}>
-        <button style={styles.backBtn} onClick={onBack}>
-          <IoArrowBack {...iconProps.backIcon} />
-        </button>
-        <h1 style={styles.title}>My Profile</h1>
+        <div style={styles.headerContent}>
+          <button style={styles.backBtn} onClick={onBack}>
+            <IoArrowBack {...iconProps.backIcon} />
+          </button>
+          <div style={styles.logoAndTitle}>
+            <img src="/assets/images/logo.png" alt="FridgeMate" style={styles.headerLogo} />
+            <div style={styles.headerTitleContainer}>
+              <span style={styles.headerAppName}>FridgeMate</span>
+              <h1 style={styles.title}>My Profile</h1>
+            </div>
+          </div>
+        </div>
       </div>
 
     {/* Two Column Section: Personal Info + Dietary Preferences */}
