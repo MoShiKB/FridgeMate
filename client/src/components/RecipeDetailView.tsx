@@ -157,9 +157,10 @@ interface RecipeDetailViewProps {
   isFavoriting: boolean;
   onPostShared: () => void;
   hideShareBtn?: boolean;
+  hideTopBar?: boolean;
 }
 
-export function RecipeDetailView({ recipe, onBack, onFavoriteToggle, isFavoriting, onPostShared, hideShareBtn = false }: RecipeDetailViewProps) {
+export function RecipeDetailView({ recipe, onBack, onFavoriteToggle, isFavoriting, onPostShared, hideShareBtn = false, hideTopBar = false }: RecipeDetailViewProps) {
   const [showShare, setShowShare] = useState(false);
 
   const hasNutrition = recipe.nutrition && (
@@ -174,12 +175,14 @@ export function RecipeDetailView({ recipe, onBack, onFavoriteToggle, isFavoritin
     <div className={styles.detailView}>
 
       {/* Top bar */}
-      <div className={styles.topBar}>
-        <button className={styles.topBackBtn} onClick={onBack} title="Back"><BackIcon /></button>
-        <button className={styles.topStarBtn} onClick={() => onFavoriteToggle(recipe)} disabled={isFavoriting} title={recipe.isFavorited ? 'Remove from favorites' : 'Save'}>
-          <StarIcon filled={!!recipe.isFavorited} />
-        </button>
-      </div>
+      {!hideTopBar && (
+        <div className={styles.topBar}>
+          <button className={styles.topBackBtn} onClick={onBack} title="Back"><BackIcon /></button>
+          <button className={styles.topStarBtn} onClick={() => onFavoriteToggle(recipe)} disabled={isFavoriting} title={recipe.isFavorited ? 'Remove from favorites' : 'Save'}>
+            <StarIcon filled={!!recipe.isFavorited} />
+          </button>
+        </div>
+      )}
 
       {/* Header card: image left + info right */}
       <div className={styles.headerCard}>

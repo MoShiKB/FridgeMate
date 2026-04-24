@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import ReactDOM from 'react-dom';
 import Masonry from 'react-masonry-css';
 import { tokenManager } from '../services/api';
 import { FeedApi, Post, Comment } from '../services/api-feed';
@@ -259,16 +260,7 @@ function PostCard({ post, currentUserId, onDeleted, onUpdated }: PostCardProps) 
 )}
 
 {recipeToView && (
-<div className={styles.recipeDetailOverlay}>
-    <RecipeDetailView
-      recipe={recipeToView}
-      onBack={() => setRecipeToView(null)}
-      onFavoriteToggle={() => {}}
-      isFavoriting={false}
-      onPostShared={() => {}}
-      hideShareBtn={true}
-    />
-  </div>
+  <RecipeModal recipe={recipeToView} onClose={() => setRecipeToView(null)} />
 )}
       <div className={styles.postActions}>
         <button
@@ -636,6 +628,93 @@ function CreatePostModal({ onCreated, onClose }: CreatePostModalProps) {
   );
 }
 
+interface RecipeModalProps {
+  recipe: Recipe;
+  onClose: () => void;
+}
+
+function RecipeModal({ recipe: initialRecipe, onClose }: RecipeModalProps) {
+  const [recipe, setRecipe] = useState<Recipe>(initialRecipe);
+  const [isFavoriting, setIsFavoriting] = useState(false);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [onClose]);
+
+  const handleToggleFavorite = async () => {
+    if (isFavoriting) return;
+    const wasFavorited = !!recipe.isFavorited;
+    const newFavorited = !wasFavorited;
+
+    // Optimistic update
+    setRecipe(r => ({ ...r, isFavorited: newFavorited }));
+    setIsFavoriting(true);
+    try {
+      if (wasFavorited) {
+        await RecipeApi.removeFavorite(recipe._id);
+      } else {
+        await RecipeApi.addFavorite(recipe._id);
+      }
+    } catch (err) {
+      console.error('Favorite error:', err);
+      setRecipe(r => ({ ...r, isFavorited: wasFavorited }));
+    } finally {
+      setIsFavoriting(false);
+    }
+  };
+
+  const isFavorited = !!recipe.isFavorited;
+
+  return ReactDOM.createPortal(
+    <div className={styles.recipeModalOverlay} onClick={onClose}>
+      <div className={styles.recipeModalContent} onClick={e => e.stopPropagation()}>
+        <div className={styles.recipeModalActions}>
+          <button
+            className={`${styles.recipeModalFavorite} ${isFavorited ? styles.recipeModalFavoriteActive : ''}`}
+            onClick={handleToggleFavorite}
+            disabled={isFavoriting}
+            aria-label={isFavorited ? 'Remove from favorites' : 'Save to favorites'}
+            title={isFavorited ? 'Remove from favorites' : 'Save to favorites'}
+          >
+            <svg viewBox="0 0 24 24" width="20" height="20" fill={isFavorited ? '#f5c518' : 'none'} stroke={isFavorited ? '#f5c518' : 'currentColor'} strokeWidth={2}>
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+          </button>
+          <button
+            className={styles.recipeModalClose}
+            onClick={onClose}
+            aria-label="Close"
+            title="Close"
+          >
+            ×
+          </button>
+        </div>
+        <div className={styles.recipeModalBody}>
+          <RecipeDetailView
+            recipe={recipe}
+            onBack={onClose}
+            onFavoriteToggle={handleToggleFavorite}
+            isFavoriting={isFavoriting}
+            onPostShared={() => {}}
+            hideShareBtn={true}
+            hideTopBar={true}
+          />
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 type FeedMode = 'all' | 'mine' | 'nearby';
 
 export function FeedTab() {
@@ -788,11 +867,7 @@ export function FeedTab() {
   };
 
   return (
-    <div 
-      ref={scrollContainerRef}
-      className={feedMode === 'nearby' ? styles.feedTabMap : styles.feedTab}
-      style={{ overflow: feedMode === 'nearby' ? 'hidden' : 'auto', height: '100%' }}
-    >
+    <div className={styles.feedTabRoot}>
       {/* Filter pill tabs */}
       <div className={styles.pillContainer}>
         <div className={styles.pillTabs}>
@@ -817,57 +892,62 @@ export function FeedTab() {
         </div>
       </div>
 
-      {/* Map view */}
-      {feedMode === 'nearby' ? (
-        <MapView />
-      ) : loading ? (
-        <div className={styles.loadingState}>
-          <div className={styles.spinner} />
-        </div>
-      ) : error ? (
-        <div className={styles.errorState}>
-          <p className={styles.errorText}>{error}</p>
-          <button className={styles.retryBtn} onClick={() => { setPage(1); loadPosts(feedMode, 1); }}>Try again</button>
-        </div>
-      ) : posts.length === 0 ? (
-        <div className={styles.emptyState}>
-          <div className={styles.emptyIcon}>🍽️</div>
-          <p>{feedMode === 'mine' ? "You haven't posted anything yet." : 'No posts yet. Be the first to share!'}</p>
-        </div>
-      ) : (
-        <>
-          <Masonry
-            breakpointCols={{
-              default: 2,
-              900: 1
-            }}
-            className={styles.masonryGrid}
-            columnClassName={styles.masonryColumn}
-          >
-            {posts.map(post => (
-              <PostCard
-                key={post._id}
-                post={post}
-                currentUserId={currentUserId}
-                onDeleted={handlePostDeleted}
-                onUpdated={handlePostUpdated}
-              />
-            ))}
-          </Masonry>
-          
-          {loadingMore && (
-            <div className={styles.loadMoreSpinner}>
-              <div className={styles.spinner} />
-            </div>
-          )}
-          
-          {!hasMore && posts.length > 0 && (
-            <div className={styles.endMessage}>
-              <p>You've reached the end!</p>
-            </div>
-          )}
-        </>
-      )}
+      <div
+        ref={scrollContainerRef}
+        className={feedMode === 'nearby' ? styles.feedContentMap : styles.feedContent}
+      >
+        {/* Map view */}
+        {feedMode === 'nearby' ? (
+          <MapView />
+        ) : loading ? (
+          <div className={styles.loadingState}>
+            <div className={styles.spinner} />
+          </div>
+        ) : error ? (
+          <div className={styles.errorState}>
+            <p className={styles.errorText}>{error}</p>
+            <button className={styles.retryBtn} onClick={() => { setPage(1); loadPosts(feedMode, 1); }}>Try again</button>
+          </div>
+        ) : posts.length === 0 ? (
+          <div className={styles.emptyState}>
+            <div className={styles.emptyIcon}>🍽️</div>
+            <p>{feedMode === 'mine' ? "You haven't posted anything yet." : 'No posts yet. Be the first to share!'}</p>
+          </div>
+        ) : (
+          <>
+            <Masonry
+              breakpointCols={{
+                default: 2,
+                900: 1
+              }}
+              className={styles.masonryGrid}
+              columnClassName={styles.masonryColumn}
+            >
+              {posts.map(post => (
+                <PostCard
+                  key={post._id}
+                  post={post}
+                  currentUserId={currentUserId}
+                  onDeleted={handlePostDeleted}
+                  onUpdated={handlePostUpdated}
+                />
+              ))}
+            </Masonry>
+
+            {loadingMore && (
+              <div className={styles.loadMoreSpinner}>
+                <div className={styles.spinner} />
+              </div>
+            )}
+
+            {!hasMore && posts.length > 0 && (
+              <div className={styles.endMessage}>
+                <p>You've reached the end!</p>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       {/* FAB */}
       {feedMode !== 'nearby' && (

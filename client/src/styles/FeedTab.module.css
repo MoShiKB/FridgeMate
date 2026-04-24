@@ -1,12 +1,35 @@
-.feedTab {
+.feedTabRoot {
   display: flex;
   flex-direction: column;
+  height: 100%;
   background-color: #f0f1f3;
-  min-height: 100%;
-  padding: 0px 20px 20px;
   position: relative;
-  max-width: none;
-  width: 100%;
+  overflow: hidden;
+}
+
+/* Scrollable content area for 'all' / 'mine' modes */
+.feedContent {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 20px 20px;
+  scrollbar-gutter: stable;
+}
+
+/* Content area for map mode — no scroll, map owns the space */
+.feedContentMap {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Ensure the MapView child fills the available space */
+.feedContentMap > * {
+  flex: 1;
+  display: flex;
+  min-height: 0;
 }
 
 /* Masonry grid layout */
@@ -22,50 +45,15 @@
   background-clip: padding-box;
 }
 
-/* Header and controls span full width */
-.feedTab > .pillContainer {
-  margin-bottom: 8px;
-}
-
-.feedTabMap {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  background-color: #f0f1f3;
-  position: absolute;
-  inset: 0;
-  padding: 0;
-  gap: 0;
-  overflow: hidden;
-}
-
 /* Pill filter tabs (same style as Recipes) */
 .pillContainer {
   display: flex;
   justify-content: center;
-  position: sticky;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 10;
-  background-color: #f0f1f3;
-  box-sizing: border-box;
-  margin-left: -20px;
-  margin-right: -20px;
-  padding: 10px 32px;
   flex-shrink: 0;
-}
-
-/* Account for missing scrollbar in map view */
-.feedTabMap .pillContainer {
-  padding-right: calc(32px + 35px);
-}
-
-/* Ensure MapView fills remaining space when in map mode */
-.feedTabMap > div:last-child {
-  flex: 1;
-  display: flex;
-  overflow: hidden;
+  box-sizing: border-box;
+  background-color: #f0f1f3;
+  padding: 10px 12px;
+  z-index: 10;
 }
 
 .pillTabs {
@@ -601,10 +589,114 @@
   font-weight: 600;
   color: #00bc90;
 }
-.recipeDetailOverlay {
+.recipeModalOverlay {
   position: fixed;
   inset: 0;
-  background: #fff;
+  background: rgba(0, 0, 0, 0.55);
   z-index: 2000;
-  overflow-y: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  animation: recipeModalFadeIn 0.18s ease-out;
+}
+
+.recipeModalContent {
+  position: relative;
+  background: #f0f1f3;
+  width: 100%;
+  max-width: 720px;
+  height: 90vh;
+  max-height: 90vh;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35);
+  animation: recipeModalSlideIn 0.22s ease-out;
+  display: flex;
+  flex-direction: column;
+}
+
+.recipeModalBody {
+  flex: 1;
+  min-height: 0;
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.recipeModalBody > * {
+  flex: 1;
+  min-height: 0;
+}
+
+.recipeModalActions {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  display: flex;
+  gap: 8px;
+  z-index: 2;
+}
+
+.recipeModalClose,
+.recipeModalFavorite {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.95);
+  color: #333;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.recipeModalClose {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.recipeModalClose:hover,
+.recipeModalFavorite:hover {
+  background: #fff;
+  transform: scale(1.06);
+}
+
+.recipeModalFavorite:disabled {
+  opacity: 0.6;
+  cursor: default;
+  transform: none;
+}
+
+.recipeModalFavoriteActive {
+  background: #fff8dd;
+}
+.recipeModalFavoriteActive:hover {
+  background: #fff5cc;
+}
+
+@keyframes recipeModalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes recipeModalSlideIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 600px) {
+  .recipeModalOverlay {
+    padding: 0;
+  }
+  .recipeModalContent {
+    max-width: 100%;
+    max-height: 100vh;
+    height: 100vh;
+    border-radius: 0;
+  }
 }
