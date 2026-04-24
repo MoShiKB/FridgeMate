@@ -9,6 +9,7 @@ export interface IFridge {
   name: string;
   inviteCode: string;
   members: IFridgeMember[];
+  lastScannedAt?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -26,6 +27,7 @@ const FridgeSchema = new Schema<IFridge>(
     name: { type: String, required: true, trim: true },
     inviteCode: { type: String, required: true, unique: true, index: true },
     members: { type: [FridgeMemberSchema], default: [] },
+    lastScannedAt: { type: String, default: null },
   },
   { timestamps: true }
 );

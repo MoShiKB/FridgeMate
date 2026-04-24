@@ -320,7 +320,18 @@ setFavorites(data.items.map(r => ({ ...r, isFavorited: true })));
 
         {!isLoading && !error && currentList.length === 0 && (
           <div className={styles.emptyState}>
-            <div className={styles.emptyIcon}>{activeTab === 'recommended' ? '🧊' : '⭐'}</div>
+            <div className={styles.emptyIcon}>
+              {activeTab === 'recommended' ? (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '56px', height: '56px', color: '#00bc8b' }}>
+                  <path d="M4 9h16v10c0 1.1-.9 2-2 2H6c-1.1 0-2-.9-2-2V9z" />
+                  <path d="M8 9V7c0-1.1.9-2 2-2h4c1.1 0 2 .9 2 2v2M10 13v4M14 13v4M7 13h10" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '56px', height: '56px', color: '#f5c518' }}>
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+              )}
+            </div>
             <p className={styles.emptyTitle}>
               {activeTab === 'recommended' ? 'No fridge items found' : 'No favorites yet'}
             </p>

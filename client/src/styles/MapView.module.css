@@ -205,6 +205,19 @@
   flex-shrink: 0;
 }
 
+.popupCommentStat {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #888;
+}
+
+.popupCommentStat svg {
+  flex-shrink: 0;
+}
+
 .popupTime {
   font-size: 11px;
   color: #bbb;

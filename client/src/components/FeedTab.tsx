@@ -71,6 +71,8 @@ function PostCard({ post, currentUserId, onDeleted, onUpdated }: PostCardProps) 
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
   const [imageErr, setImageErr] = useState(false);
+  const [openCommentMenu, setOpenCommentMenu] = useState<string | null>(null);
+  const commentMenuRef = useRef<HTMLDivElement>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -94,6 +96,14 @@ function PostCard({ post, currentUserId, onDeleted, onUpdated }: PostCardProps) 
     if (showMenu) document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [showMenu]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (commentMenuRef.current && !commentMenuRef.current.contains(e.target as Node)) setOpenCommentMenu(null);
+    };
+    if (openCommentMenu) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [openCommentMenu]);
 
   const handleToggleComments = async () => {
     if (!showComments && !commentsLoaded) {
@@ -272,9 +282,14 @@ function PostCard({ post, currentUserId, onDeleted, onUpdated }: PostCardProps) 
                 )}
               </div>
               {comment.isOwner && editingCommentId !== comment._id && (
-                <div className={styles.commentOwnerActions}>
-                  <button className={styles.editCommentBtn} onClick={() => handleStartEditComment(comment)}>✎</button>
-                  <button className={styles.deleteCommentBtn} onClick={() => handleDeleteComment(comment._id)}>✕</button>
+                <div className={styles.commentMenuContainer} ref={commentMenuRef}>
+                  <button className={styles.commentMenuBtn} onClick={() => setOpenCommentMenu(openCommentMenu === comment._id ? null : comment._id)}>⋮</button>
+                  {openCommentMenu === comment._id && (
+                    <div className={styles.commentMenu}>
+                      <button className={styles.commentMenuEdit} onClick={() => { handleStartEditComment(comment); setOpenCommentMenu(null); }}>Edit</button>
+                      <button className={styles.commentMenuDelete} onClick={() => { handleDeleteComment(comment._id); setOpenCommentMenu(null); }}>Delete</button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

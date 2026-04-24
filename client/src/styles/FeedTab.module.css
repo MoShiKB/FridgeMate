@@ -380,6 +380,74 @@
   color: #ccc; font-size: 11px; padding: 3px;
 }
 .deleteCommentBtn:hover { color: #e74c3c; }
+
+.commentMenuContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.commentMenuBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #ccc;
+  padding: 0 4px;
+  line-height: 1;
+  font-size: 14px;
+  transition: color 0.15s;
+}
+
+.commentMenuBtn:hover {
+  color: #999;
+}
+
+.commentMenu {
+  position: absolute;
+  right: 0;
+  top: 20px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+  min-width: 110px;
+  z-index: 10;
+  overflow: hidden;
+}
+
+.commentMenuEdit {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 13px;
+  color: #333;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.15s;
+}
+
+.commentMenuEdit:hover {
+  background: #f5f5f5;
+}
+
+.commentMenuDelete {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 13px;
+  color: #e74c3c;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.commentMenuDelete:hover {
+  background: #f5f5f5;
+}
 .commentEditRow { display: flex; flex-direction: column; gap: 4px; }
 .commentEditInput {
   padding: 4px 8px; border: 1px solid #00bc8b; border-radius: 8px;
