@@ -87,4 +87,10 @@ export const RecipeApi = {
       const res = await axios.delete(`${API_BASE_URL}/recipes/${id}/favorite`, auth());
       return res.data;
     }),
+    
+    getById: (id: string) =>
+  withRefresh(async () => {
+    const res = await axios.get(`${API_BASE_URL}/recipes/${id}`, auth());
+    return res.data as Recipe;
+  }),
 };

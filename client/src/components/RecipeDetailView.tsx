@@ -92,6 +92,7 @@ function ShareModal({ recipe, onClose, onPostShared }: ShareModalProps) {
         text: text.trim(),
         ...(recipeImageUrl ? { mediaUrls: [recipeImageUrl] } : {}),
         ...(location ? { location } : {}),
+        recipeId: recipe._id,
       });
       setDone(true);
       setTimeout(() => { onClose(); onPostShared(); }, 1000);
