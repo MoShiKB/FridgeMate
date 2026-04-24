@@ -31,7 +31,7 @@ help:
 
 # ── Install ──────────────────────────────────────────────────────────────────
 
-install: check-node
+install:
 	@echo "Installing server dependencies..."
 	cd $(SERVER_DIR) && npm ci
 	@echo "Installing client dependencies..."
