@@ -158,7 +158,7 @@ export function RecipesTab({ onPostShared }: { onPostShared: () => void }) {
   const [activeTab, setActiveTab] = useState<TabType>('recommended');
   const [recommended, setRecommended] = useState<Recipe[]>(loadCachedRecipes);
   const [favorites, setFavorites] = useState<Recipe[]>([]);
-  const [loadingRecommended, setLoadingRecommended] = useState(false);
+const [loadingRecommended, setLoadingRecommended] = useState(() => loadCachedRecipes().length === 0);
   const [loadingFavorites, setLoadingFavorites] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [favoritingId, setFavoritingId] = useState<string | null>(null);
