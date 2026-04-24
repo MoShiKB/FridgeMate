@@ -43,7 +43,21 @@ export class ScanService {
     const addedItemIds: mongoose.Types.ObjectId[] = [];
     const memberCount = fridge.members.length;
 
-    
+    const preScanItems = await InventoryItemModel.find({
+      fridgeId: new mongoose.Types.ObjectId(fridgeId),
+    })
+      .select({ _id: 1, name: 1, quantity: 1 })
+      .lean();
+    const preScanById = new Map(
+      preScanItems.map((item) => [
+        item._id.toString(),
+        { name: item.name, quantity: item.quantity },
+      ])
+    );
+
+    const added: { name: string; quantity: string }[] = [];
+    const updated: { name: string; oldQuantity: string; newQuantity: string }[] = [];
+
     const processedItems: { id: string; name: string; quantity: string; ownership: string }[] = [];
 
     for (const detected of detectedItems) {
@@ -53,6 +67,7 @@ export class ScanService {
       });
 
       if (existing) {
+        const oldQuantity = existing.quantity;
         existing.quantity = detected.quantity;
         await existing.save();
         addedItemIds.push(existing._id as mongoose.Types.ObjectId);
@@ -62,6 +77,14 @@ export class ScanService {
           quantity: existing.quantity,
           ownership: existing.ownership,
         });
+
+        if (oldQuantity !== detected.quantity) {
+          updated.push({
+            name: existing.name,
+            oldQuantity,
+            newQuantity: detected.quantity,
+          });
+        }
       } else {
         const newItem = await InventoryItemModel.create({
           fridgeId: new mongoose.Types.ObjectId(fridgeId),
@@ -78,10 +101,19 @@ export class ScanService {
           quantity: newItem.quantity,
           ownership: newItem.ownership,
         });
+        added.push({ name: newItem.name, quantity: newItem.quantity });
       }
     }
 
+    const addedIdStrings = new Set(addedItemIds.map((id) => id.toString()));
+    const removed: { name: string; quantity: string }[] = [];
     if (addedItemIds.length > 0) {
+      for (const [id, item] of preScanById.entries()) {
+        if (!addedIdStrings.has(id)) {
+          removed.push({ name: item.name, quantity: item.quantity });
+        }
+      }
+
       await InventoryItemModel.deleteMany({
         fridgeId: new mongoose.Types.ObjectId(fridgeId),
         _id: { $nin: addedItemIds },
@@ -130,7 +162,10 @@ export class ScanService {
       }
     })();
 
-    return scan.toJSON();
+    return {
+      ...scan.toJSON(),
+      changes: { added, updated, removed },
+    };
   }
 
   /**

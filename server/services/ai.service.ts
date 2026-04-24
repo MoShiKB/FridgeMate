@@ -346,7 +346,17 @@ BE STRICT. If the subject is anything other than food-storage content (e.g. a sh
 
 STEP 2 — If and only if imageIssue is null, list every distinct food item you can identify. For each item give:
 - "name": lowercase, singular where natural (e.g. "egg" not "eggs", "tomato" not "tomatoes")
-- "quantity": short human-friendly string (e.g. "2", "1 bag", "500ml", "half a block")
+- "quantity": a SHORT, DEFINITE string. See quantity rules below.
+
+QUANTITY RULES — read carefully, these are strict:
+1. NEVER use hedge words or approximations. BANNED words and symbols: "about", "approximately", "approx", "around", "roughly", "circa", "ca.", "~", "maybe", "some", "several", "a few", "a couple", "or so", "ish", "plus or minus", "more or less".
+2. Pick ONE concrete value. If you cannot see the exact count, PICK YOUR BEST SINGLE INTEGER based on what's visible (e.g. write "6" not "about 6" or "5-7"). Do not output ranges.
+3. If the item is in an obvious standard package (bottle, carton, bag, jar, can, box, loaf, block), count the packages: "1 bottle", "2 cartons", "1 bag". Do not add "about" in front.
+4. For liquids or bulk goods, give a definite number + unit: "500ml", "1 liter", "250g". Never "approximately 500ml".
+5. For unavoidably fuzzy items (e.g. a pile of peppercorns) use a short non-hedged descriptor like "small pile", "handful", "partial bag" — never "some peppercorns" or "a few peppercorns".
+
+GOOD quantities: "6", "1 bottle", "2 cartons", "500ml", "1 loaf", "small pile", "half a block".
+BAD quantities (NEVER produce these): "about 6", "approximately 1 liter", "~500ml", "around 2 cartons", "a few eggs", "some milk", "5-7", "6 or 7".
 
 If imageIssue is NOT null, "items" MUST be an empty array.
 An empty "items" array with imageIssue = null is valid and means the fridge is genuinely empty of visible food.
