@@ -67,7 +67,6 @@ class ApiService {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        userName: fullName,
         displayName: fullName,
         email,
         password,
