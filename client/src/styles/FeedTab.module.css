@@ -303,9 +303,8 @@
 /* ── Post image ── */
 .postImage {
   width: 100%;
-  height: auto;
-  max-height: 480px;
-  object-fit: contain;
+  height: 280px;
+  object-fit: cover;
   background: #f5f5f5;
   display: block;
 }
