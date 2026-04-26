@@ -160,16 +160,12 @@
   color: #fff;
   border: none;
   border-radius: 14px;
-  font-size: 24px;
+  font-size: 26px;
   cursor: pointer;
   box-shadow: 0 3px 12px rgba(0, 188, 139, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   padding: 0;
   z-index: 20;
   transition: transform 0.15s, opacity 0.15s;
-  margin-top: -2px;
 }
 .fab:hover { transform: scale(1.07); opacity: 0.92; }
 
@@ -303,9 +299,8 @@
 /* ── Post image ── */
 .postImage {
   width: 100%;
-  height: auto;
-  max-height: 480px;
-  object-fit: contain;
+  height: 280px;
+  object-fit: cover;
   background: #f5f5f5;
   display: block;
 }
@@ -488,8 +483,9 @@
 .imagePreviewContainer {
   position: relative;
   border-radius: 10px;
-  overflow: hidden;
+  overflow: visible;
   line-height: 0;
+  padding: 6px;
 }
 .imagePreview {
   width: 100%;
@@ -510,14 +506,16 @@
 }
 
 .changeImageBtn {
-  padding: 4px 10px;
+  padding: 8px 14px;
   background: rgba(0,0,0,0.55);
   color: #fff;
   border: none;
   border-radius: 12px;
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 500;
   font-family: inherit;
   cursor: pointer;
+  white-space: nowrap;
 }
 .changeImageBtn:hover { background: rgba(0,0,0,0.75); }
 
@@ -619,7 +617,7 @@
 .recipeModalBody {
   flex: 1;
   min-height: 0;
-  padding-top: 14px;
+  padding-top: 56px;
   display: flex;
   flex-direction: column;
 }
