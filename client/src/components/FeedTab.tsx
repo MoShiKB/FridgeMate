@@ -935,8 +935,9 @@ export function FeedTab() {
           <>
             <Masonry
               breakpointCols={{
-                default: 2,
-                900: 1
+                default: 3,
+                1100: 2,
+                700: 1
               }}
               className={styles.masonryGrid}
               columnClassName={styles.masonryColumn}
