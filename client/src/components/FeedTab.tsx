@@ -363,6 +363,7 @@ function EditPostModal({ post, onClose, onUpdated }: EditPostModalProps) {
   const [title, setTitle] = useState(post.title);
   const [text, setText] = useState(post.text);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(
     post.mediaUrls?.[0]
@@ -378,6 +379,7 @@ function EditPostModal({ post, onClose, onUpdated }: EditPostModalProps) {
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
     setKeepExistingImage(false);
+    setError(null);
   };
 
   const handleRemoveImage = () => {
@@ -391,6 +393,7 @@ function EditPostModal({ post, onClose, onUpdated }: EditPostModalProps) {
     e.preventDefault();
     if (!title.trim() || !text.trim() || submitting) return;
     setSubmitting(true);
+    setError(null);
     try {
       let mediaUrls: string[];
       if (imageFile) {
@@ -407,7 +410,11 @@ function EditPostModal({ post, onClose, onUpdated }: EditPostModalProps) {
         mediaUrls,
       });
       onUpdated({ ...post, title: title.trim(), text: text.trim(), mediaUrls });
-    } catch {}
+    } catch (err: any) {
+      console.error('Error updating post:', err);
+      const errorMsg = err?.response?.data?.message || err?.message || 'Failed to save post. Please try again.';
+      setError(errorMsg);
+    }
     setSubmitting(false);
   };
 
@@ -431,6 +438,8 @@ function EditPostModal({ post, onClose, onUpdated }: EditPostModalProps) {
           rows={4}
           maxLength={500}
         />
+
+        {error && <p style={{ color: '#e53935', fontSize: '13px', margin: '0 0 8px' }}>{error}</p>}
 
         <input
           ref={fileInputRef}
@@ -517,6 +526,7 @@ function CreatePostModal({ onCreated, onClose }: CreatePostModalProps) {
   const [title, setTitle] = useState('');
   const [text, setText] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [locationStatus, setLocationStatus] = useState<'loading' | 'ready' | 'denied'>('loading');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -535,6 +545,7 @@ function CreatePostModal({ onCreated, onClose }: CreatePostModalProps) {
     if (!file) return;
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
+    setError(null);
   };
 
   const handleRemoveImage = () => {
@@ -547,6 +558,7 @@ function CreatePostModal({ onCreated, onClose }: CreatePostModalProps) {
     e.preventDefault();
     if (!title.trim() || !text.trim() || submitting) return;
     setSubmitting(true);
+    setError(null);
     const location = locationRef.current ?? await getLocation();
     if (location) locationRef.current = location;
     try {
@@ -563,7 +575,11 @@ function CreatePostModal({ onCreated, onClose }: CreatePostModalProps) {
       });
       onCreated(post);
       onClose();
-    } catch {}
+    } catch (err: any) {
+      console.error('Error creating post:', err);
+      const errorMsg = err?.response?.data?.message || err?.message || 'Failed to create post. Please try again.';
+      setError(errorMsg);
+    }
     setSubmitting(false);
   };
 
@@ -587,6 +603,8 @@ function CreatePostModal({ onCreated, onClose }: CreatePostModalProps) {
           rows={4}
           maxLength={500}
         />
+
+        {error && <p style={{ color: '#e53935', fontSize: '13px', margin: '0 0 8px' }}>{error}</p>}
 
         {/* Image upload */}
         <input
