@@ -487,8 +487,9 @@
 .imagePreviewContainer {
   position: relative;
   border-radius: 10px;
-  overflow: hidden;
+  overflow: visible;
   line-height: 0;
+  padding: 6px;
 }
 .imagePreview {
   width: 100%;
@@ -509,14 +510,16 @@
 }
 
 .changeImageBtn {
-  padding: 4px 10px;
+  padding: 8px 14px;
   background: rgba(0,0,0,0.55);
   color: #fff;
   border: none;
   border-radius: 12px;
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 500;
   font-family: inherit;
   cursor: pointer;
+  white-space: nowrap;
 }
 .changeImageBtn:hover { background: rgba(0,0,0,0.75); }
 
