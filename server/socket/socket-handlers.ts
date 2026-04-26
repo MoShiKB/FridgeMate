@@ -1,5 +1,6 @@
 import { Server, Socket } from "socket.io";
 import jwt from "jsonwebtoken";
+import { Types } from "mongoose";
 import ChatModel, { IChat } from "../models/chat.model";
 
 interface AuthSocket extends Socket {
@@ -60,15 +61,23 @@ export const setupSocketHandlers = (io: Server) => {
             async ({ chatId, content }: { chatId: string; content: string }) => {
                 try {
                     const senderId = socket.data.userId;
+                    const now = new Date();
+                    const newMessageId = new Types.ObjectId();
 
                     const chat = await ChatModel.findOneAndUpdate(
                         { _id: chatId, participants: senderId },
                         {
                             $push: {
-                                messages: { sender: senderId, content, status: "sent" },
+                                messages: {
+                                    _id: newMessageId,
+                                    sender: senderId,
+                                    content,
+                                    status: "sent",
+                                    createdAt: now,
+                                },
                             },
                             lastMessage: content,
-                            lastUpdated: new Date(),
+                            lastUpdated: now,
                         },
                         { new: true }
                     ).populate({
