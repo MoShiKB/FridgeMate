@@ -111,7 +111,7 @@ export const AuthService = {
         activeFridgeId: null,
       });
     } else {
-      if (profileImage) {
+      if (profileImage && !user.profileImage) {
         user.profileImage = profileImage;
       }
     }
