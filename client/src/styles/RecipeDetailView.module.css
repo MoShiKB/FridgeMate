@@ -6,6 +6,7 @@
   overflow-y: auto;
   background: #f0f1f3;
   -webkit-overflow-scrolling: touch;
+  padding-bottom: 24px;
 }
 
 /* ── Top bar ── */
@@ -190,7 +191,7 @@
   flex-direction: row;
   align-items: stretch;
   gap: 10px;
-  margin: 10px 12px 0;
+  margin: 10px 12px 12px;
 }
 
 .sectionCard {
