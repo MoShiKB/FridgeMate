@@ -121,25 +121,45 @@ describe('AuthService Tests', () => {
             expect(result.data).toHaveProperty('accessToken');
         });
 
-        it('should update profile image for existing Google user', async () => {
+        it('should not overwrite existing profile image on Google re-login', async () => {
             const password = await bcrypt.hash('randomhash', 1);
             await User.create<Partial<IUser>>({
                 userName,
                 displayName: 'Google User',
                 email: userEmail,
                 password,
-                profileImage: 'old-image.jpg',
+                profileImage: 'user-uploaded.jpg',
             });
 
             const result = await AuthService.loginWithGoogle(
                 userEmail,
                 undefined,
-                'new-image.jpg'
+                'https://google.com/avatar.jpg'
             );
 
             expect(result.status).toBe(200);
             const user = await User.findOne({ email: userEmail });
-            expect(user?.profileImage).toBe('new-image.jpg');
+            expect(user?.profileImage).toBe('user-uploaded.jpg');
+        });
+
+        it('should seed profile image from Google when user has none', async () => {
+            const password = await bcrypt.hash('randomhash', 1);
+            await User.create<Partial<IUser>>({
+                userName,
+                displayName: 'Google User',
+                email: userEmail,
+                password,
+            });
+
+            const result = await AuthService.loginWithGoogle(
+                userEmail,
+                undefined,
+                'https://google.com/avatar.jpg'
+            );
+
+            expect(result.status).toBe(200);
+            const user = await User.findOne({ email: userEmail });
+            expect(user?.profileImage).toBe('https://google.com/avatar.jpg');
         });
     });
 
