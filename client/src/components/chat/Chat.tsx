@@ -100,11 +100,25 @@ export const Chat: React.FC<ChatProps> = ({
     }
   };
 
-  const formatTime = (dateStr: string) =>
-    new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const parseDate = (dateStr?: string): Date | null => {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    return Number.isNaN(d.getTime()) ? null : d;
+  };
 
-  const formatDate = (dateStr: string) =>
-    new Date(dateStr).toLocaleDateString([], { year: 'numeric', month: 'long', day: 'numeric' });
+  const formatTime = (dateStr?: string) => {
+    const d = parseDate(dateStr);
+    return d ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+  };
+
+  const formatDate = (dateStr?: string) => {
+    const d = parseDate(dateStr);
+    return d ? d.toLocaleDateString([], { year: 'numeric', month: 'long', day: 'numeric' }) : '';
+  };
+
+  const visibleMessages = messages.filter(
+    (msg) => msg.content?.trim() && parseDate(msg.createdAt) !== null
+  );
 
   return (
     <div className={styles.chatWrapper}>
@@ -120,14 +134,15 @@ export const Chat: React.FC<ChatProps> = ({
       </div>
 
       <div className={styles.body}>
-        {messages.length === 0 && (
+        {visibleMessages.length === 0 && (
           <div className={styles.emptyState}>No messages yet. Say hello!</div>
         )}
 
-        {messages.map((msg, index) => {
+        {visibleMessages.map((msg, index) => {
           const isMe = getSenderId(msg.sender) === currentUserId;
           const msgDate = formatDate(msg.createdAt);
-          const showDate = index === 0 || formatDate(messages[index - 1].createdAt) !== msgDate;
+          const prevDate = index === 0 ? '' : formatDate(visibleMessages[index - 1].createdAt);
+          const showDate = !!msgDate && msgDate !== prevDate;
 
           return (
             <React.Fragment key={msg._id}>

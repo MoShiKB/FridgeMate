@@ -100,7 +100,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 
               {/* Email Field */}
               <div className={styles.inputGroup}>
-                <label className={styles.sectionTitle}>Email or Username</label>
+                <label className={styles.sectionTitle}>Email</label>
                 <div
                   className={`${styles.inputWrapper} ${
                     emailError ? styles.errorInput : ''
