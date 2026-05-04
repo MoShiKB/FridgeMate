@@ -10,6 +10,7 @@ import {
   RefreshTokenSchema,
   ForgotPasswordSchema,
   ResetPasswordSchema,
+  GoogleIdTokenSchema,
 } from "../validators/auth.validators";
 
 const router = Router();
@@ -21,6 +22,12 @@ router.post("/forgot-password", validate({ body: ForgotPasswordSchema }), asyncH
 router.post("/reset-password", validate({ body: ResetPasswordSchema }), asyncHandler(AuthController.resetPassword));
 
 router.post("/logout", requireAuth, asyncHandler(AuthController.logout));
+
+router.post(
+  "/login/google/android",
+  validate({ body: GoogleIdTokenSchema }),
+  asyncHandler(AuthController.loginWithGoogleAndroid)
+);
 
 router.get(
   "/login/google",

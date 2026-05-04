@@ -1,11 +1,20 @@
 import crypto from "crypto";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { OAuth2Client } from "google-auth-library";
 import UserModel, { IUser } from "../models/user.model";
 import { sendResetCodeEmail } from "../config/email";
 import { ApiError } from "../utils/errors";
 
 const SALT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS || "10", 10);
+
+let googleOAuthClient: OAuth2Client | null = null;
+function getGoogleOAuthClient(): OAuth2Client {
+  if (!googleOAuthClient) {
+    googleOAuthClient = new OAuth2Client();
+  }
+  return googleOAuthClient;
+}
 
 export interface RegisterData {
   userName?: string;
@@ -123,6 +132,34 @@ export const AuthService = {
     await user.save();
 
     return { status: 200, data: { message: "Login successful", accessToken, refreshToken } };
+  },
+
+  async loginWithGoogleIdToken(idToken: string) {
+    const audience = process.env.OAUTH_CLIENT_ID;
+    if (!audience) {
+      throw new ApiError(500, "Google login is not configured on the server");
+    }
+
+    let payload: import("google-auth-library").TokenPayload | undefined;
+    try {
+      const ticket = await getGoogleOAuthClient().verifyIdToken({
+        idToken,
+        audience,
+      });
+      payload = ticket.getPayload();
+    } catch (_err) {
+      throw new ApiError(401, "Invalid Google ID token");
+    }
+
+    if (!payload?.email) {
+      throw new ApiError(401, "Invalid Google ID token");
+    }
+
+    if (payload.email_verified === false) {
+      throw new ApiError(401, "Google account email is not verified");
+    }
+
+    return AuthService.loginWithGoogle(payload.email, payload.name, payload.picture);
   },
 
   async logout(userId: string) {
