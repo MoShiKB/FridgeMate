@@ -31,3 +31,7 @@ export const ResetPasswordSchema = z.object({
   code: z.string().length(6),
   newPassword: z.string().min(6).max(128),
 });
+
+export const GoogleIdTokenSchema = z.object({
+  idToken: z.string().min(1),
+});

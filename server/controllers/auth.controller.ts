@@ -24,6 +24,12 @@ export const AuthController = {
     return res.status(response.status).json(response.data);
   },
 
+  async loginWithGoogleAndroid(req: Request, res: Response) {
+    const { idToken } = req.body;
+    const response = await AuthService.loginWithGoogleIdToken(idToken);
+    return res.status(response.status).json(response.data);
+  },
+
   async handleGoogleCallback(req: Request, res: Response) {
     const clientUrl = process.env.CLIENT_URL || "http://localhost:3000";
     const googleUser = req.user as { email?: string; userName?: string; profileImage?: string };
