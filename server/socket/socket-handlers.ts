@@ -2,6 +2,7 @@ import { Server, Socket } from "socket.io";
 import jwt from "jsonwebtoken";
 import { Types } from "mongoose";
 import ChatModel, { IChat } from "../models/chat.model";
+import { FridgeChatService } from "../services/fridge-chat.service";
 
 interface AuthSocket extends Socket {
     data: { userId: string };
@@ -26,7 +27,7 @@ export const setupSocketHandlers = (io: Server) => {
     });
 
     io.on("connection", (socket: AuthSocket) => {
-        console.log(`Socket connected: user ${socket.data.userId}`);
+        // console.log(`Socket connected: user ${socket.data.userId}`);
 
         socket.on("joinChat", async ({ targetUserId }: { targetUserId: string }) => {
             try {
@@ -140,6 +141,62 @@ export const setupSocketHandlers = (io: Server) => {
                     });
                 } catch (error) {
                     socket.emit("error", "Failed to update message status");
+                }
+            }
+        );
+
+        // ── Fridge group chat ──────────────────────────────────────────
+        const fridgeRoom = (fridgeId: string) => `fridge:${fridgeId}`;
+
+        socket.on("joinFridgeChat", async ({ fridgeId }: { fridgeId: string }) => {
+            try {
+                await FridgeChatService.assertMember(fridgeId, socket.data.userId);
+                await FridgeChatService.getOrCreate(fridgeId);
+                socket.join(fridgeRoom(fridgeId));
+                socket.emit("fridgeChatJoined", { fridgeId });
+            } catch (err: any) {
+                socket.emit("fridgeChatError", {
+                    fridgeId,
+                    message: err?.message || "Failed to join fridge chat",
+                });
+            }
+        });
+
+        socket.on("leaveFridgeChat", ({ fridgeId }: { fridgeId: string }) => {
+            socket.leave(fridgeRoom(fridgeId));
+        });
+
+        socket.on(
+            "sendFridgeMessage",
+            async (
+                {
+                    fridgeId,
+                    content,
+                    type,
+                    payload,
+                }: {
+                    fridgeId: string;
+                    content?: string;
+                    type?: "text" | "recipe_share";
+                    payload?: Record<string, unknown>;
+                }
+            ) => {
+                try {
+                    const message = await FridgeChatService.appendMessage(
+                        fridgeId,
+                        socket.data.userId,
+                        content ?? "",
+                        { type, payload }
+                    );
+                    io.to(fridgeRoom(fridgeId)).emit("fridgeMessageReceived", {
+                        fridgeId,
+                        message,
+                    });
+                } catch (err: any) {
+                    socket.emit("fridgeChatError", {
+                        fridgeId,
+                        message: err?.message || "Failed to send message",
+                    });
                 }
             }
         );
