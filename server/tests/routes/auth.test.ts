@@ -5,6 +5,10 @@ import User, { IUser } from '../../models/user.model';
 import { token, refreshToken, userId as setupUserId } from '../setup';
 import mongoose from "mongoose";
 
+jest.mock('../../config/email', () => ({
+    sendResetCodeEmail: jest.fn().mockResolvedValue(undefined)
+}));
+
 describe('Authentication Controller Tests', () => {
     let userId: string;
     let userName: string;

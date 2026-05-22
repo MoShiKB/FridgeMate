@@ -11,6 +11,7 @@ import { postsRoutes } from "./posts.routes";
 import { inventoryItemRoutes } from "./inventory-item.routes";
 import { scanRoutes } from "./scan.routes";
 import uploadRoutes from "./upload.routes";
+import journalRoutes from "./journal.routes";
 
 const router = Router();
 
@@ -30,5 +31,6 @@ router.use("/recipes", recipeRoutes);
 router.use("/posts", commentsRoutes);
 router.use("/posts", postsRoutes);
 router.use("/upload", uploadRoutes);
+router.use("/journal", journalRoutes);
 
 export default router;
