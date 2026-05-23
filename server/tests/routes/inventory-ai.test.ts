@@ -73,9 +73,9 @@ describe('Inventory AI Scenarios', () => {
             expect(res.body.data.isRunningLow).toBe(true);
 
             const callArgs = mockGenerateContent.mock.calls[0][0];
-            expect(callArgs.contents).toContain("Household Size: 4");
-            expect(callArgs.contents).toContain('Item Name: "Eggs"');
-            expect(callArgs.contents).toContain('Current Quantity: "3 pcs"');
+            expect(callArgs.contents).toContain("Number of people in the household: 4");
+            expect(callArgs.contents).toContain('Item: "Eggs"');
+            expect(callArgs.contents).toContain('Current quantity: "3 pcs"');
         });
     });
 
@@ -103,7 +103,7 @@ describe('Inventory AI Scenarios', () => {
             expect(res.body.data.isRunningLow).toBe(false);
 
             const callArgs = mockGenerateContent.mock.calls[0][0];
-            expect(callArgs.contents).toContain("Household Size: 2");
+            expect(callArgs.contents).toContain("Number of people in the household: 2");
         });
     });
 
@@ -131,8 +131,8 @@ describe('Inventory AI Scenarios', () => {
             expect(res.body.data.isRunningLow).toBe(false);
 
             const callArgs = mockGenerateContent.mock.calls[0][0];
-            expect(callArgs.contents).toContain("Household Size: 5");
-            expect(callArgs.contents).toContain('Item Name: "Ketchup"');
+            expect(callArgs.contents).toContain("Number of people in the household: 5");
+            expect(callArgs.contents).toContain('Item: "Ketchup"');
         });
     });
 
@@ -160,8 +160,8 @@ describe('Inventory AI Scenarios', () => {
             expect(res.body.data.isRunningLow).toBe(true);
 
             const callArgs = mockGenerateContent.mock.calls[0][0];
-            expect(callArgs.contents).toContain("Household Size: 4");
-            expect(callArgs.contents).toContain('Current Quantity: "0.1 bottle"');
+            expect(callArgs.contents).toContain("Number of people in the household: 4");
+            expect(callArgs.contents).toContain('Current quantity: "0.1 bottle"');
         });
     });
 
@@ -190,7 +190,7 @@ describe('Inventory AI Scenarios', () => {
 
             // CRITICAL: Check that userCount sent to AI was 1
             const callArgs = mockGenerateContent.mock.calls[0][0];
-            expect(callArgs.contents).toContain("Household Size: 1");
+            expect(callArgs.contents).toContain("Number of people in the household: 1");
         });
     });
 });
