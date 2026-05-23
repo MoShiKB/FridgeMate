@@ -409,27 +409,27 @@ Respond with ONLY a JSON object in this EXACT shape (no prose, no markdown):
             if (error.message?.includes('429') || error.message?.includes('quota') || error.message?.includes('rate limit')) {
                 throw new ApiError(429, 'AI rate limit exceeded. Please try again later.');
             }
-            throw new ApiError(502, `AI scan service error: ${error.message}`);
+            throw new ApiError(502, 'Scan failed — please try again.');
         }
     },
 
     async checkIfRunningLow(itemName: string, quantity: string, userCount: number): Promise<{ isRunningLow: boolean; reasoning: string }> {
         const prompt = `
-You are a smart kitchen assistant. Determine if the following fridge item is running low for a household of ${userCount} people.
+You are a smart kitchen assistant. Decide if a fridge item is running low.
 
-Context:
-- Item Name: "${itemName}"
-- Current Quantity: "${quantity}"
-- Household Size: ${userCount} person(s)
+Item: "${itemName}"
+Current quantity: "${quantity}"
+Number of people in the household: ${userCount}
 
-Task:
-- Analyze if this quantity is typically considered low/insufficient for this household size.
-- Respond with ONLY a JSON object.
+Think step by step:
+1. What is the typical weekly consumption of this item per person?
+2. Divide the current quantity by ${userCount} people — is each person's share enough to last a reasonable time?
+3. For example: 2 cartons of milk for 1 person is fine, but 2 cartons for 5 people is low.
 
-Format:
+Respond with ONLY valid JSON:
 {
-  "isRunningLow": true/false, // Boolean
-  "reasoning": "short explanation (max 15 words)"
+  "isRunningLow": true or false,
+  "reasoning": "one short sentence (max 15 words)"
 }
 `;
 
@@ -576,11 +576,11 @@ function parseScanResponse(text: string): ScanAIResponse {
         const objMatch = cleaned.match(/\{[\s\S]*\}/);
         const arrMatch = cleaned.match(/\[[\s\S]*\]/);
         const candidate = objMatch?.[0] ?? arrMatch?.[0];
-        if (!candidate) throw new ApiError(502, 'AI did not return valid JSON');
+        if (!candidate) throw new ApiError(502, 'Scan failed — please try again.');
         try {
             parsed = JSON.parse(candidate.replace(/,\s*([}\]])/g, '$1'));
         } catch {
-            throw new ApiError(502, 'AI did not return valid JSON');
+            throw new ApiError(502, 'Scan failed — please try again.');
         }
     }
 
@@ -598,7 +598,7 @@ function parseScanResponse(text: string): ScanAIResponse {
         return { imageIssue, items };
     }
 
-    throw new ApiError(502, 'AI returned an unexpected response shape');
+    throw new ApiError(502, 'Scan failed — please try again.');
 }
 
 function parseRecipeResponse(text: string): GeneratedRecipe[] {

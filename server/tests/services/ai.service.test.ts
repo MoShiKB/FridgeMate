@@ -351,7 +351,7 @@ describe('AIService Tests', () => {
 
             await expect(
                 AIService.detectFridgeItems(Buffer.from('img'), 'image/jpeg')
-            ).rejects.toThrow('AI scan service error');
+            ).rejects.toThrow('Scan failed — please try again.');
         });
 
         it('should filter out items missing name or quantity', async () => {
