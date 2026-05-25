@@ -1,16 +1,26 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+const apiKey = process.env.RESEND_API_KEY;
+const from = process.env.MAIL_FROM || "FridgeMate <onboarding@resend.dev>";
+
+// We use Resend's HTTPS API (port 443) instead of SMTP so the server can send
+// mail from networks where outbound SMTP ports (25/465/587) are blocked.
+let resendClient: Resend | null = null;
+function getResendClient(): Resend {
+  if (!apiKey) {
+    throw new Error(
+      "RESEND_API_KEY is not set. Configure it in the server environment to enable outgoing email."
+    );
+  }
+  if (!resendClient) {
+    resendClient = new Resend(apiKey);
+  }
+  return resendClient;
+}
 
 export async function sendResetCodeEmail(to: string, code: string): Promise<void> {
-  await transporter.sendMail({
-    from: `"FridgeMate" <${process.env.SMTP_USER}>`,
+  const { error } = await getResendClient().emails.send({
+    from,
     to,
     subject: "FridgeMate - Password Reset Code",
     html: `
@@ -24,4 +34,8 @@ export async function sendResetCodeEmail(to: string, code: string): Promise<void
       </div>
     `,
   });
+
+  if (error) {
+    throw new Error(`Failed to send reset code email: ${error.message}`);
+  }
 }
