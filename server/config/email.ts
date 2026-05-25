@@ -3,8 +3,6 @@ import { Resend } from "resend";
 const apiKey = process.env.RESEND_API_KEY;
 const from = process.env.MAIL_FROM || "FridgeMate <onboarding@resend.dev>";
 
-// We use Resend's HTTPS API (port 443) instead of SMTP so the server can send
-// mail from networks where outbound SMTP ports (25/465/587) are blocked.
 let resendClient: Resend | null = null;
 function getResendClient(): Resend {
   if (!apiKey) {
