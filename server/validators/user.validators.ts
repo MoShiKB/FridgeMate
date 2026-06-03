@@ -23,12 +23,19 @@ export const UpdateProfileSchema = z.object({
     .optional(),
   displayName: z.string().min(1).max(50).optional(),
   profileImage: z.string().optional(),
+  bio: z.string().max(280).optional(),
   address: AddressSchema.optional(),
   allergies: z.array(z.string()).optional(),
   dietPreference: DietPreferenceEnum.optional(),
 });
 
 export const PaginationQuerySchema = z.object({
+  page: z.coerce.number().optional(),
+  limit: z.coerce.number().optional(),
+});
+
+export const UserSearchQuerySchema = z.object({
+  q: z.string().min(1).max(50),
   page: z.coerce.number().optional(),
   limit: z.coerce.number().optional(),
 });

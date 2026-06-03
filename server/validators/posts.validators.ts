@@ -7,6 +7,11 @@ export const PostsQuerySchema = z.object({
   lat: z.coerce.number().optional(),
   lng: z.coerce.number().optional(),
   radiusKm: z.coerce.number().optional(),
+  scope: z.enum(["all", "following"]).optional(),
+});
+
+export const PostsByUserParamsSchema = z.object({
+  userId: z.string().min(1),
 });
 
 export const CreatePostSchema = z.object({

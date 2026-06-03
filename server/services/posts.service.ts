@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { ApiError } from "../utils/errors";
 import { PostModel } from "../models/post.model";
 import { CommentModel } from "../models/comment.model";
+import { UserService } from "./user.service";
 
 export class PostsService {
   static async create(userId: string, payload: any) {
@@ -29,11 +30,23 @@ export class PostsService {
     limit: number;
     userId?: string;
     authorId?: string;
+    scope?: "all" | "following";
     near?: { lat: number; lng: number; radiusKm?: number };
   }) {
     const q: any = {};
     if (opts.authorId) {
       q.authorUserId = new mongoose.Types.ObjectId(opts.authorId);
+    }
+    if (opts.scope === "following" && !opts.authorId) {
+      if (!opts.userId) {
+        // Following scope requires an authenticated caller
+        return { items: [], total: 0 };
+      }
+      const followingIds = await UserService.getFollowingIds(opts.userId);
+      if (followingIds.length === 0) {
+        return { items: [], total: 0 };
+      }
+      q.authorUserId = { $in: followingIds };
     }
     if (opts.near?.lat !== undefined && opts.near?.lng !== undefined) {
       const radiusMeters = (opts.near.radiusKm ?? 50) * 1000;
