@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import NotificationModel from "../models/notification.model";
 import UserModel from "../models/user.model";
 import { AuthedRequest } from "../middlewares/auth";
+import { NotificationService } from "../services/notification.service";
 
 export class NotificationController {
     static async getNotifications(req: Request, res: Response) {
@@ -115,6 +116,24 @@ export class NotificationController {
         } catch (error) {
             console.error(error);
             res.status(500).json({ error: "Failed to remove FCM token" });
+        }
+    }
+
+    static async testTrigger(req: Request, res: Response) {
+        try {
+            const userId = (req as AuthedRequest).user.userId;
+            
+            const notification = await NotificationService.sendNotification({
+                userId,
+                type: "SYSTEM",
+                title: "Test Notification",
+                message: "This is a test notification from the backend!",
+            });
+
+            res.json({ message: "Test notification triggered successfully", notification });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: "Failed to trigger test notification" });
         }
     }
 }

@@ -14,4 +14,6 @@ router.put("/:id/read", NotificationController.markAsRead);
 router.post("/fcm-token", NotificationController.registerFcmToken);
 router.delete("/fcm-token", NotificationController.unregisterFcmToken);
 
+router.post("/test", NotificationController.testTrigger);
+
 export default router;
