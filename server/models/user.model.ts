@@ -34,6 +34,8 @@ export interface IUser {
   resetPasswordToken?: string | null;
   resetPasswordExpires?: Date | null;
 
+  fcmTokens?: string[];
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -73,6 +75,8 @@ const UserSchema = new Schema<IUser>(
 
     resetPasswordToken: { type: String, select: false, default: null },
     resetPasswordExpires: { type: Date, select: false, default: null },
+
+    fcmTokens: { type: [String], default: [] },
   },
   { timestamps: true }
 );

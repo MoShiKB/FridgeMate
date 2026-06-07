@@ -149,3 +149,6 @@ prompt.txt
 PROJECT_OVERVIEW.md
 # Screenshots / local images
 pic/
+
+
+server/config/firebase-service-account.json

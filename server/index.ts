@@ -10,6 +10,8 @@ import swaggerDoc from "./definitions/swagger.json";
 import mainRoutes from "./routes/index";
 import errorHandler from "./middlewares/errorHandler";
 import { connectDB } from "./config/database";
+import { initFirebase } from "./config/firebase";
+import { initCronJobs } from "./services/cron.service";
 import { Server } from "socket.io";
 import { setupSocketHandlers } from "./socket/socket-handlers";
 import { UPLOADS_DIR } from "./config/env";
@@ -46,6 +48,8 @@ app.use(errorHandler);
 const start = async () => {
   try {
     await connectDB();
+    initFirebase();
+    initCronJobs();
   } catch (error) {
     console.error("Failed to start server:", (error as Error).message);
     process.exit(1);
