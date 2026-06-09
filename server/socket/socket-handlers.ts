@@ -28,6 +28,7 @@ export const setupSocketHandlers = (io: Server) => {
 
     io.on("connection", (socket: AuthSocket) => {
         // console.log(`Socket connected: user ${socket.data.userId}`);
+        socket.join(socket.data.userId);
 
         socket.on("joinChat", async ({ targetUserId }: { targetUserId: string }) => {
             try {

@@ -12,6 +12,7 @@ import { inventoryItemRoutes } from "./inventory-item.routes";
 import { scanRoutes } from "./scan.routes";
 import uploadRoutes from "./upload.routes";
 import journalRoutes from "./journal.routes";
+import notificationRoutes from "./notification.routes";
 
 const router = Router();
 
@@ -32,5 +33,6 @@ router.use("/posts", commentsRoutes);
 router.use("/posts", postsRoutes);
 router.use("/upload", uploadRoutes);
 router.use("/journal", journalRoutes);
+router.use("/notifications", notificationRoutes);
 
 export default router;
