@@ -146,13 +146,15 @@ export class ScanService {
       { new: true }
     );
 
-    NotificationService.sendNotification({
-      userId,
-      type: "SCAN_COMPLETE",
-      title: "Scan Complete",
-      message: `Scan finished: ${added.length} added, ${updated.length} updated, ${removed.length} removed`,
-      metadata: { scanId: scan._id.toString(), fridgeId },
-    }).catch(() => {});
+    for (const member of fridge.members) {
+      NotificationService.sendNotification({
+        userId: member.userId.toString(),
+        type: "SCAN_COMPLETE",
+        title: "Scan Complete",
+        message: `Scan finished: ${added.length} added, ${updated.length} updated, ${removed.length} removed`,
+        metadata: { scanId: scan._id.toString(), fridgeId },
+      }).catch(() => {});
+    }
 
     // Fire-and-forget: update running-low status in the background
     (async () => {

@@ -104,6 +104,7 @@ export const setupSocketHandlers = (io: Server) => {
                             title: senderName,
                             message: String(content ?? "").slice(0, 100),
                             metadata: { chatId },
+                            skipPersist: true,
                         }).catch(() => {});
                     }
                 } catch (error) {

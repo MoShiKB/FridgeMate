@@ -152,6 +152,7 @@ export const FridgeChatService = {
             title: senderName,
             message: preview,
             metadata: { fridgeId, messageId: (newMessage as any)._id?.toString() },
+            skipPersist: true,
           }).catch(() => {});
         }
       } catch {}
