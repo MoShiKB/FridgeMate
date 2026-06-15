@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import { Types } from "mongoose";
 import ChatModel, { IChat } from "../models/chat.model";
 import { FridgeChatService } from "../services/fridge-chat.service";
+import { NotificationService } from "../services/notification.service";
 
 interface AuthSocket extends Socket {
     data: { userId: string };
@@ -93,6 +94,18 @@ export const setupSocketHandlers = (io: Server) => {
 
                     const newMessage = chat.messages[chat.messages.length - 1];
                     io.to(chatId).emit("receiveMessage", newMessage);
+
+                    const recipientId = chat.participants.find(p => p.toString() !== senderId)?.toString();
+                    if (recipientId) {
+                        const senderName = (newMessage.sender as any)?.displayName ?? "Someone";
+                        NotificationService.sendNotification({
+                            userId: recipientId,
+                            type: "CHAT_MESSAGE",
+                            title: senderName,
+                            message: String(content ?? "").slice(0, 100),
+                            metadata: { chatId },
+                        }).catch(() => {});
+                    }
                 } catch (error) {
                     socket.emit("error", "Failed to send message");
                 }

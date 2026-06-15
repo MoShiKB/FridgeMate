@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { ApiError } from "../utils/errors";
 import { CommentModel } from "../models/comment.model";
 import { PostModel } from "../models/post.model";
+import { NotificationService } from "./notification.service";
 
 export class CommentsService {
   static async list(postId: string, userId?: string) {
@@ -32,6 +33,16 @@ export class CommentsService {
     const populated = await CommentModel.findById(doc._id)
       .populate("authorUserId", "displayName profileImage")
       .lean();
+
+    if (post.authorUserId.toString() !== userId) {
+      NotificationService.sendNotification({
+        userId: post.authorUserId.toString(),
+        type: "POST_COMMENT",
+        title: "New Comment",
+        message: text.length > 100 ? text.slice(0, 100) + "…" : text,
+        metadata: { postId, commentId: doc._id.toString() },
+      }).catch(() => {});
+    }
 
     return { ...populated, isOwner: true };
   }

@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { ApiError } from "../utils/errors";
 import { PostModel } from "../models/post.model";
 import { CommentModel } from "../models/comment.model";
+import { NotificationService } from "./notification.service";
 
 export class PostsService {
   static async create(userId: string, payload: any) {
@@ -123,6 +124,15 @@ export class PostsService {
     );
 
     if (added) {
+      if (added.authorUserId.toString() !== userId) {
+        NotificationService.sendNotification({
+          userId: added.authorUserId.toString(),
+          type: "POST_LIKE",
+          title: "New Like",
+          message: "Someone liked your post",
+          metadata: { postId },
+        }).catch(() => {});
+      }
       return { liked: true, likesCount: added.likes.length };
     }
 

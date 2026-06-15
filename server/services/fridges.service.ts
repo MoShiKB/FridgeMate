@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { ApiError } from "../utils/errors";
 import { FridgeModel } from "../models/fridge.model";
 import { UserModel } from "../models/user.model";
+import { NotificationService } from "./notification.service";
 
 function makeInviteCode() {
   const part = Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -41,6 +42,15 @@ export class FridgesService {
     await fridge.save();
 
     await UserModel.findByIdAndUpdate(userId, { activeFridgeId: fridge._id });
+
+    NotificationService.sendNotification({
+      userId,
+      type: "FRIDGE_INVITE",
+      title: "Fridge Joined",
+      message: `You have joined the fridge "${fridge.name}"`,
+      metadata: { fridgeId: fridge._id.toString() },
+    }).catch(() => {});
+
     return fridge;
   }
 
