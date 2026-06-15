@@ -3,6 +3,7 @@ import { FridgeModel } from "../models/fridge.model";
 import FridgeChatModel, { IFridgeChat, IFridgeChatMessage } from "../models/fridge-chat.model";
 import FridgeChatReadModel from "../models/fridge-chat-read.model";
 import { ApiError } from "../utils/errors";
+import { NotificationService } from "./notification.service";
 
 const DEFAULT_PAGE = 50;
 const MAX_PAGE = 200;
@@ -135,6 +136,27 @@ export const FridgeChatService = {
     if (!updated) throw new ApiError(500, "Failed to append message");
 
     const newMessage = updated.messages[updated.messages.length - 1];
+
+    (async () => {
+      try {
+        const fridge = await FridgeModel.findById(fridgeId).select("members").lean<{ members: { userId: Types.ObjectId }[] }>();
+        if (!fridge) return;
+        const senderName = (newMessage.sender as unknown as { displayName?: string })?.displayName ?? "Someone";
+        const preview = finalContent.length > 100 ? finalContent.slice(0, 100) + "…" : finalContent;
+        for (const member of fridge.members) {
+          const memberId = member.userId.toString();
+          if (memberId === senderId) continue;
+          NotificationService.sendNotification({
+            userId: memberId,
+            type: "CHAT_MESSAGE",
+            title: senderName,
+            message: preview,
+            metadata: { fridgeId, messageId: (newMessage as any)._id?.toString() },
+          }).catch(() => {});
+        }
+      } catch {}
+    })();
+
     return newMessage;
   },
 
