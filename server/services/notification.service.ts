@@ -10,26 +10,32 @@ export class NotificationService {
         type,
         title,
         message,
-        metadata
+        metadata,
+        skipPersist = false,
     }: {
         userId: string | Types.ObjectId;
         type: NotificationType;
         title: string;
         message: string;
         metadata?: any;
+        skipPersist?: boolean;
     }) {
         try {
-            // 1. Save to DB
-            const notification = await NotificationModel.create({
-                userId,
-                type,
-                title,
-                message,
-                metadata
-            });
+            let notification: any;
 
-            // 2. Emit real-time Socket event
-            io.to(userId.toString()).emit("new_notification", notification);
+            if (!skipPersist) {
+                // 1. Save to DB
+                notification = await NotificationModel.create({
+                    userId,
+                    type,
+                    title,
+                    message,
+                    metadata
+                });
+
+                // 2. Emit real-time Socket event
+                io.to(userId.toString()).emit("new_notification", notification);
+            }
 
             // 3. Send Push Notification via Firebase Cloud Messaging
             const user = await UserModel.findById(userId).select("fcmTokens");
