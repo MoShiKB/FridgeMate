@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { ApiError } from "../utils/errors";
 import { FridgeModel } from "../models/fridge.model";
 import { UserModel } from "../models/user.model";
+import { NotificationService } from "./notification.service";
 
 function makeInviteCode() {
   const part = Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -36,11 +37,29 @@ export class FridgesService {
     const already = fridge.members.some((m) => m.userId.toString() === userId);
     if (already) throw new ApiError(409, "User already in this fridge", "ALREADY_IN_FRIDGE");
 
+    const existingMemberIds = fridge.members.map((m) => m.userId.toString());
+
     const userObjectId = new mongoose.Types.ObjectId(userId);
     fridge.members.push({ userId: userObjectId, joinedAt: new Date() });
     await fridge.save();
 
     await UserModel.findByIdAndUpdate(userId, { activeFridgeId: fridge._id });
+
+    if (existingMemberIds.length > 0) {
+      UserModel.findById(userId).select("displayName").lean().then((joiner: any) => {
+        const joinerName = joiner?.displayName ?? "Someone";
+        for (const memberId of existingMemberIds) {
+          NotificationService.sendNotification({
+            userId: memberId,
+            type: "FRIDGE_INVITE",
+            title: "New Member",
+            message: `${joinerName} joined your fridge`,
+            metadata: { fridgeId: fridge._id.toString() },
+          }).catch(() => {});
+        }
+      }).catch(() => {});
+    }
+
     return fridge;
   }
 
@@ -53,6 +72,7 @@ export class FridgesService {
     if (!fridge) throw new ApiError(404, "Fridge not found", "FRIDGE_NOT_FOUND");
 
     fridge.members = fridge.members.filter((m) => m.userId.toString() !== userId);
+    const remainingMemberIds = fridge.members.map((m) => m.userId.toString());
 
     if (fridge.members.length === 0) {
       await FridgeModel.deleteOne({ _id: fridge._id });
@@ -61,6 +81,20 @@ export class FridgesService {
     }
 
     await UserModel.findByIdAndUpdate(userId, { activeFridgeId: null });
+
+    if (remainingMemberIds.length > 0) {
+      const leaverName = user.displayName;
+      for (const memberId of remainingMemberIds) {
+        NotificationService.sendNotification({
+          userId: memberId,
+          type: "FRIDGE_INVITE",
+          title: "Member Left",
+          message: `${leaverName} left the fridge`,
+          metadata: { fridgeId: fridge._id.toString() },
+        }).catch(() => {});
+      }
+    }
+
     return { ok: true };
   }
 

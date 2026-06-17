@@ -5,6 +5,7 @@ import { InventoryItemModel } from "../models/inventory-item.model";
 import { FridgeModel } from "../models/fridge.model";
 import { UserModel } from "../models/user.model";
 import { AIService } from "./ai.service";
+import { NotificationService } from "./notification.service";
 
 export class ScanService {
 
@@ -144,6 +145,16 @@ export class ScanService {
       { lastScannedAt: formattedDate },
       { new: true }
     );
+
+    for (const member of fridge.members) {
+      NotificationService.sendNotification({
+        userId: member.userId.toString(),
+        type: "SCAN_COMPLETE",
+        title: "Scan Complete",
+        message: `Scan finished: ${added.length} added, ${updated.length} updated, ${removed.length} removed`,
+        metadata: { scanId: scan._id.toString(), fridgeId },
+      }).catch(() => {});
+    }
 
     // Fire-and-forget: update running-low status in the background
     (async () => {
