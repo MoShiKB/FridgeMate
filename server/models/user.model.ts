@@ -18,6 +18,7 @@ export interface IUser {
 
   displayName: string;
   profileImage?: string;
+  bio?: string;
 
   role: UserRole;
 
@@ -26,6 +27,8 @@ export interface IUser {
 
   allergies: string[];
   dietPreference: DietPreference;
+
+  following: mongoose.Types.ObjectId[];
 
   activeFridgeId?: mongoose.Types.ObjectId | null;
 
@@ -60,6 +63,7 @@ const UserSchema = new Schema<IUser>(
 
     displayName: { type: String, required: true, trim: true },
     profileImage: { type: String, trim: true },
+    bio: { type: String, trim: true, maxlength: 280 },
 
     role: { type: String, enum: ["user", "admin"], default: "user", required: true },
 
@@ -68,6 +72,8 @@ const UserSchema = new Schema<IUser>(
 
     allergies: { type: [String], default: [] },
     dietPreference: { type: String, enum: ["NONE", "VEGETARIAN", "VEGAN", "PESCATARIAN"], default: "NONE" },
+
+    following: [{ type: Schema.Types.ObjectId, ref: "User", default: [] }],
 
     activeFridgeId: { type: Schema.Types.ObjectId, ref: "Fridge", default: null },
 
@@ -82,6 +88,8 @@ const UserSchema = new Schema<IUser>(
 );
 
 UserSchema.index({ "address.city": 1 });
+UserSchema.index({ following: 1 });
+UserSchema.index({ displayName: "text", userName: "text" });
 
 UserSchema.set("toJSON", {
   transform: (_doc, ret: any) => {

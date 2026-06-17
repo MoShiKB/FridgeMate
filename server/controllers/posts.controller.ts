@@ -19,13 +19,14 @@ export class PostsController {
     const lat = (req.query as any).lat;
     const lng = (req.query as any).lng;
     const radiusKm = (req.query as any).radiusKm;
+    const scope = (req.query as any).scope as "all" | "following" | undefined;
 
     const near =
       lat !== undefined && lng !== undefined
         ? { lat: Number(lat), lng: Number(lng), radiusKm: radiusKm ? Number(radiusKm) : undefined }
         : undefined;
 
-    const result = await PostsService.list({ skip, limit, userId, near });
+    const result = await PostsService.list({ skip, limit, userId, scope, near });
     return itemsRes(res, { items: result.items, total: result.total, page, limit });
   }
 
@@ -33,6 +34,14 @@ export class PostsController {
     const userId = (req as AuthedRequest).user.userId;
     const { page, limit, skip } = parsePageLimit(req.query);
     const result = await PostsService.list({ skip, limit, userId, authorId: userId });
+    return itemsRes(res, { items: result.items, total: result.total, page, limit });
+  }
+
+  static async byUser(req: Request, res: Response) {
+    const callerId = (req as AuthedRequest).user.userId;
+    const authorId = req.params.userId;
+    const { page, limit, skip } = parsePageLimit(req.query);
+    const result = await PostsService.list({ skip, limit, userId: callerId, authorId });
     return itemsRes(res, { items: result.items, total: result.total, page, limit });
   }
 
