@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import UserModel, { IUser } from "../models/user.model";
 import { PostModel } from "../models/post.model";
 import { ApiError } from "../utils/errors";
+import { NotificationService } from "./notification.service";
 
 /** Strip fields that should never be exposed to non-self callers. */
 function scrubForOther(user: any) {
@@ -139,6 +140,17 @@ export const UserService = {
 
     if (added) {
       const followersCount = await UserModel.countDocuments({ following: targetObjId });
+      UserModel.findById(callerId).select("displayName").lean().then((caller) => {
+        const followerName = caller?.displayName || "Someone";
+        NotificationService.sendNotification({
+          userId: targetId,
+          type: "FOLLOW",
+          title: "New Follower",
+          message: `${followerName} started following you`,
+          metadata: { followerId: callerId },
+        }).catch(() => {});
+      }).catch(() => {});
+
       return { following: true, followersCount };
     }
 

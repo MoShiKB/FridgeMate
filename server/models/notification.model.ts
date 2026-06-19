@@ -1,6 +1,6 @@
 import mongoose, { Schema, Model } from "mongoose";
 
-export type NotificationType = "EXPIRING_ITEM" | "CHAT_MESSAGE" | "FRIDGE_INVITE" | "POST_COMMENT" | "POST_LIKE" | "SCAN_COMPLETE" | "SYSTEM";
+export type NotificationType = "EXPIRING_ITEM" | "CHAT_MESSAGE" | "FRIDGE_INVITE" | "POST_COMMENT" | "POST_LIKE" | "FOLLOW" | "SCAN_COMPLETE" | "SYSTEM";
 
 export interface INotification {
   userId: mongoose.Types.ObjectId;
@@ -18,7 +18,7 @@ const NotificationSchema = new Schema<INotification>(
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
     type: { 
         type: String, 
-        enum: ["EXPIRING_ITEM", "CHAT_MESSAGE", "FRIDGE_INVITE", "POST_COMMENT", "POST_LIKE", "SCAN_COMPLETE", "SYSTEM"], 
+        enum: ["EXPIRING_ITEM", "CHAT_MESSAGE", "FRIDGE_INVITE", "POST_COMMENT", "POST_LIKE", "FOLLOW", "SCAN_COMPLETE", "SYSTEM"], 
         required: true 
     },
     title: { type: String, required: true },

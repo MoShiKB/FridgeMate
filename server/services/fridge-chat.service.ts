@@ -4,6 +4,7 @@ import FridgeChatModel, { IFridgeChat, IFridgeChatMessage } from "../models/frid
 import FridgeChatReadModel from "../models/fridge-chat-read.model";
 import { ApiError } from "../utils/errors";
 import { NotificationService } from "./notification.service";
+import { io } from "../index";
 
 const DEFAULT_PAGE = 50;
 const MAX_PAGE = 200;
@@ -146,6 +147,7 @@ export const FridgeChatService = {
         for (const member of fridge.members) {
           const memberId = member.userId.toString();
           if (memberId === senderId) continue;
+          io.to(memberId).emit("fridgeChatUnread", { fridgeId });
           NotificationService.sendNotification({
             userId: memberId,
             type: "CHAT_MESSAGE",
