@@ -38,16 +38,17 @@ export class PostsService {
     if (opts.authorId) {
       q.authorUserId = new mongoose.Types.ObjectId(opts.authorId);
     }
+    let scopedFollowingIds: mongoose.Types.ObjectId[] | null = null;
     if (opts.scope === "following" && !opts.authorId) {
       if (!opts.userId) {
         // Following scope requires an authenticated caller
         return { items: [], total: 0 };
       }
-      const followingIds = await UserService.getFollowingIds(opts.userId);
-      if (followingIds.length === 0) {
+      scopedFollowingIds = await UserService.getFollowingIds(opts.userId);
+      if (scopedFollowingIds.length === 0) {
         return { items: [], total: 0 };
       }
-      q.authorUserId = { $in: followingIds };
+      q.authorUserId = { $in: scopedFollowingIds };
     }
     if (opts.near?.lat !== undefined && opts.near?.lng !== undefined) {
       const radiusMeters = (opts.near.radiusKm ?? 50) * 1000;
@@ -80,14 +81,25 @@ export class PostsService {
     ]);
     const countMap = new Map(commentCounts.map((c: any) => [c._id.toString(), c.count]));
 
+    let followingSet: Set<string> = new Set();
+    if (opts.userId) {
+      const followingIds =
+        scopedFollowingIds ?? (await UserService.getFollowingIds(opts.userId));
+      followingSet = new Set(followingIds.map((id: any) => id.toString()));
+    }
+
     return {
-      items: items.map((post: any) => ({
-        ...post,
-        commentsCount: countMap.get(post._id.toString()) || 0,
-        likesCount: post.likes?.length || 0,
-        isLiked: opts.userId ? (post.likes || []).some((id: any) => id.toString() === opts.userId) : false,
-        isOwner: opts.userId ? post.authorUserId?._id?.toString() === opts.userId : false,
-      })),
+      items: items.map((post: any) => {
+        const authorIdStr = post.authorUserId?._id?.toString();
+        return {
+          ...post,
+          commentsCount: countMap.get(post._id.toString()) || 0,
+          likesCount: post.likes?.length || 0,
+          isLiked: opts.userId ? (post.likes || []).some((id: any) => id.toString() === opts.userId) : false,
+          isOwner: opts.userId ? authorIdStr === opts.userId : false,
+          isFollowingAuthor: !!(opts.userId && authorIdStr && authorIdStr !== opts.userId && followingSet.has(authorIdStr)),
+        };
+      }),
       total,
     };
   }
