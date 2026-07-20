@@ -27,10 +27,23 @@ export class ScanService {
       throw new ApiError(403, "Not a member of this fridge", "FORBIDDEN");
     }
 
+    const preScanItems = await InventoryItemModel.find({
+      fridgeId: new mongoose.Types.ObjectId(fridgeId),
+    })
+      .select({ _id: 1, name: 1, quantity: 1 })
+      .lean();
+    const preScanById = new Map(
+      preScanItems.map((item) => [
+        item._id.toString(),
+        { name: item.name, quantity: item.quantity },
+      ])
+    );
+    const existingItemNames = preScanItems.map(item => item.name);
+
     let detectedItems: { name: string; quantity: string }[] = [];
 
     try {
-      detectedItems = await AIService.detectFridgeItems(imageBuffer, mimeType);
+      detectedItems = await AIService.detectFridgeItems(imageBuffer, mimeType, existingItemNames);
     } catch (err: any) {
       const failedScan = await ScanModel.create({
         fridgeId: new mongoose.Types.ObjectId(fridgeId),
@@ -43,18 +56,6 @@ export class ScanService {
 
     const addedItemIds: mongoose.Types.ObjectId[] = [];
     const memberCount = fridge.members.length;
-
-    const preScanItems = await InventoryItemModel.find({
-      fridgeId: new mongoose.Types.ObjectId(fridgeId),
-    })
-      .select({ _id: 1, name: 1, quantity: 1 })
-      .lean();
-    const preScanById = new Map(
-      preScanItems.map((item) => [
-        item._id.toString(),
-        { name: item.name, quantity: item.quantity },
-      ])
-    );
 
     const added: { name: string; quantity: string }[] = [];
     const updated: { name: string; oldQuantity: string; newQuantity: string }[] = [];

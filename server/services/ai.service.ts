@@ -319,11 +319,15 @@ Format:
 
 
     // Detects fridge items from a photo.
-    async detectFridgeItems(imageBuffer: Buffer, mimeType: string): Promise<{ name: string; quantity: string }[]> {
+    async detectFridgeItems(imageBuffer: Buffer, mimeType: string, existingItems: string[] = []): Promise<{ name: string; quantity: string }[]> {
         const base64Image = imageBuffer.toString('base64');
 
-        const prompt = `You are a smart kitchen assistant. This photo is supposed to show the inside of a fridge, a pantry shelf, a countertop with groceries, or a set of food/grocery items that someone wants to log into their fridge inventory.
+        const existingItemsText = existingItems.length > 0 
+            ? `\nEXISTING INVENTORY:\nThe user already has these items in their fridge: ${existingItems.map(i => `"${i}"`).join(', ')}.\nIf you identify an item in the photo that matches one of these existing items, you MUST use the EXACT SAME NAME from this list. This is critical to prevent duplicates.` 
+            : '';
 
+        const prompt = `You are a smart kitchen assistant. This photo is supposed to show the inside of a fridge, a pantry shelf, a countertop with groceries, or a set of food/grocery items that someone wants to log into their fridge inventory.
+${existingItemsText}
 STEP 1 — Classify the image. Choose EXACTLY ONE value for "imageIssue":
 
 "not_a_fridge" — the image does NOT clearly show a fridge interior, pantry shelf, countertop with groceries, or packaged/unpackaged food items. Use this for:
