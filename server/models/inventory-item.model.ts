@@ -6,7 +6,7 @@ export type ItemOwnership = "SHARED" | "PRIVATE";
 // Interface
 export interface IInventoryItem {
   fridgeId: mongoose.Types.ObjectId;
-  ownerId: mongoose.Types.ObjectId;
+  ownerId: mongoose.Types.ObjectId | null;
   name: string;
   quantity: string;
   ownership: ItemOwnership;
@@ -27,7 +27,8 @@ const InventoryItemSchema = new Schema<IInventoryItem>(
     ownerId: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false,
+      default: null,
       index: true,
     },
     name: {

@@ -67,6 +67,19 @@ export class InventoryItemController {
   }
 
   /**
+   * Reassign an item's owner
+   * PATCH /fridges/:fridgeId/items/:itemId/owner
+   */
+  static async assignOwner(req: Request, res: Response) {
+    const userId = (req as AuthedRequest).user.userId;
+    const { itemId } = req.params;
+    const { ownerId } = req.body;
+
+    const updated = await InventoryItemService.assignOwner(itemId, userId, ownerId);
+    return ok(res, updated);
+  }
+
+  /**
    * Delete an item
    * DELETE /fridges/:fridgeId/items/:itemId
    */

@@ -6,6 +6,7 @@ import { InventoryItemController } from "../controllers/inventory-item.controlle
 import {
   CreateInventoryItemSchema,
   UpdateInventoryItemSchema,
+  AssignOwnerSchema,
   InventoryItemIdParamsSchema,
   InventoryItemQuerySchema,
 } from "../validators/inventory-item.validators";
@@ -50,6 +51,13 @@ inventoryItemRoutes.patch(
   "/:itemId",
   validate({ params: ItemParamsSchema, body: UpdateInventoryItemSchema }),
   asyncHandler(InventoryItemController.update)
+);
+
+// Reassign item owner: PATCH /fridges/:fridgeId/items/:itemId/owner
+inventoryItemRoutes.patch(
+  "/:itemId/owner",
+  validate({ params: ItemParamsSchema, body: AssignOwnerSchema }),
+  asyncHandler(InventoryItemController.assignOwner)
 );
 
 // Delete item: DELETE /fridges/:fridgeId/items/:itemId

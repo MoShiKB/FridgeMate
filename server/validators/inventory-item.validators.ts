@@ -18,6 +18,11 @@ export const UpdateInventoryItemSchema = z.object({
   ownership: ItemOwnershipEnum.optional(),
 });
 
+// Assign a new owner to an item, or pass null to unassign (any fridge member can reassign)
+export const AssignOwnerSchema = z.object({
+  ownerId: z.string().min(1).nullable(),
+});
+
 // Route params schema
 export const InventoryItemIdParamsSchema = z.object({
   itemId: z.string().min(1),
@@ -35,3 +40,4 @@ export const InventoryItemQuerySchema = z.object({
 export type CreateInventoryItemInput = z.infer<typeof CreateInventoryItemSchema>;
 export type UpdateInventoryItemInput = z.infer<typeof UpdateInventoryItemSchema>;
 export type InventoryItemQuery = z.infer<typeof InventoryItemQuerySchema>;
+export type AssignOwnerInput = z.infer<typeof AssignOwnerSchema>;
