@@ -139,6 +139,47 @@ describe('Scan Routes', () => {
             expect(item!.ownership).toBe('SHARED');
         });
 
+        it('should create new items with no owner by default', async () => {
+            mockAIScan([{ name: 'butter', quantity: '250g' }]);
+
+            const res = await request(app)
+                .post('/fridges/me/scans')
+                .set('Authorization', token)
+                .attach('image', FIXTURE_IMAGE);
+
+            expect(res.statusCode).toBe(201);
+
+            const item = await InventoryItem.findOne({ fridgeId, name: 'butter' });
+            expect(item).not.toBeNull();
+            expect(item!.ownerId).toBeNull();
+        });
+
+        it('should preserve an existing item\'s owner when re-scanned', async () => {
+            const otherOwnerId = new mongoose.Types.ObjectId();
+            await InventoryItem.create({
+                fridgeId,
+                ownerId: otherOwnerId,
+                name: 'cucumber',
+                quantity: '2',
+                ownership: 'SHARED',
+                isRunningLow: false
+            });
+
+            mockAIScan([{ name: 'cucumber', quantity: '5' }]);
+
+            const res = await request(app)
+                .post('/fridges/me/scans')
+                .set('Authorization', token)
+                .attach('image', FIXTURE_IMAGE);
+
+            expect(res.statusCode).toBe(201);
+
+            const item = await InventoryItem.findOne({ fridgeId, name: 'cucumber' });
+            expect(item).not.toBeNull();
+            expect(item!.quantity).toBe('5');
+            expect(item!.ownerId?.toString()).toBe(otherOwnerId.toString());
+        });
+
         it('should replace fridge contents: remove items not seen in the new scan', async () => {
             // Pre-existing items in the fridge
             await InventoryItem.create([
