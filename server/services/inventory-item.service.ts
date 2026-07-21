@@ -84,27 +84,29 @@ export class InventoryItemService {
     const userObjectId = new mongoose.Types.ObjectId(userId);
     const fridgeObjectId = new mongoose.Types.ObjectId(fridgeId);
 
-    // Build query: SHARED items OR user's PRIVATE items
-    const filter: any = {
-      fridgeId: fridgeObjectId,
-      $or: [
-        { ownership: "SHARED" },
-        { ownership: "PRIVATE", ownerId: userObjectId },
-      ],
-    };
+    // Visibility: SHARED items OR user's PRIVATE items — unless a specific
+    // ownership is requested, in which case that alone determines visibility.
+    const visibilityCondition: any =
+      query.ownership === "PRIVATE"
+        ? { ownership: "PRIVATE", ownerId: userObjectId }
+        : query.ownership === "SHARED"
+        ? { ownership: "SHARED" }
+        : {
+            $or: [
+              { ownership: "SHARED" },
+              { ownership: "PRIVATE", ownerId: userObjectId },
+            ],
+          };
 
-    // Apply ownership filter if specified
-    if (query.ownership) {
-      delete filter.$or;
-      if (query.ownership === "PRIVATE") {
-        // Only show user's own private items
-        filter.ownership = "PRIVATE";
-        filter.ownerId = userObjectId;
-      } else {
-        // Show all shared items
-        filter.ownership = "SHARED";
-      }
+    const conditions: any[] = [visibilityCondition];
+    if (query.mineOrUnowned) {
+      conditions.push({ ownerId: { $in: [null, userObjectId] } });
     }
+
+    const filter: any =
+      conditions.length === 1
+        ? { fridgeId: fridgeObjectId, ...conditions[0] }
+        : { fridgeId: fridgeObjectId, $and: conditions };
 
     const [items, total] = await Promise.all([
       InventoryItemModel.find(filter)

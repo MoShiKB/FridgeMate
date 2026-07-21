@@ -32,6 +32,9 @@ export const InventoryItemIdParamsSchema = z.object({
 export const InventoryItemQuerySchema = z.object({
   fridgeId: z.string().min(1).optional(),
   ownership: ItemOwnershipEnum.optional(),
+  // When true, only items owned by the requesting user or unowned are returned
+  // (used e.g. by recipe generation, which shouldn't suggest other members' items)
+  mineOrUnowned: z.coerce.boolean().optional(),
   page: z.coerce.number().optional(),
   limit: z.coerce.number().optional(),
 });
