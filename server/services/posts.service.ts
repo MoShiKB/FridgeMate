@@ -160,7 +160,8 @@ export class PostsService {
             type: "POST_LIKE",
             title: `${likerName} liked your post`,
             message: postSnippet ? `“${postSnippet}”` : "Tap to see the reactions",
-            metadata: { postId },
+            metadata: { postId, likerId: userId },
+            dedupeBy: ["likerId", "postId"],
             skipPush: true,
           }).catch(() => {});
         }).catch(() => {});
@@ -175,6 +176,14 @@ export class PostsService {
     );
 
     if (!removed) throw new ApiError(404, "Post not found", "POST_NOT_FOUND");
+    if (removed.authorUserId.toString() !== userId) {
+      NotificationService.removeNotification({
+        userId: removed.authorUserId.toString(),
+        type: "POST_LIKE",
+        metadata: { postId, likerId: userId },
+        dedupeBy: ["likerId", "postId"],
+      }).catch(() => {});
+    }
     return { liked: false, likesCount: removed.likes.length };
   }
 }
