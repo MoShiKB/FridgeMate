@@ -5,6 +5,7 @@ import { CommentModel } from "../models/comment.model";
 import { UserModel } from "../models/user.model";
 import { UserService } from "./user.service";
 import { NotificationService } from "./notification.service";
+import { io } from "../index";
 
 export class PostsService {
   static async create(userId: string, payload: any) {
@@ -150,6 +151,7 @@ export class PostsService {
     );
 
     if (added) {
+      io.emit("post_stat_changed", { postId, likesCount: added.likes.length });
       if (added.authorUserId.toString() !== userId) {
         UserModel.findById(userId).select("displayName").lean().then((liker: any) => {
           const likerName = liker?.displayName || "Someone";
@@ -176,6 +178,7 @@ export class PostsService {
     );
 
     if (!removed) throw new ApiError(404, "Post not found", "POST_NOT_FOUND");
+    io.emit("post_stat_changed", { postId, likesCount: removed.likes.length });
     if (removed.authorUserId.toString() !== userId) {
       NotificationService.removeNotification({
         userId: removed.authorUserId.toString(),

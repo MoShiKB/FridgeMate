@@ -3,6 +3,7 @@ import { ApiError } from "../utils/errors";
 import { CommentModel } from "../models/comment.model";
 import { PostModel } from "../models/post.model";
 import { NotificationService } from "./notification.service";
+import { io } from "../index";
 
 export class CommentsService {
   static async list(postId: string, userId?: string) {
@@ -33,6 +34,11 @@ export class CommentsService {
     const populated = await CommentModel.findById(doc._id)
       .populate("authorUserId", "displayName profileImage")
       .lean();
+
+    const commentsCount = await CommentModel.countDocuments({
+      postId: new mongoose.Types.ObjectId(postId),
+    });
+    io.emit("post_stat_changed", { postId, commentsCount });
 
     if (post.authorUserId.toString() !== userId) {
       const commenterName =
@@ -71,7 +77,12 @@ export class CommentsService {
     if (!comment) throw new ApiError(404, "Comment not found", "COMMENT_NOT_FOUND");
     if (comment.authorUserId.toString() !== userId) throw new ApiError(403, "Not allowed", "FORBIDDEN");
 
+    const postId = comment.postId;
     await comment.deleteOne();
+
+    const commentsCount = await CommentModel.countDocuments({ postId });
+    io.emit("post_stat_changed", { postId: postId.toString(), commentsCount });
+
     return { ok: true };
   }
 }
