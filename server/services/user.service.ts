@@ -145,9 +145,11 @@ export const UserService = {
         NotificationService.sendNotification({
           userId: targetId,
           type: "FOLLOW",
-          title: "New Follower",
-          message: `${followerName} started following you`,
+          title: `${followerName} started following you`,
+          message: "Tap to view their profile",
           metadata: { followerId: callerId },
+          dedupeBy: ["followerId"],
+          skipPush: true,
         }).catch(() => {});
       }).catch(() => {});
 
@@ -161,6 +163,12 @@ export const UserService = {
       { projection: { _id: 1 } }
     );
     const followersCount = await UserModel.countDocuments({ following: targetObjId });
+    NotificationService.removeNotification({
+      userId: targetId,
+      type: "FOLLOW",
+      metadata: { followerId: callerId },
+      dedupeBy: ["followerId"],
+    }).catch(() => {});
     return { following: false, followersCount };
   },
 

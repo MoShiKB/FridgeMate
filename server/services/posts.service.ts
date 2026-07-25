@@ -2,8 +2,10 @@ import mongoose from "mongoose";
 import { ApiError } from "../utils/errors";
 import { PostModel } from "../models/post.model";
 import { CommentModel } from "../models/comment.model";
+import { UserModel } from "../models/user.model";
 import { UserService } from "./user.service";
 import { NotificationService } from "./notification.service";
+import { io } from "../index";
 
 export class PostsService {
   static async create(userId: string, payload: any) {
@@ -149,13 +151,21 @@ export class PostsService {
     );
 
     if (added) {
+      io.emit("post_stat_changed", { postId, likesCount: added.likes.length });
       if (added.authorUserId.toString() !== userId) {
-        NotificationService.sendNotification({
-          userId: added.authorUserId.toString(),
-          type: "POST_LIKE",
-          title: "New Like",
-          message: "Someone liked your post",
-          metadata: { postId },
+        UserModel.findById(userId).select("displayName").lean().then((liker: any) => {
+          const likerName = liker?.displayName || "Someone";
+          const postTitle = (added.title || "").trim();
+          const postSnippet = postTitle.length > 60 ? postTitle.slice(0, 60) + "…" : postTitle;
+          NotificationService.sendNotification({
+            userId: added.authorUserId.toString(),
+            type: "POST_LIKE",
+            title: `${likerName} liked your post`,
+            message: postSnippet ? `“${postSnippet}”` : "Tap to see the reactions",
+            metadata: { postId, likerId: userId },
+            dedupeBy: ["likerId", "postId"],
+            skipPush: true,
+          }).catch(() => {});
         }).catch(() => {});
       }
       return { liked: true, likesCount: added.likes.length };
@@ -168,6 +178,15 @@ export class PostsService {
     );
 
     if (!removed) throw new ApiError(404, "Post not found", "POST_NOT_FOUND");
+    io.emit("post_stat_changed", { postId, likesCount: removed.likes.length });
+    if (removed.authorUserId.toString() !== userId) {
+      NotificationService.removeNotification({
+        userId: removed.authorUserId.toString(),
+        type: "POST_LIKE",
+        metadata: { postId, likerId: userId },
+        dedupeBy: ["likerId", "postId"],
+      }).catch(() => {});
+    }
     return { liked: false, likesCount: removed.likes.length };
   }
 }

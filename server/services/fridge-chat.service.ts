@@ -140,9 +140,12 @@ export const FridgeChatService = {
 
     (async () => {
       try {
-        const fridge = await FridgeModel.findById(fridgeId).select("members").lean<{ members: { userId: Types.ObjectId }[] }>();
+        const fridge = await FridgeModel.findById(fridgeId)
+          .select("members name")
+          .lean<{ members: { userId: Types.ObjectId }[]; name: string }>();
         if (!fridge) return;
         const senderName = (newMessage.sender as unknown as { displayName?: string })?.displayName ?? "Someone";
+        const fridgeName = fridge.name || "Fridge chat";
         const preview = finalContent.length > 100 ? finalContent.slice(0, 100) + "…" : finalContent;
         for (const member of fridge.members) {
           const memberId = member.userId.toString();
@@ -151,10 +154,13 @@ export const FridgeChatService = {
           NotificationService.sendNotification({
             userId: memberId,
             type: "CHAT_MESSAGE",
-            title: senderName,
-            message: preview,
-            metadata: { fridgeId, messageId: (newMessage as any)._id?.toString() },
-            skipPersist: true,
+            title: fridgeName,
+            message: `${senderName}: ${preview}`,
+            metadata: {
+              fridgeId,
+              fridgeName,
+              messageId: (newMessage as any)._id?.toString(),
+            },
           }).catch(() => {});
         }
       } catch {}
