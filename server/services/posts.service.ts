@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { ApiError } from "../utils/errors";
 import { PostModel } from "../models/post.model";
 import { CommentModel } from "../models/comment.model";
+import { UserModel } from "../models/user.model";
 import { UserService } from "./user.service";
 import { NotificationService } from "./notification.service";
 
@@ -150,12 +151,18 @@ export class PostsService {
 
     if (added) {
       if (added.authorUserId.toString() !== userId) {
-        NotificationService.sendNotification({
-          userId: added.authorUserId.toString(),
-          type: "POST_LIKE",
-          title: "New Like",
-          message: "Someone liked your post",
-          metadata: { postId },
+        UserModel.findById(userId).select("displayName").lean().then((liker: any) => {
+          const likerName = liker?.displayName || "Someone";
+          const postTitle = (added.title || "").trim();
+          const postSnippet = postTitle.length > 60 ? postTitle.slice(0, 60) + "…" : postTitle;
+          NotificationService.sendNotification({
+            userId: added.authorUserId.toString(),
+            type: "POST_LIKE",
+            title: `${likerName} liked your post`,
+            message: postSnippet ? `“${postSnippet}”` : "Tap to see the reactions",
+            metadata: { postId },
+            skipPush: true,
+          }).catch(() => {});
         }).catch(() => {});
       }
       return { liked: true, likesCount: added.likes.length };

@@ -145,9 +145,10 @@ export const UserService = {
         NotificationService.sendNotification({
           userId: targetId,
           type: "FOLLOW",
-          title: "New Follower",
-          message: `${followerName} started following you`,
+          title: `${followerName} started following you`,
+          message: "Tap to view their profile",
           metadata: { followerId: callerId },
+          skipPush: true,
         }).catch(() => {});
       }).catch(() => {});
 

@@ -35,12 +35,16 @@ export class CommentsService {
       .lean();
 
     if (post.authorUserId.toString() !== userId) {
+      const commenterName =
+        (populated as any)?.authorUserId?.displayName || "Someone";
+      const preview = text.length > 100 ? text.slice(0, 100) + "…" : text;
       NotificationService.sendNotification({
         userId: post.authorUserId.toString(),
         type: "POST_COMMENT",
-        title: "New Comment",
-        message: text.length > 100 ? text.slice(0, 100) + "…" : text,
+        title: `${commenterName} commented on your post`,
+        message: `“${preview}”`,
         metadata: { postId, commentId: doc._id.toString() },
+        skipPush: true,
       }).catch(() => {});
     }
 

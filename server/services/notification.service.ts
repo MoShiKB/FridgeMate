@@ -12,6 +12,7 @@ export class NotificationService {
         message,
         metadata,
         skipPersist = false,
+        skipPush = false,
     }: {
         userId: string | Types.ObjectId;
         type: NotificationType;
@@ -19,12 +20,12 @@ export class NotificationService {
         message: string;
         metadata?: any;
         skipPersist?: boolean;
+        skipPush?: boolean;
     }) {
         try {
             let notification: any;
 
             if (!skipPersist) {
-                // 1. Save to DB
                 notification = await NotificationModel.create({
                     userId,
                     type,
@@ -33,11 +34,13 @@ export class NotificationService {
                     metadata
                 });
 
-                // 2. Emit real-time Socket event
                 io.to(userId.toString()).emit("new_notification", notification);
             }
 
-            // 3. Send Push Notification via Firebase Cloud Messaging
+            if (skipPush) {
+                return notification;
+            }
+
             const user = await UserModel.findById(userId).select("fcmTokens");
             if (user && user.fcmTokens && user.fcmTokens.length > 0) {
                 const firebaseApp = getFirebaseApp();
@@ -52,14 +55,13 @@ export class NotificationService {
                         data: {
                             type,
                             metadata: metadata ? JSON.stringify(metadata) : "",
-                            notificationId: notification._id.toString()
+                            notificationId: notification?._id ? notification._id.toString() : ""
                         },
                         tokens: user.fcmTokens
                     };
 
                     const response = await messaging.sendEachForMulticast(payload);
-                    
-                    // Optional: Clean up invalid tokens
+
                     if (response.failureCount > 0) {
                         const failedTokens: string[] = [];
                         response.responses.forEach((resp, idx) => {
