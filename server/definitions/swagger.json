@@ -128,8 +128,11 @@
           "200": {
             "description": "Successful login, tokens provided"
           },
-          "400": {
-            "description": "Invalid credentials"
+          "401": {
+            "description": "Incorrect password"
+          },
+          "404": {
+            "description": "No account found with this email"
           }
         }
       }

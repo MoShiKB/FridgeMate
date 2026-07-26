@@ -87,10 +87,10 @@ export const AuthService = {
 
     // חשוב: select("+password") כי password מוגדר select:false במודל
     const user = await UserModel.findOne({ email: normalizedEmail }).select("+password").exec();
-    if (!user || !user.password) throw new ApiError(401, "Invalid credentials");
+    if (!user || !user.password) throw new ApiError(404, "No account found with this email");
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) throw new ApiError(401, "Invalid credentials");
+    if (!isMatch) throw new ApiError(401, "Incorrect password");
 
     const accessToken = signAccessToken(user);
     const refreshToken = signRefreshToken(user._id.toString());
