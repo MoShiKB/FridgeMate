@@ -2,7 +2,8 @@ import { Types } from "mongoose";
 import NotificationModel, { NotificationType } from "../models/notification.model";
 import UserModel from "../models/user.model";
 import { getFirebaseApp } from "../config/firebase";
-import { io } from "../index";
+
+const getIo = () => require("../index").io;
 
 export class NotificationService {
     static async sendNotification({
@@ -34,7 +35,7 @@ export class NotificationService {
                 });
 
                 // 2. Emit real-time Socket event
-                io.to(userId.toString()).emit("new_notification", notification);
+                getIo().to(userId.toString()).emit("new_notification", notification);
             }
 
             // 3. Send Push Notification via Firebase Cloud Messaging
