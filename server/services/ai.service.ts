@@ -352,6 +352,16 @@ STEP 2 — If and only if imageIssue is null, list every distinct food item you 
 - "name": lowercase, singular where natural (e.g. "egg" not "eggs", "tomato" not "tomatoes")
 - "quantity": a SHORT, DEFINITE string. See quantity rules below.
 
+ITEM FILTERING RULES — read carefully:
+1. Ignore and DO NOT output generic, unrecognizable, or ambiguous items.
+2. BANNED item names: "leftovers", "food mix", "unknown container", "tupperware", "dish", "bowl", "plate", "leftover food", "meal", "assorted food".
+3. If you see a container but cannot clearly identify the specific ingredient/food inside it, ignore it completely.
+
+ITEM FILTERING RULES — read carefully:
+1. Ignore and DO NOT output generic, unrecognizable, or ambiguous items.
+2. BANNED item names: "leftovers", "food mix", "unknown container", "tupperware", "dish", "bowl", "plate", "leftover food", "meal", "assorted food".
+3. If you see a container but cannot clearly identify the specific ingredient/food inside it, ignore it completely.
+
 QUANTITY RULES — read carefully, these are strict:
 1. NEVER use hedge words or approximations. BANNED words and symbols: "about", "approximately", "approx", "around", "roughly", "circa", "ca.", "~", "maybe", "some", "several", "a few", "a couple", "or so", "ish", "plus or minus", "more or less".
 2. Pick ONE concrete value. If you cannot see the exact count, PICK YOUR BEST SINGLE INTEGER based on what's visible (e.g. write "6" not "about 6" or "5-7"). Do not output ranges.
