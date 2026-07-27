@@ -139,7 +139,7 @@ describe('Scan Routes', () => {
             expect(item!.ownership).toBe('SHARED');
         });
 
-        it('should replace fridge contents: remove items not seen in the new scan', async () => {
+        it('should NOT remove items not seen in the new scan, but SHOULD remove if quantity is 0', async () => {
             // Pre-existing items in the fridge
             await InventoryItem.create([
                 { fridgeId, ownerId: userId, name: 'milk', quantity: '1 liter', ownership: 'SHARED', isRunningLow: false },
@@ -147,11 +147,12 @@ describe('Scan Routes', () => {
                 { fridgeId, ownerId: userId, name: 'cheese', quantity: '1 block', ownership: 'PRIVATE', isRunningLow: false }
             ]);
 
-            // New scan only sees milk (updated quantity) and bread (new item).
-            // Eggs and cheese are NOT detected, so they should be removed.
+            // New scan sees milk (updated quantity), bread (new item), and eggs (0).
+            // Cheese is NOT detected, so it should be left unchanged.
             mockAIScan([
                 { name: 'milk', quantity: '500ml' },
-                { name: 'bread', quantity: '1 loaf' }
+                { name: 'bread', quantity: '1 loaf' },
+                { name: 'eggs', quantity: '0' }
             ]);
 
             const res = await request(app)
@@ -164,7 +165,7 @@ describe('Scan Routes', () => {
 
             const remaining = await InventoryItem.find({ fridgeId });
             const names = remaining.map(i => i.name).sort();
-            expect(names).toEqual(['bread', 'milk']);
+            expect(names).toEqual(['bread', 'cheese', 'milk']);
 
             const milk = remaining.find(i => i.name === 'milk');
             expect(milk!.quantity).toBe('500ml');
@@ -234,14 +235,18 @@ describe('Scan Routes', () => {
                 expect(res.body.data.changes.removed).toEqual([]);
             });
 
-            it('should report items that were in the fridge but not in the new scan under changes.removed', async () => {
+            it('should report items with quantity 0 under changes.removed', async () => {
                 await InventoryItem.create([
                     { fridgeId, ownerId: userId, name: 'eggs', quantity: '6', ownership: 'SHARED', isRunningLow: false },
                     { fridgeId, ownerId: userId, name: 'cheese', quantity: '1 block', ownership: 'PRIVATE', isRunningLow: false },
                 ]);
 
-                // New scan only sees milk — eggs and cheese should be reported as removed.
-                mockAIScan([{ name: 'milk', quantity: '1 liter' }]);
+                // New scan explicitly reports eggs as '0' and 'cheese' as 'none'. Both should be removed.
+                mockAIScan([
+                    { name: 'milk', quantity: '1 liter' },
+                    { name: 'eggs', quantity: '0' },
+                    { name: 'cheese', quantity: 'none' }
+                ]);
 
                 const res = await request(app)
                     .post('/fridges/me/scans')
@@ -268,10 +273,11 @@ describe('Scan Routes', () => {
                     { fridgeId, ownerId: userId, name: 'eggs', quantity: '6', ownership: 'SHARED', isRunningLow: false },
                 ]);
 
-                // milk quantity changes, bread is new, eggs vanish.
+                // milk quantity changes, bread is new, eggs explicitly 0.
                 mockAIScan([
                     { name: 'milk', quantity: '500ml' },
                     { name: 'bread', quantity: '1 loaf' },
+                    { name: 'eggs', quantity: '0' },
                 ]);
 
                 const res = await request(app)

@@ -319,11 +319,11 @@ Format:
 
 
     // Detects fridge items from a photo.
-    async detectFridgeItems(imageBuffer: Buffer, mimeType: string, existingItems: string[] = []): Promise<{ name: string; quantity: string }[]> {
+    async detectFridgeItems(imageBuffer: Buffer, mimeType: string, existingItems: {name: string, quantity: string}[] = []): Promise<{ name: string; quantity: string }[]> {
         const base64Image = imageBuffer.toString('base64');
 
         const existingItemsText = existingItems.length > 0 
-            ? `\nEXISTING INVENTORY:\nThe user already has these items in their fridge: ${existingItems.map(i => `"${i}"`).join(', ')}.\nIf you identify an item in the photo that matches one of these existing items, you MUST use the EXACT SAME NAME from this list. This is critical to prevent duplicates.` 
+            ? `\nEXISTING INVENTORY:\nThe user currently has these items in their fridge:\n${existingItems.map(i => `- "${i.name}" (Current quantity: ${i.quantity})`).join('\n')}\n\nINSTRUCTIONS FOR EXISTING ITEMS:\n1. If you see an existing item, output its NEW quantity.\n2. If you clearly see that an existing item has been fully consumed or removed (e.g., an empty spot where it used to be, or an empty container), output the item with quantity "0".\n3. If you simply do not see an existing item (it might be hidden or out of frame), DO NOT output it at all. We will assume it is still there.\n4. If you identify an item that matches one of these existing items, you MUST use the EXACT SAME NAME from the list.` 
             : '';
 
         const prompt = `You are a smart kitchen assistant. This photo is supposed to show the inside of a fridge, a pantry shelf, a countertop with groceries, or a set of food/grocery items that someone wants to log into their fridge inventory.

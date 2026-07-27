@@ -38,12 +38,12 @@ export class ScanService {
         { name: item.name, quantity: item.quantity },
       ])
     );
-    const existingItemNames = preScanItems.map(item => item.name);
+    const existingItemsForAi = preScanItems.map(item => ({ name: item.name, quantity: item.quantity }));
 
     let detectedItems: { name: string; quantity: string }[] = [];
 
     try {
-      detectedItems = await AIService.detectFridgeItems(imageBuffer, mimeType, existingItemNames);
+      detectedItems = await AIService.detectFridgeItems(imageBuffer, mimeType, existingItemsForAi);
     } catch (err: any) {
       const failedScan = await ScanModel.create({
         fridgeId: new mongoose.Types.ObjectId(fridgeId),
@@ -59,6 +59,7 @@ export class ScanService {
 
     const added: { name: string; quantity: string }[] = [];
     const updated: { name: string; oldQuantity: string; newQuantity: string }[] = [];
+    const removed: { name: string; quantity: string }[] = [];
 
     const processedItems: { id: string; name: string; quantity: string; ownership: string }[] = [];
 
@@ -68,26 +69,33 @@ export class ScanService {
         name: { $regex: new RegExp(`^${escapeRegex(detected.name)}$`, "i") },
       });
 
-      if (existing) {
-        const oldQuantity = existing.quantity;
-        existing.quantity = detected.quantity;
-        await existing.save();
-        addedItemIds.push(existing._id as mongoose.Types.ObjectId);
-        processedItems.push({
-          id: existing._id.toString(),
-          name: existing.name,
-          quantity: existing.quantity,
-          ownership: existing.ownership,
-        });
+      const isZero = detected.quantity === "0" || detected.quantity.toLowerCase() === "none";
 
-        if (oldQuantity !== detected.quantity) {
-          updated.push({
+      if (existing) {
+        if (isZero) {
+          await InventoryItemModel.findByIdAndDelete(existing._id);
+          removed.push({ name: existing.name, quantity: existing.quantity });
+        } else {
+          const oldQuantity = existing.quantity;
+          existing.quantity = detected.quantity;
+          await existing.save();
+          addedItemIds.push(existing._id as mongoose.Types.ObjectId);
+          processedItems.push({
+            id: existing._id.toString(),
             name: existing.name,
-            oldQuantity,
-            newQuantity: detected.quantity,
+            quantity: existing.quantity,
+            ownership: existing.ownership,
           });
+
+          if (oldQuantity !== detected.quantity) {
+            updated.push({
+              name: existing.name,
+              oldQuantity,
+              newQuantity: detected.quantity,
+            });
+          }
         }
-      } else {
+      } else if (!isZero) {
         const newItem = await InventoryItemModel.create({
           fridgeId: new mongoose.Types.ObjectId(fridgeId),
           ownerId: new mongoose.Types.ObjectId(userId),
@@ -105,21 +113,6 @@ export class ScanService {
         });
         added.push({ name: newItem.name, quantity: newItem.quantity });
       }
-    }
-
-    const addedIdStrings = new Set(addedItemIds.map((id) => id.toString()));
-    const removed: { name: string; quantity: string }[] = [];
-    if (addedItemIds.length > 0) {
-      for (const [id, item] of preScanById.entries()) {
-        if (!addedIdStrings.has(id)) {
-          removed.push({ name: item.name, quantity: item.quantity });
-        }
-      }
-
-      await InventoryItemModel.deleteMany({
-        fridgeId: new mongoose.Types.ObjectId(fridgeId),
-        _id: { $nin: addedItemIds },
-      });
     }
 
     const scan = await ScanModel.create({
