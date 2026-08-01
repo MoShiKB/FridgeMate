@@ -30,7 +30,6 @@ const io = new Server(server, {
     credentials: true,
   },
 });
-setupSocketHandlers(io);
 
 app.use(express.json());
 app.use(cors({ origin: CLIENT_ORIGIN, credentials: true }));
@@ -45,6 +44,7 @@ app.use("/", mainRoutes);
 app.use(errorHandler);
 
 const start = async () => {
+  setupSocketHandlers(io);
   try {
     await connectDB();
     initFirebase();

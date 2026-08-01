@@ -66,8 +66,9 @@ describe('Scan Routes', () => {
     });
 
     const mockAIScan = (items: { name: string; quantity: string }[], imageIssue: string | null = null) => {
+        const itemsWithConfidence = items.map(item => ({ ...item, confidence: 'high' }));
         mockGenerateContent.mockResolvedValueOnce({
-            text: JSON.stringify({ imageIssue, items })
+            text: JSON.stringify({ imageIssue, items: itemsWithConfidence })
         });
     };
 
