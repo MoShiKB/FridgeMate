@@ -40,10 +40,20 @@ export class ScanService {
     );
     const existingItemsForAi = preScanItems.map(item => ({ name: item.name, quantity: item.quantity }));
 
+    // Fetch previous scan to improve AI accuracy
+    const lastScan = await ScanModel.findOne({
+      fridgeId: new mongoose.Types.ObjectId(fridgeId),
+      status: "completed",
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+    
+    const previousScanItems = lastScan ? lastScan.detectedItems.map(i => ({ name: i.name, quantity: i.quantity })) : [];
+
     let detectedItems: { name: string; quantity: string }[] = [];
 
     try {
-      detectedItems = await AIService.detectFridgeItems(imageBuffer, mimeType, existingItemsForAi);
+      detectedItems = await AIService.detectFridgeItems(imageBuffer, mimeType, existingItemsForAi, previousScanItems);
     } catch (err: any) {
       const failedScan = await ScanModel.create({
         fridgeId: new mongoose.Types.ObjectId(fridgeId),
