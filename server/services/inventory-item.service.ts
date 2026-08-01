@@ -3,6 +3,7 @@ import { ApiError } from "../utils/errors";
 import { InventoryItemModel } from "../models/inventory-item.model";
 import { FridgeModel } from "../models/fridge.model";
 import { AIService } from "./ai.service";
+import { io } from "../index";
 import {
   CreateInventoryItemInput,
   UpdateInventoryItemInput,
@@ -83,27 +84,29 @@ export class InventoryItemService {
     const userObjectId = new mongoose.Types.ObjectId(userId);
     const fridgeObjectId = new mongoose.Types.ObjectId(fridgeId);
 
-    // Build query: SHARED items OR user's PRIVATE items
-    const filter: any = {
-      fridgeId: fridgeObjectId,
-      $or: [
-        { ownership: "SHARED" },
-        { ownership: "PRIVATE", ownerId: userObjectId },
-      ],
-    };
+    // Visibility: SHARED items OR user's PRIVATE items — unless a specific
+    // ownership is requested, in which case that alone determines visibility.
+    const visibilityCondition: any =
+      query.ownership === "PRIVATE"
+        ? { ownership: "PRIVATE", ownerId: userObjectId }
+        : query.ownership === "SHARED"
+        ? { ownership: "SHARED" }
+        : {
+            $or: [
+              { ownership: "SHARED" },
+              { ownership: "PRIVATE", ownerId: userObjectId },
+            ],
+          };
 
-    // Apply ownership filter if specified
-    if (query.ownership) {
-      delete filter.$or;
-      if (query.ownership === "PRIVATE") {
-        // Only show user's own private items
-        filter.ownership = "PRIVATE";
-        filter.ownerId = userObjectId;
-      } else {
-        // Show all shared items
-        filter.ownership = "SHARED";
-      }
+    const conditions: any[] = [visibilityCondition];
+    if (query.mineOrUnowned) {
+      conditions.push({ ownerId: { $in: [null, userObjectId] } });
     }
+
+    const filter: any =
+      conditions.length === 1
+        ? { fridgeId: fridgeObjectId, ...conditions[0] }
+        : { fridgeId: fridgeObjectId, $and: conditions };
 
     const [items, total] = await Promise.all([
       InventoryItemModel.find(filter)
@@ -132,7 +135,7 @@ export class InventoryItemService {
     // Check visibility: PRIVATE items only visible to owner
     if (
       item.ownership === "PRIVATE" &&
-      item.ownerId.toString() !== userId
+      item.ownerId?.toString() !== userId
     ) {
       throw new ApiError(403, "Not allowed to view this item", "FORBIDDEN");
     }
@@ -154,7 +157,7 @@ export class InventoryItemService {
     }
 
     // Only owner can update
-    if (item.ownerId.toString() !== userId) {
+    if (item.ownerId?.toString() !== userId) {
       throw new ApiError(403, "Only item owner can update", "FORBIDDEN");
     }
 
@@ -189,6 +192,49 @@ export class InventoryItemService {
   }
 
   /**
+   * Reassign an item's owner (any fridge member can reassign to any fridge member),
+   * or pass newOwnerId = null to unassign it.
+   */
+  static async assignOwner(
+    itemId: string,
+    requesterId: string,
+    newOwnerId: string | null
+  ) {
+    const item = await InventoryItemModel.findById(itemId);
+    if (!item) {
+      throw new ApiError(404, "Item not found", "ITEM_NOT_FOUND");
+    }
+
+    const fridge = await this.verifyFridgeMembership(
+      item.fridgeId.toString(),
+      requesterId
+    );
+
+    if (newOwnerId !== null) {
+      const isNewOwnerMember = fridge.members.some(
+        (m) => m.userId.toString() === newOwnerId
+      );
+      if (!isNewOwnerMember) {
+        throw new ApiError(400, "New owner must be a fridge member", "INVALID_OWNER");
+      }
+      item.ownerId = new mongoose.Types.ObjectId(newOwnerId);
+    } else {
+      item.ownerId = null;
+    }
+    await item.save();
+
+    for (const member of fridge.members) {
+      io.to(member.userId.toString()).emit("itemOwnerChanged", {
+        fridgeId: item.fridgeId.toString(),
+        itemId: item._id.toString(),
+        ownerId: newOwnerId,
+      });
+    }
+
+    return item.toObject();
+  }
+
+  /**
    * Delete an item (only owner can delete)
    */
   static async delete(itemId: string, userId: string) {
@@ -198,7 +244,7 @@ export class InventoryItemService {
     }
 
     // Only owner can delete
-    if (item.ownerId.toString() !== userId) {
+    if (item.ownerId?.toString() !== userId) {
       throw new ApiError(403, "Only item owner can delete", "FORBIDDEN");
     }
 

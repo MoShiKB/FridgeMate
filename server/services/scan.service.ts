@@ -108,7 +108,7 @@ export class ScanService {
       } else if (!isZero) {
         const newItem = await InventoryItemModel.create({
           fridgeId: new mongoose.Types.ObjectId(fridgeId),
-          ownerId: new mongoose.Types.ObjectId(userId),
+          ownerId: null,
           name: detected.name,
           quantity: detected.quantity,
           ownership: "SHARED",

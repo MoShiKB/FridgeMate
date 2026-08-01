@@ -48,13 +48,16 @@ export class FridgesService {
     if (existingMemberIds.length > 0) {
       UserModel.findById(userId).select("displayName").lean().then((joiner: any) => {
         const joinerName = joiner?.displayName ?? "Someone";
+        const fridgeName = fridge.name || "your fridge";
         for (const memberId of existingMemberIds) {
           NotificationService.sendNotification({
             userId: memberId,
             type: "FRIDGE_INVITE",
-            title: "New Member",
-            message: `${joinerName} joined your fridge`,
-            metadata: { fridgeId: fridge._id.toString() },
+            title: `${joinerName} joined ${fridgeName}`,
+            message: "They can now see and add items",
+            metadata: { fridgeId: fridge._id.toString(), fridgeName, actorId: userId },
+            dedupeBy: ["fridgeId", "actorId"],
+            skipPush: true,
           }).catch(() => {});
         }
       }).catch(() => {});
@@ -84,13 +87,16 @@ export class FridgesService {
 
     if (remainingMemberIds.length > 0) {
       const leaverName = user.displayName;
+      const fridgeName = fridge.name || "your fridge";
       for (const memberId of remainingMemberIds) {
         NotificationService.sendNotification({
           userId: memberId,
           type: "FRIDGE_INVITE",
-          title: "Member Left",
-          message: `${leaverName} left the fridge`,
-          metadata: { fridgeId: fridge._id.toString() },
+          title: `${leaverName} left ${fridgeName}`,
+          message: "They no longer share this fridge",
+          metadata: { fridgeId: fridge._id.toString(), fridgeName, actorId: userId },
+          dedupeBy: ["fridgeId", "actorId"],
+          skipPush: true,
         }).catch(() => {});
       }
     }

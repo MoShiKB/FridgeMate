@@ -103,7 +103,7 @@ describe('Authentication Controller Tests', () => {
             expect(res.body).toHaveProperty('refreshToken');
         });
 
-        it('should return 401 for invalid credentials during login', async () => {
+        it('should return 404 when the email is not registered', async () => {
             const res = await request(app)
                 .post('/auth/login')
                 .send({
@@ -111,8 +111,8 @@ describe('Authentication Controller Tests', () => {
                     password: 'wrongPassword',
                 });
 
-            expect(res.statusCode).toBe(401);
-            expect(res.body.message).toBe('Invalid credentials');
+            expect(res.statusCode).toBe(404);
+            expect(res.body.message).toBe('No account found with this email');
         });
 
         it('should return 401 for wrong password', async () => {
@@ -132,7 +132,7 @@ describe('Authentication Controller Tests', () => {
                 });
 
             expect(res.statusCode).toBe(401);
-            expect(res.body.message).toBe('Invalid credentials');
+            expect(res.body.message).toBe('Incorrect password');
         });
 
         it('should return 500 if an error occurs during login', async () => {

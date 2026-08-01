@@ -100,6 +100,38 @@ describe('Inventory Item Routes', () => {
             expect(res.body.items).toHaveLength(1);
             expect(res.body.items[0].name).toBe('Apple');
         });
+
+        it('should exclude other members\' items when mineOrUnowned=true (used for recipe generation)', async () => {
+            const otherUserId = new mongoose.Types.ObjectId();
+            await InventoryItem.create([
+                {
+                    fridgeId,
+                    ownerId: otherUserId,
+                    name: 'Yogurt',
+                    quantity: '4 cups',
+                    ownership: 'SHARED'
+                },
+                {
+                    fridgeId,
+                    ownerId: null,
+                    name: 'Salt',
+                    quantity: '1 box',
+                    ownership: 'SHARED'
+                }
+            ]);
+
+            const res = await request(app)
+                .get(`/fridges/${fridgeId}/items?mineOrUnowned=true`)
+                .set('Authorization', token);
+
+            expect(res.statusCode).toBe(200);
+            const names = res.body.items.map((item: any) => item.name);
+            expect(names).toContain('Apple'); // mine
+            expect(names).toContain('Banana'); // mine
+            expect(names).toContain('Salt'); // unowned
+            expect(names).not.toContain('Yogurt'); // owned by someone else
+            expect(res.body.items).toHaveLength(3);
+        });
     });
 
     describe('GET /fridges/:fridgeId/items/:itemId', () => {

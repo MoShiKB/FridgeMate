@@ -82,11 +82,11 @@ describe('AuthService Tests', () => {
             expect(result.data).toHaveProperty('refreshToken');
         });
 
-        it('should throw error for invalid email', async () => {
+        it('should throw error for non-existent email', async () => {
             await expect(AuthService.login({
                 email: 'nonexistent@example.com',
                 password: 'securePassword123'
-            })).rejects.toThrow('Invalid credentials');
+            })).rejects.toThrow('No account found with this email');
         });
 
         it('should throw error for invalid password', async () => {
@@ -101,7 +101,7 @@ describe('AuthService Tests', () => {
             await expect(AuthService.login({
                 email: userEmail,
                 password: 'wrongPassword'
-            })).rejects.toThrow('Invalid credentials');
+            })).rejects.toThrow('Incorrect password');
         });
 
         it('should login Google user without password validation', async () => {
