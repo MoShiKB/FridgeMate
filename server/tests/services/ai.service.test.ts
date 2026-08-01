@@ -258,8 +258,8 @@ describe('AIService Tests', () => {
                 text: JSON.stringify({
                     imageIssue: null,
                     items: [
-                        { name: 'egg', quantity: '6' },
-                        { name: 'milk', quantity: '1 liter' },
+                        { name: 'egg', quantity: '6', confidence: 'high' },
+                        { name: 'milk', quantity: '1 liter', confidence: 'high' },
                     ],
                 }),
             });
@@ -273,7 +273,7 @@ describe('AIService Tests', () => {
 
         it('should handle markdown-wrapped JSON in response', async () => {
             mockGenerateContent.mockResolvedValueOnce({
-                text: '```json\n{"imageIssue":null,"items":[{"name":"apple","quantity":"3"}]}\n```',
+                text: '```json\n{"imageIssue":null,"items":[{"name":"apple","quantity":"3","confidence":"high"}]}\n```',
             });
 
             const result = await AIService.detectFridgeItems(Buffer.from('img'), 'image/png');
@@ -283,7 +283,7 @@ describe('AIService Tests', () => {
 
         it('should accept a legacy raw array response (backward compatible fallback)', async () => {
             mockGenerateContent.mockResolvedValueOnce({
-                text: JSON.stringify([{ name: 'apple', quantity: '3' }]),
+                text: JSON.stringify([{ name: 'apple', quantity: '3', confidence: 'high' }]),
             });
 
             const result = await AIService.detectFridgeItems(Buffer.from('img'), 'image/png');
@@ -359,10 +359,10 @@ describe('AIService Tests', () => {
                 text: JSON.stringify({
                     imageIssue: null,
                     items: [
-                        { name: 'egg', quantity: '6' },
-                        { name: '', quantity: '3' },
-                        { name: 'milk', quantity: '' },
-                        { name: 'butter', quantity: '1 block' },
+                        { name: 'egg', quantity: '6', confidence: 'high' },
+                        { name: '', quantity: '3', confidence: 'high' },
+                        { name: 'milk', quantity: '', confidence: 'high' },
+                        { name: 'butter', quantity: '1 block', confidence: 'high' },
                     ],
                 }),
             });
