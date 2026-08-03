@@ -176,28 +176,44 @@ export const MyFridgeTab = forwardRef(function MyFridgeTab(_, ref) {
         </div>
       )}
 
-      {/* Items Grid */}
-      <div className={styles.itemsGrid}>
-        {allItems.map((item) => (
-          <div
-            key={item.id || item._id}
-            className={`${styles.itemCard} ${item.isRunningLow ? styles.lowStock : ''}`}
-          >
-            <div className={styles.itemHeader}>
-              <h3 className={styles.itemName}>{item.name}</h3>
-              {item.isRunningLow && (
-                <div className={styles.lowStockBadge} title="Running low">
-                  <WarningIconSVG />
-                </div>
-              )}
+      {/* Items by Category */}
+      {(() => {
+        const grouped: Record<string, typeof allItems> = {};
+        allItems.forEach(item => {
+          const cat = item.category || 'Other';
+          if (!grouped[cat]) grouped[cat] = [];
+          grouped[cat].push(item);
+        });
+
+        return Object.entries(grouped)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([category, catItems]) => (
+            <div key={category} className={styles.categorySection}>
+              <h3 className={styles.categoryHeader}>{category}</h3>
+              <div className={styles.itemsGrid}>
+                {catItems.map((item) => (
+                  <div
+                    key={item.id || item._id}
+                    className={`${styles.itemCard} ${item.isRunningLow ? styles.lowStock : ''}`}
+                  >
+                    <div className={styles.itemHeader}>
+                      <h3 className={styles.itemName}>{item.name}</h3>
+                      {item.isRunningLow && (
+                        <div className={styles.lowStockBadge} title="Running low">
+                          <WarningIconSVG />
+                        </div>
+                      )}
+                    </div>
+                    <div className={styles.itemFooter}>
+                      <span className={styles.quantityLabel}>Qty</span>
+                      <span className={styles.quantityValue}>{item.quantity}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className={styles.itemFooter}>
-              <span className={styles.quantityLabel}>Qty</span>
-              <span className={styles.quantityValue}>{item.quantity}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+          ));
+      })()}
     </div>
   );
 });

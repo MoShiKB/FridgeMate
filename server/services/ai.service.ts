@@ -319,7 +319,7 @@ Format:
 
 
     // Detects fridge items from a photo.
-    async detectFridgeItems(imageBuffer: Buffer, mimeType: string, existingItems: {name: string, quantity: string}[] = [], previousScanItems: {name: string, quantity: string}[] = []): Promise<{ name: string; quantity: string }[]> {
+    async detectFridgeItems(imageBuffer: Buffer, mimeType: string, existingItems: {name: string, quantity: string}[] = [], previousScanItems: {name: string, quantity: string}[] = []): Promise<{ name: string; quantity: string; category?: string }[]> {
         const base64Image = imageBuffer.toString('base64');
 
         const existingItemsText = existingItems.length > 0 
@@ -356,6 +356,7 @@ BE STRICT. If the subject is anything other than food-storage content (e.g. a sh
 STEP 2 — If and only if imageIssue is null, list every distinct food item you can identify. For each item give:
 - "name": lowercase, singular where natural (e.g. "egg" not "eggs", "tomato" not "tomatoes")
 - "quantity": a SHORT, DEFINITE string. See quantity rules below.
+- "category": a short category string (e.g. "Dairy", "Produce", "Meat & Seafood", "Pantry", "Bakery", "Frozen", "Beverages", "Snacks", "Other")
 - "confidence": "high" if you are 100% sure you recognize what this item is, or "low" if you are guessing or not completely certain.
 
 ITEM FILTERING RULES — read carefully:
@@ -380,8 +381,8 @@ Respond with ONLY a JSON object in this EXACT shape (no prose, no markdown):
 {
   "imageIssue": null | "too_blurry" | "not_a_fridge" | "too_dark",
   "items": [
-    { "name": "egg", "quantity": "6", "confidence": "high" },
-    { "name": "milk", "quantity": "1 liter", "confidence": "high" }
+    { "name": "egg", "quantity": "6", "category": "Dairy", "confidence": "high" },
+    { "name": "milk", "quantity": "1 liter", "category": "Dairy", "confidence": "high" }
   ]
 }`;
 
@@ -418,6 +419,7 @@ Respond with ONLY a JSON object in this EXACT shape (no prose, no markdown):
                 .map((item: any) => ({
                     name: String(item.name).trim(),
                     quantity: String(item.quantity).trim(),
+                    category: item.category ? String(item.category).trim() : 'Other',
                 }));
         } catch (error: any) {
             if (error instanceof ApiError) throw error;
@@ -561,7 +563,7 @@ type ScanImageIssue = 'too_blurry' | 'not_a_fridge' | 'too_dark';
 
 interface ScanAIResponse {
     imageIssue: ScanImageIssue | null;
-    items: { name: string; quantity: string }[];
+    items: { name: string; quantity: string; category?: string }[];
 }
 
 function badImageMessage(issue: ScanImageIssue): string {

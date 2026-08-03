@@ -306,3 +306,18 @@
     font-size: 13px;
   }
 }
+
+/* Category Sections */
+.categorySection {
+  margin-top: 16px;
+  margin-bottom: 24px;
+}
+
+.categoryHeader {
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e0e0e0;
+}

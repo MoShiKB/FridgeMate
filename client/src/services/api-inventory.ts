@@ -11,6 +11,7 @@ export interface InventoryItemDto {
   ownerId: string;
   name: string;
   quantity: string;
+  category?: string;
   ownership?: string;
   isRunningLow: boolean;
 }

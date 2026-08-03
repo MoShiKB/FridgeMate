@@ -50,7 +50,7 @@ export class ScanService {
     
     const previousScanItems = lastScan ? lastScan.detectedItems.map(i => ({ name: i.name, quantity: i.quantity })) : [];
 
-    let detectedItems: { name: string; quantity: string }[] = [];
+    let detectedItems: { name: string; quantity: string; category?: string }[] = [];
 
     try {
       detectedItems = await AIService.detectFridgeItems(imageBuffer, mimeType, existingItemsForAi, previousScanItems);
@@ -111,6 +111,7 @@ export class ScanService {
           ownerId: null,
           name: detected.name,
           quantity: detected.quantity,
+          category: detected.category || 'Other',
           ownership: "SHARED",
           isRunningLow: false,
         });
