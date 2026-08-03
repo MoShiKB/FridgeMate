@@ -319,11 +319,20 @@ Format:
 
 
     // Detects fridge items from a photo.
-    async detectFridgeItems(imageBuffer: Buffer, mimeType: string): Promise<{ name: string; quantity: string }[]> {
+    async detectFridgeItems(imageBuffer: Buffer, mimeType: string, existingItems: {name: string, quantity: string}[] = [], previousScanItems: {name: string, quantity: string}[] = []): Promise<{ name: string; quantity: string }[]> {
         const base64Image = imageBuffer.toString('base64');
 
-        const prompt = `You are a smart kitchen assistant. This photo is supposed to show the inside of a fridge, a pantry shelf, a countertop with groceries, or a set of food/grocery items that someone wants to log into their fridge inventory.
+        const existingItemsText = existingItems.length > 0 
+            ? `\nEXISTING INVENTORY:\nThe user currently has these items in their fridge:\n${existingItems.map(i => `- "${i.name}" (Current quantity: ${i.quantity})`).join('\n')}\n\nINSTRUCTIONS FOR EXISTING ITEMS:\n1. If you see an existing item, output its NEW quantity.\n2. If you clearly see that an existing item has been fully consumed or removed (e.g., an empty spot where it used to be, or an empty container), output the item with quantity "0".\n3. If you simply do not see an existing item (it might be hidden or out of frame), DO NOT output it at all. We will assume it is still there.\n4. If you identify an item that matches one of these existing items, you MUST use the EXACT SAME NAME from the list.` 
+            : '';
 
+        const previousScanText = previousScanItems.length > 0 
+            ? `\nPREVIOUS SCAN RESULTS:\nIn the last successful scan, these items were detected:\n${previousScanItems.map(i => `- "${i.name}" (Quantity: ${i.quantity})`).join('\n')}\nUse this as a strong hint to identify items that look similar to the last time, keeping the same names.`
+            : '';
+
+        const prompt = `You are a smart kitchen assistant. This photo is supposed to show the inside of a fridge, a pantry shelf, a countertop with groceries, or a set of food/grocery items that someone wants to log into their fridge inventory.
+${existingItemsText}
+${previousScanText}
 STEP 1 — Classify the image. Choose EXACTLY ONE value for "imageIssue":
 
 "not_a_fridge" — the image does NOT clearly show a fridge interior, pantry shelf, countertop with groceries, or packaged/unpackaged food items. Use this for:
@@ -347,6 +356,12 @@ BE STRICT. If the subject is anything other than food-storage content (e.g. a sh
 STEP 2 — If and only if imageIssue is null, list every distinct food item you can identify. For each item give:
 - "name": lowercase, singular where natural (e.g. "egg" not "eggs", "tomato" not "tomatoes")
 - "quantity": a SHORT, DEFINITE string. See quantity rules below.
+- "confidence": "high" if you are 100% sure you recognize what this item is, or "low" if you are guessing or not completely certain.
+
+ITEM FILTERING RULES — read carefully:
+1. Ignore and DO NOT output generic, unrecognizable, or ambiguous items.
+2. BANNED item names: "leftovers", "food mix", "unknown container", "tupperware", "dish", "bowl", "plate", "leftover food", "meal", "assorted food".
+3. If you see a container but cannot clearly identify the specific ingredient/food inside it, ignore it completely.
 
 QUANTITY RULES — read carefully, these are strict:
 1. NEVER use hedge words or approximations. BANNED words and symbols: "about", "approximately", "approx", "around", "roughly", "circa", "ca.", "~", "maybe", "some", "several", "a few", "a couple", "or so", "ish", "plus or minus", "more or less".
@@ -365,8 +380,8 @@ Respond with ONLY a JSON object in this EXACT shape (no prose, no markdown):
 {
   "imageIssue": null | "too_blurry" | "not_a_fridge" | "too_dark",
   "items": [
-    { "name": "egg", "quantity": "6" },
-    { "name": "milk", "quantity": "1 liter" }
+    { "name": "egg", "quantity": "6", "confidence": "high" },
+    { "name": "milk", "quantity": "1 liter", "confidence": "high" }
   ]
 }`;
 
@@ -399,7 +414,7 @@ Respond with ONLY a JSON object in this EXACT shape (no prose, no markdown):
             }
 
             return parsed.items
-                .filter((item: any) => item && item.name && item.quantity)
+                .filter((item: any) => item && item.name && item.quantity && item.confidence === 'high')
                 .map((item: any) => ({
                     name: String(item.name).trim(),
                     quantity: String(item.quantity).trim(),
