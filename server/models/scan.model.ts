@@ -3,6 +3,7 @@ import mongoose, { Schema, Model } from "mongoose";
 export interface IDetectedItem {
   name: string;
   quantity: string;
+  category?: string;
 }
 
 export interface IScan {
@@ -20,6 +21,7 @@ const DetectedItemSchema = new Schema<IDetectedItem>(
   {
     name: { type: String, required: true },
     quantity: { type: String, required: true },
+    category: { type: String, required: false },
   },
   { _id: false }
 );

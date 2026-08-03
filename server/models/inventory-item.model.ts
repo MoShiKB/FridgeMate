@@ -9,6 +9,7 @@ export interface IInventoryItem {
   ownerId: mongoose.Types.ObjectId | null;
   name: string;
   quantity: string;
+  category?: string;
   ownership: ItemOwnership;
   isRunningLow: boolean;
   createdAt: Date;
@@ -40,6 +41,10 @@ const InventoryItemSchema = new Schema<IInventoryItem>(
       type: String,
       required: true,
       trim: true,
+    },
+    category: {
+      type: String,
+      required: false,
     },
     ownership: {
       type: String,
