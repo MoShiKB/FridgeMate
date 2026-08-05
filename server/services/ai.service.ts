@@ -354,7 +354,7 @@ null — the image clearly shows a fridge interior, a pantry/shelf, a countertop
 BE STRICT. If the subject is anything other than food-storage content (e.g. a shark, a sunset, a person), set imageIssue to "not_a_fridge" even if there happens to be a fridge in the background. When in doubt between null and "not_a_fridge", choose "not_a_fridge" — it's better to ask the user for a better photo than to hallucinate items.
 
 STEP 2 — If and only if imageIssue is null, list every distinct food item you can identify. For each item give:
-- "name": lowercase, singular where natural (e.g. "egg" not "eggs", "tomato" not "tomatoes")
+- "name": Title Case, singular where natural (e.g. "Egg" not "eggs", "Tomato" not "tomatoes")
 - "quantity": a SHORT, DEFINITE string. See quantity rules below.
 - "category": a short category string (e.g. "Dairy", "Produce", "Meat & Seafood", "Pantry", "Bakery", "Frozen", "Beverages", "Snacks", "Other")
 - "confidence": "high" if you are 100% sure you recognize what this item is, or "low" if you are guessing or not completely certain.
@@ -417,7 +417,7 @@ Respond with ONLY a JSON object in this EXACT shape (no prose, no markdown):
             return parsed.items
                 .filter((item: any) => item && item.name && item.quantity && item.confidence === 'high')
                 .map((item: any) => ({
-                    name: String(item.name).trim(),
+                    name: toTitleCase(String(item.name).trim()),
                     quantity: String(item.quantity).trim(),
                     category: item.category ? String(item.category).trim() : 'Other',
                 }));
@@ -656,4 +656,8 @@ function parseRecipeResponse(text: string): GeneratedRecipe[] {
         console.error('Parse error:', error);
         throw new ApiError(502, 'Failed to parse recipe response from AI');
     }
+}
+
+function toTitleCase(str: string): string {
+    return str.replace(/\b\w/g, char => char.toUpperCase());
 }
