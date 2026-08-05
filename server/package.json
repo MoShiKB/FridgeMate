@@ -35,9 +35,14 @@
     "passport-google-oauth20": "^2.0.0",
     "resend": "^6.12.4",
     "socket.io": "^4.8.3",
-    "swagger-jsdoc": "^6.2.8",
+    "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1",
     "zod": "^4.3.5"
+  },
+  "overrides": {
+    "uuid": "^11.0.0",
+    "glob": "^13.0.0",
+    "test-exclude": "^8.0.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
