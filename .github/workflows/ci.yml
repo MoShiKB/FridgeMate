@@ -45,6 +45,7 @@ jobs:
       - name: Run tests
         env:
           NODE_ENV: test
+          MONGO_URI: mongodb://localhost:27017/fridgemate-ci
           JWT_SECRET: ci-test-jwt-secret
           JWT_REFRESH_SECRET: ci-test-jwt-refresh-secret
           JWT_EXPIRES_IN: 15m
