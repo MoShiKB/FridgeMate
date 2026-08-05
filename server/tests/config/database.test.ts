@@ -23,7 +23,6 @@ describe("config/database — connectDB / disconnectDB", () => {
         // Mock mongoose.connect so we don't touch the shared test connection.
         const connectSpy = jest
             .spyOn(mongoose, "connect")
-            // @ts-expect-error – simplified fake return, enough for the code path.
             .mockResolvedValueOnce(mongoose);
         // Silence expected logs.
         const logSpy = jest.spyOn(console, "log").mockImplementation(() => { });
