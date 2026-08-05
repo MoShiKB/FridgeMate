@@ -6,7 +6,7 @@
   "author": "",
   "license": "ISC",
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=24.19.0"
   },
   "scripts": {
     "start:dev": "npx nodemon",
@@ -42,7 +42,8 @@
   "overrides": {
     "uuid": "^11.0.0",
     "glob": "^13.0.0",
-    "test-exclude": "^8.0.0"
+    "test-exclude": "^8.0.0",
+    "node-domexception": "npm:@profoundlogic/node-domexception@^1.0.2"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",

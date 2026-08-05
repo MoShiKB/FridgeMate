@@ -116,7 +116,7 @@ Currently Jest covers the server only — client has no test suite.
 | `make logs` / `status` | PM2 observability |
 | `make test` | Server Jest tests |
 | `make clean` | Remove `server/dist` and `client/dist` |
-| `make check-node` | Verify Node ≥ 20.19 |
+| `make check-node` | Verify Node ≥ 24.19 |
 | `make nginx-test` / `nginx-reload` | Test and reload nginx |
 
 ## URLs (production)

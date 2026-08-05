@@ -4,7 +4,7 @@
 DEPLOY_DIR ?= /var/www/fridgemate
 SERVER_DIR = server
 CLIENT_DIR = client
-NODE_MIN_MAJOR = 20
+NODE_MIN_MAJOR = 24
 NODE_MIN_MINOR = 19
 
 .PHONY: help install build build-server build-client \
@@ -63,9 +63,6 @@ deploy-client:
 deploy: install build deploy-client start
 	@echo ""
 	@echo "FridgeMate deployed successfully."
-	@echo "  Frontend: https://node51.cs.colman.ac.il"
-	@echo "  Backend:  https://node51.cs.colman.ac.il/api/"
-	@echo "  Swagger:  https://node51.cs.colman.ac.il/api/api-docs"
 
 # ── PM2 ──────────────────────────────────────────────────────────────────────
 
