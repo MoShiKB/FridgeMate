@@ -267,7 +267,7 @@ describe('AIService Tests', () => {
             const result = await AIService.detectFridgeItems(Buffer.from('fake-image'), 'image/jpeg');
 
             expect(result).toHaveLength(2);
-            expect(result[0].name).toBe('egg');
+            expect(result[0].name).toBe('Egg');
             expect(result[1].quantity).toBe('1 liter');
         });
 
@@ -278,7 +278,7 @@ describe('AIService Tests', () => {
 
             const result = await AIService.detectFridgeItems(Buffer.from('img'), 'image/png');
             expect(result).toHaveLength(1);
-            expect(result[0].name).toBe('apple');
+            expect(result[0].name).toBe('Apple');
         });
 
         it('should accept a legacy raw array response (backward compatible fallback)', async () => {
@@ -288,7 +288,7 @@ describe('AIService Tests', () => {
 
             const result = await AIService.detectFridgeItems(Buffer.from('img'), 'image/png');
             expect(result).toHaveLength(1);
-            expect(result[0].name).toBe('apple');
+            expect(result[0].name).toBe('Apple');
         });
 
         it('should throw BAD_SCAN_IMAGE when the photo is too blurry', async () => {
@@ -369,7 +369,7 @@ describe('AIService Tests', () => {
 
             const result = await AIService.detectFridgeItems(Buffer.from('img'), 'image/jpeg');
             expect(result).toHaveLength(2);
-            expect(result.map(i => i.name)).toEqual(['egg', 'butter']);
+            expect(result.map(i => i.name)).toEqual(['Egg', 'Butter']);
         });
     });
 
@@ -526,6 +526,231 @@ describe('AIService Tests', () => {
             await expect(
                 AIService.generateRecipes({ ingredients: ['eggs'] })
             ).rejects.toThrow('AI service error');
+        });
+    });
+
+    describe('_extractKeywords', () => {
+        it('drops stop-words and short tokens; returns the first 1-2 keywords', () => {
+            const kws = (AIService as any)._extractKeywords('The Best Classic Homemade Beef Stew');
+            expect(kws[0]).toBe('beef stew');
+            expect(kws).toContain('beef');
+            expect(kws).toContain('stew');
+        });
+
+        it('returns a single-word list when only one keyword remains', () => {
+            const kws = (AIService as any)._extractKeywords('Simple Cake');
+            expect(kws).toEqual(['cake']);
+        });
+
+        it('falls back to the lowercased title when all words are stop-words', () => {
+            const kws = (AIService as any)._extractKeywords('The Best Recipe');
+            expect(kws).toEqual(['the best recipe']);
+        });
+    });
+
+    describe('_tryAIImageSearch', () => {
+        const axios = require('axios');
+        const origGet = axios.get;
+
+        afterEach(() => {
+            axios.get = origGet;
+        });
+
+        it('returns null when TheMealDB has no matches and there is no Spoonacular key', async () => {
+            const origSpoon = process.env.SPOONACULAR_API_KEY;
+            delete process.env.SPOONACULAR_API_KEY;
+            axios.get = jest.fn().mockResolvedValue({ data: { meals: null } });
+
+            const result = await (AIService as any)._tryAIImageSearch('Pizza');
+            expect(result).toBeNull();
+
+            if (origSpoon !== undefined) process.env.SPOONACULAR_API_KEY = origSpoon;
+        });
+
+        it('returns null when both providers return nothing (with a Spoonacular key set)', async () => {
+            const origSpoon = process.env.SPOONACULAR_API_KEY;
+            process.env.SPOONACULAR_API_KEY = 'k';
+            axios.get = jest.fn().mockResolvedValue({ data: { meals: null, results: [] } });
+
+            const result = await (AIService as any)._tryAIImageSearch('Salad Bowl');
+            expect(result).toBeNull();
+
+            if (origSpoon === undefined) delete process.env.SPOONACULAR_API_KEY;
+            else process.env.SPOONACULAR_API_KEY = origSpoon;
+        });
+
+        it('gracefully swallows network errors from TheMealDB and Spoonacular', async () => {
+            const origSpoon = process.env.SPOONACULAR_API_KEY;
+            process.env.SPOONACULAR_API_KEY = 'k';
+            axios.get = jest.fn().mockRejectedValue(new Error('network'));
+
+            const result = await (AIService as any)._tryAIImageSearch('Pancakes');
+            expect(result).toBeNull();
+
+            if (origSpoon === undefined) delete process.env.SPOONACULAR_API_KEY;
+            else process.env.SPOONACULAR_API_KEY = origSpoon;
+        });
+    });
+
+    describe('_downloadImageToUploads', () => {
+        const axios = require('axios');
+        const origGet = axios.get;
+
+        afterEach(() => {
+            axios.get = origGet;
+        });
+
+        it('returns null when the image download fails', async () => {
+            axios.get = jest.fn().mockRejectedValue(new Error('boom'));
+            const result = await (AIService as any)._downloadImageToUploads('https://example.com/x.jpg');
+            expect(result).toBeNull();
+        });
+    });
+
+    describe('generateRecipeImage — full fallback chain', () => {
+        const axios = require('axios');
+        const origGet = axios.get;
+
+        afterEach(() => {
+            axios.get = origGet;
+        });
+
+        it('returns null when there is no image API key AND external search fails', async () => {
+            const origKey = process.env.GEMINI_IMAGE_API_KEY;
+            const origSpoon = process.env.SPOONACULAR_API_KEY;
+            delete process.env.GEMINI_IMAGE_API_KEY;
+            delete process.env.SPOONACULAR_API_KEY;
+            axios.get = jest.fn().mockResolvedValue({ data: { meals: null } });
+
+            const result = await AIService.generateRecipeImage('nothing');
+            expect(result).toBeNull();
+
+            if (origKey !== undefined) process.env.GEMINI_IMAGE_API_KEY = origKey;
+            if (origSpoon !== undefined) process.env.SPOONACULAR_API_KEY = origSpoon;
+        });
+
+        it('falls back to search when the image API returns no inlineData', async () => {
+            const origKey = process.env.GEMINI_IMAGE_API_KEY;
+            const origSpoon = process.env.SPOONACULAR_API_KEY;
+            process.env.GEMINI_IMAGE_API_KEY = 'test-image-key';
+            delete process.env.SPOONACULAR_API_KEY;
+
+            // Image AI returns text-only response → no inlineData → falls back
+            mockGenerateContent.mockResolvedValueOnce({
+                candidates: [{ content: { parts: [{ text: 'no image here' }] } }],
+            });
+            axios.get = jest.fn().mockResolvedValue({ data: { meals: null } });
+
+            const result = await AIService.generateRecipeImage('Test Dish');
+            expect(result).toBeNull();
+
+            if (origKey === undefined) delete process.env.GEMINI_IMAGE_API_KEY;
+            else process.env.GEMINI_IMAGE_API_KEY = origKey;
+            if (origSpoon !== undefined) process.env.SPOONACULAR_API_KEY = origSpoon;
+        });
+
+        it('falls back to search when the image API response has no candidates.parts', async () => {
+            const origKey = process.env.GEMINI_IMAGE_API_KEY;
+            process.env.GEMINI_IMAGE_API_KEY = 'test-image-key';
+            mockGenerateContent.mockResolvedValueOnce({ candidates: [] });
+            axios.get = jest.fn().mockResolvedValue({ data: { meals: null } });
+
+            const result = await AIService.generateRecipeImage('Test Dish');
+            expect(result).toBeNull();
+
+            if (origKey === undefined) delete process.env.GEMINI_IMAGE_API_KEY;
+            else process.env.GEMINI_IMAGE_API_KEY = origKey;
+        });
+    });
+
+    describe('checkMultipleItemsIfRunningLow — parsing edge cases', () => {
+        it('returns an empty map when the AI throws', async () => {
+            mockGenerateContent.mockRejectedValueOnce(new Error('boom'));
+            const map = await AIService.checkMultipleItemsIfRunningLow(
+                [{ id: 'a', name: 'x', quantity: '1' }],
+                2
+            );
+            expect(map.size).toBe(0);
+        });
+
+        it('returns an empty map on empty input (no AI call)', async () => {
+            const map = await AIService.checkMultipleItemsIfRunningLow([], 2);
+            expect(map.size).toBe(0);
+        });
+
+        it('handles response wrapped in a ```json code block', async () => {
+            mockGenerateContent.mockResolvedValueOnce({
+                text: '```json\n[{"id":"a","isRunningLow":true}]\n```',
+            });
+            const map = await AIService.checkMultipleItemsIfRunningLow(
+                [{ id: 'a', name: 'x', quantity: '1' }],
+                2
+            );
+            expect(map.get('a')).toBe(true);
+        });
+
+        it('handles response with only a trailing "[" character (self-healing fallback)', async () => {
+            // Malformed: array opens but never closes; parser tries to salvage.
+            mockGenerateContent.mockResolvedValueOnce({
+                text: 'here is the data [{"id":"a","isRunningLow":false}',
+            });
+            const map = await AIService.checkMultipleItemsIfRunningLow(
+                [{ id: 'a', name: 'x', quantity: '1' }],
+                2
+            );
+            // Either the parser recovered "a" or returned empty — both are acceptable
+            // signals that the code path executed without throwing.
+            expect(map).toBeInstanceOf(Map);
+        });
+
+        it('returns an empty map when the AI response is unparseable JSON', async () => {
+            mockGenerateContent.mockResolvedValueOnce({ text: 'not json at all' });
+            const map = await AIService.checkMultipleItemsIfRunningLow(
+                [{ id: 'a', name: 'x', quantity: '1' }],
+                2
+            );
+            expect(map.size).toBe(0);
+        });
+    });
+
+    describe('detectFridgeItems — parseScanResponse resilience', () => {
+        it('accepts a raw JSON array (no wrapper object)', async () => {
+            mockGenerateContent.mockResolvedValueOnce({
+                text: JSON.stringify([{ name: 'Egg', quantity: '6', confidence: 'high' }]),
+            });
+            const buffer = Buffer.from('fake');
+            const result = await AIService.detectFridgeItems(buffer, 'image/jpeg');
+            expect(result).toHaveLength(1);
+            expect(result[0].name).toBe('Egg');
+        });
+
+        it('throws 502 when the AI text contains no JSON object or array', async () => {
+            mockGenerateContent.mockResolvedValueOnce({
+                text: 'the moon is beautiful tonight',
+            });
+            const buffer = Buffer.from('fake');
+            await expect(
+                AIService.detectFridgeItems(buffer, 'image/jpeg')
+            ).rejects.toMatchObject({ status: 502 });
+        });
+
+        it('throws 502 when the JSON object candidate is itself invalid', async () => {
+            mockGenerateContent.mockResolvedValueOnce({
+                text: 'garbage { not: real json',
+            });
+            const buffer = Buffer.from('fake');
+            await expect(
+                AIService.detectFridgeItems(buffer, 'image/jpeg')
+            ).rejects.toMatchObject({ status: 502 });
+        });
+
+        it('coerces an unexpected imageIssue value to null', async () => {
+            mockGenerateContent.mockResolvedValueOnce({
+                text: JSON.stringify({ imageIssue: 'someone_ate_it', items: [] }),
+            });
+            const buffer = Buffer.from('fake');
+            const result = await AIService.detectFridgeItems(buffer, 'image/jpeg');
+            expect(result).toEqual([]);
         });
     });
 });

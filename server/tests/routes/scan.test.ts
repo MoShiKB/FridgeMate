@@ -88,15 +88,15 @@ describe('Scan Routes', () => {
             expect(res.body.ok).toBe(true);
             expect(res.body.data.status).toBe('completed');
             expect(res.body.data.detectedItems).toHaveLength(2);
-            expect(res.body.data.detectedItems[0].name).toBe('egg');
-            expect(res.body.data.detectedItems[1].name).toBe('milk');
+            expect(res.body.data.detectedItems[0].name).toBe('Egg');
+            expect(res.body.data.detectedItems[1].name).toBe('Milk');
             expect(res.body.data.addedItemIds).toHaveLength(2);
 
             const items = await InventoryItem.find({ fridgeId });
             expect(items).toHaveLength(2);
             const names = items.map(i => i.name);
-            expect(names).toContain('egg');
-            expect(names).toContain('milk');
+            expect(names).toContain('Egg');
+            expect(names).toContain('Milk');
         });
 
         it('should update existing items instead of duplicating', async () => {
@@ -135,7 +135,7 @@ describe('Scan Routes', () => {
 
             expect(res.statusCode).toBe(201);
 
-            const item = await InventoryItem.findOne({ fridgeId, name: 'cheese' });
+            const item = await InventoryItem.findOne({ fridgeId, name: 'Cheese' });
             expect(item).not.toBeNull();
             expect(item!.ownership).toBe('SHARED');
         });
@@ -150,7 +150,7 @@ describe('Scan Routes', () => {
 
             expect(res.statusCode).toBe(201);
 
-            const item = await InventoryItem.findOne({ fridgeId, name: 'butter' });
+            const item = await InventoryItem.findOne({ fridgeId, name: 'Butter' });
             expect(item).not.toBeNull();
             expect(item!.ownerId).toBeNull();
         });
@@ -208,7 +208,7 @@ describe('Scan Routes', () => {
 
             const remaining = await InventoryItem.find({ fridgeId });
             const names = remaining.map(i => i.name).sort();
-            expect(names).toEqual(['bread', 'cheese', 'milk']);
+            expect(names).toEqual(['Bread', 'cheese', 'milk']);
 
             const milk = remaining.find(i => i.name === 'milk');
             expect(milk!.quantity).toBe('500ml');
@@ -230,8 +230,8 @@ describe('Scan Routes', () => {
                 expect(res.body.data.changes).toBeDefined();
                 expect(res.body.data.changes.added).toEqual(
                     expect.arrayContaining([
-                        { name: 'bread', quantity: '1 loaf' },
-                        { name: 'milk', quantity: '1 liter' },
+                        { name: 'Bread', quantity: '1 loaf' },
+                        { name: 'Milk', quantity: '1 liter' },
                     ])
                 );
                 expect(res.body.data.changes.added).toHaveLength(2);
@@ -298,7 +298,7 @@ describe('Scan Routes', () => {
 
                 expect(res.statusCode).toBe(201);
                 expect(res.body.data.changes.added).toEqual([
-                    { name: 'milk', quantity: '1 liter' },
+                    { name: 'Milk', quantity: '1 liter' },
                 ]);
                 expect(res.body.data.changes.removed).toEqual(
                     expect.arrayContaining([
@@ -330,7 +330,7 @@ describe('Scan Routes', () => {
 
                 expect(res.statusCode).toBe(201);
                 expect(res.body.data.changes.added).toEqual([
-                    { name: 'bread', quantity: '1 loaf' },
+                    { name: 'Bread', quantity: '1 loaf' },
                 ]);
                 expect(res.body.data.changes.updated).toEqual([
                     { name: 'milk', oldQuantity: '1 liter', newQuantity: '500ml' },

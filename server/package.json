@@ -6,7 +6,7 @@
   "author": "",
   "license": "ISC",
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=24.19.0"
   },
   "scripts": {
     "start:dev": "npx nodemon",
@@ -35,9 +35,15 @@
     "passport-google-oauth20": "^2.0.0",
     "resend": "^6.12.4",
     "socket.io": "^4.8.3",
-    "swagger-jsdoc": "^6.2.8",
+    "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1",
     "zod": "^4.3.5"
+  },
+  "overrides": {
+    "uuid": "^11.0.0",
+    "glob": "^13.0.0",
+    "test-exclude": "^8.0.0",
+    "node-domexception": "npm:@profoundlogic/node-domexception@^1.0.2"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
@@ -63,5 +69,15 @@
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
+  },
+  "allowScripts": {
+    "@firebase/util@1.15.2": true,
+    "@google/genai@1.52.0": true,
+    "@scarf/scarf@1.4.0": true,
+    "bcrypt@6.0.0": true,
+    "fsevents@2.3.3": true,
+    "mongodb-memory-server@11.2.0": true,
+    "protobufjs@7.6.5": true,
+    "unrs-resolver@1.12.2": true
   }
 }
