@@ -50,6 +50,10 @@ jobs:
           JWT_REFRESH_SECRET: ci-test-jwt-refresh-secret
           JWT_EXPIRES_IN: 15m
           JWT_REFRESH_EXPIRES_IN: 7d
+          GEMINI_API_KEY: ci-test-gemini-api-key
+          OAUTH_CLIENT_ID: ci-test-oauth-client-id
+          OAUTH_CLIENT_SECRET: ci-test-oauth-client-secret
+          OAUTH_CALLBACK_URL: http://localhost:3001/auth/login/google/callback
         run: npm test
 
       - name: Upload coverage report
