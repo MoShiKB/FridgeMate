@@ -25,6 +25,7 @@ const NotificationSchema = new Schema<INotification>(
     message: { type: String, required: true },
     isRead: { type: Boolean, default: false },
     metadata: { type: Schema.Types.Mixed },
+    createdAt: { type: Date },
   },
   { timestamps: true }
 );

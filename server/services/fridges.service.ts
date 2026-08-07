@@ -55,8 +55,8 @@ export class FridgesService {
             type: "FRIDGE_INVITE",
             title: `${joinerName} joined ${fridgeName}`,
             message: "They can now see and add items",
-            metadata: { fridgeId: fridge._id.toString(), fridgeName, actorId: userId },
-            dedupeBy: ["fridgeId", "actorId"],
+            metadata: { fridgeId: fridge._id.toString(), fridgeName, actorId: userId, event: "join" },
+            dedupeBy: ["fridgeId", "actorId", "event"],
             skipPush: true,
           }).catch(() => {});
         }
@@ -94,8 +94,8 @@ export class FridgesService {
           type: "FRIDGE_INVITE",
           title: `${leaverName} left ${fridgeName}`,
           message: "They no longer share this fridge",
-          metadata: { fridgeId: fridge._id.toString(), fridgeName, actorId: userId },
-          dedupeBy: ["fridgeId", "actorId"],
+          metadata: { fridgeId: fridge._id.toString(), fridgeName, actorId: userId, event: "leave" },
+          dedupeBy: ["fridgeId", "actorId", "event"],
           skipPush: true,
         }).catch(() => {});
       }
