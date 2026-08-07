@@ -158,6 +158,7 @@ export class ScanService {
         title: "Scan Complete",
         message: `Scan finished: ${added.length} added, ${updated.length} updated, ${removed.length} removed`,
         metadata: { scanId: scan._id.toString(), fridgeId },
+        skipPush: true,
       }).catch(() => {});
     }
 
