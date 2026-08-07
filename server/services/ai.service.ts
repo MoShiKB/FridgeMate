@@ -400,7 +400,7 @@ Respond with ONLY a JSON object in this EXACT shape (no prose, no markdown):
                 ],
                 config: {
                     temperature: 0.2,
-                    maxOutputTokens: 4096,
+                    maxOutputTokens: 8192,
                     responseMimeType: "application/json",
                 },
             });
