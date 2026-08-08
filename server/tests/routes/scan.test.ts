@@ -371,6 +371,28 @@ describe('Scan Routes', () => {
                 expect(detailRes.body.data.changes.removed).toEqual([]);
             });
 
+            it('should persist empty changes lists so a no-op scan is still reported as such', async () => {
+                await InventoryItem.create({
+                    fridgeId, ownerId: userId, name: 'milk', quantity: '1 liter', ownership: 'SHARED', isRunningLow: false,
+                });
+
+                mockAIScan([{ name: 'milk', quantity: '1 liter' }]);
+
+                const uploadRes = await request(app)
+                    .post('/fridges/me/scans')
+                    .set('Authorization', token)
+                    .attach('image', FIXTURE_IMAGE);
+
+                expect(uploadRes.statusCode).toBe(201);
+
+                const detailRes = await request(app)
+                    .get(`/fridges/me/scans/${uploadRes.body.data.id}`)
+                    .set('Authorization', token);
+
+                expect(detailRes.statusCode).toBe(200);
+                expect(detailRes.body.data.changes).toEqual({ added: [], updated: [], removed: [] });
+            });
+
             it('should return empty changes lists on an empty-scan safety-guard path', async () => {
                 await InventoryItem.create({
                     fridgeId, ownerId: userId, name: 'milk', quantity: '1 liter', ownership: 'SHARED', isRunningLow: false,
