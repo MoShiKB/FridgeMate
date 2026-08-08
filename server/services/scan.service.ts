@@ -6,6 +6,7 @@ import { FridgeModel } from "../models/fridge.model";
 import { UserModel } from "../models/user.model";
 import { AIService } from "./ai.service";
 import { NotificationService } from "./notification.service";
+import { InventoryItemService } from "./inventory-item.service";
 
 export class ScanService {
 
@@ -169,39 +170,11 @@ export class ScanService {
       }).catch(() => {});
     }
 
-    // Fire-and-forget: update running-low status in the background
-    (async () => {
-      try {
-        const sharedItems = processedItems.filter(i => i.ownership === "SHARED");
-        const privateItems = processedItems.filter(i => i.ownership === "PRIVATE");
-
-        const [sharedResults, privateResults] = await Promise.all([
-          sharedItems.length > 0
-            ? AIService.checkMultipleItemsIfRunningLow(sharedItems, memberCount)
-            : Promise.resolve(new Map<string, boolean>()),
-          privateItems.length > 0
-            ? AIService.checkMultipleItemsIfRunningLow(privateItems, 1)
-            : Promise.resolve(new Map<string, boolean>()),
-        ]);
-
-        const statusMap = new Map<string, boolean>([...sharedResults, ...privateResults]);
-
-        const updates = processedItems
-          .filter(item => statusMap.has(item.id))
-          .map(item => ({
-            updateOne: {
-              filter: { _id: new mongoose.Types.ObjectId(item.id) },
-              update: { $set: { isRunningLow: statusMap.get(item.id) } },
-            },
-          }));
-
-        if (updates.length > 0) {
-          await InventoryItemModel.bulkWrite(updates);
-        }
-      } catch (err) {
-        console.warn("Background running-low check failed:", err);
-      }
-    })();
+    // Covers the whole fridge, not just the items this scan touched, so items
+    // carrying stale flags get refreshed too. Cached profiles make that cheap.
+    InventoryItemService.recalculateFridgeStock(fridgeId, memberCount).catch((err) => {
+      console.warn("Background running-low check failed:", err);
+    });
 
     return scan.toJSON();
   }

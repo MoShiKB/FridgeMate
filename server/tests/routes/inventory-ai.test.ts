@@ -2,6 +2,7 @@ import request from 'supertest';
 import { token, userId } from '../setup';
 import { FridgeModel } from '../../models/fridge.model';
 import InventoryItem from '../../models/inventory-item.model';
+import { ConsumptionProfileModel } from '../../models/consumption-profile.model';
 import mongoose from 'mongoose';
 
 // 1. Mock the AI Service
@@ -20,13 +21,17 @@ jest.mock('@google/genai', () => {
 // 2. Import app
 let app: any;
 
+/**
+ * The AI only supplies per-item facts now; whether something is running low is
+ * decided by arithmetic against the household size. These scenarios pin down
+ * that arithmetic end-to-end through the HTTP layer.
+ */
 describe('Inventory AI Scenarios', () => {
 
     beforeAll(() => {
         app = require('../../index').default;
     });
 
-    // Helper to setup fridge with specific member count
     const setupFridge = async (memberCount: number) => {
         const members = Array(memberCount).fill(null).map(() => ({
             userId: new mongoose.Types.ObjectId(),
@@ -43,154 +48,139 @@ describe('Inventory AI Scenarios', () => {
         return fridge._id.toString();
     };
 
+    const mockProfile = (name: string, overrides: Record<string, number> = {}) => {
+        mockGenerateContent.mockResolvedValueOnce({
+            text: JSON.stringify([{
+                name,
+                pieceServings: 1,
+                packageServings: 8,
+                gramsPerServing: 100,
+                mlPerServing: 250,
+                servingsPerPersonPerWeek: 4,
+                ...overrides,
+            }]),
+        });
+    };
+
+    const addItem = (fridgeId: string, body: Record<string, string>) =>
+        request(app)
+            .post(`/fridges/${fridgeId}/items`)
+            .set('Authorization', token)
+            .send(body);
+
     beforeEach(async () => {
         jest.clearAllMocks();
         await FridgeModel.deleteMany({});
         await InventoryItem.deleteMany({});
+        await ConsumptionProfileModel.deleteMany({});
     });
 
     describe('Scenario A: Discrete Item - Low Stock', () => {
-        it('should detect low stock for 3 eggs with 4 members', async () => {
+        it('flags 3 eggs as low for a household of 4', async () => {
             const fId = await setupFridge(4);
+            mockProfile('Eggs', { pieceServings: 1, packageServings: 12, servingsPerPersonPerWeek: 3 });
 
-            mockGenerateContent.mockResolvedValueOnce({
-                text: JSON.stringify({
-                    isRunningLow: true,
-                    reasoning: "3 eggs cannot feed 4 people."
-                })
-            });
-
-            const res = await request(app)
-                .post(`/fridges/${fId}/items`)
-                .set('Authorization', token)
-                .send({
-                    name: "Eggs",
-                    quantity: "3 pcs",
-                    ownership: "SHARED"
-                });
+            const res = await addItem(fId, { name: 'Eggs', quantity: '3 pcs', ownership: 'SHARED' });
 
             expect(res.statusCode).toBe(201);
             expect(res.body.data.isRunningLow).toBe(true);
-
-            const callArgs = mockGenerateContent.mock.calls[0][0];
-            expect(callArgs.contents).toContain("Number of people in the household: 4");
-            expect(callArgs.contents).toContain('Item: "Eggs"');
-            expect(callArgs.contents).toContain('Current quantity: "3 pcs"');
+            expect(res.body.data.suggestedRestockQuantity).toBeTruthy();
+            expect(res.body.data.lowStockReason).toContain('4 people');
         });
     });
 
     describe('Scenario B: Discrete Item - Well Stocked', () => {
-        it('should detect sufficient stock for 12 eggs with 2 members', async () => {
+        it('leaves 12 eggs alone for a household of 2', async () => {
             const fId = await setupFridge(2);
+            mockProfile('Eggs', { pieceServings: 1, packageServings: 12, servingsPerPersonPerWeek: 3 });
 
-            mockGenerateContent.mockResolvedValueOnce({
-                text: JSON.stringify({
-                    isRunningLow: false,
-                    reasoning: "12 eggs is plenty."
-                })
-            });
-
-            const res = await request(app)
-                .post(`/fridges/${fId}/items`)
-                .set('Authorization', token)
-                .send({
-                    name: "Eggs",
-                    quantity: "12 pcs",
-                    ownership: "SHARED"
-                });
+            const res = await addItem(fId, { name: 'Eggs', quantity: '12 pcs', ownership: 'SHARED' });
 
             expect(res.statusCode).toBe(201);
             expect(res.body.data.isRunningLow).toBe(false);
-
-            const callArgs = mockGenerateContent.mock.calls[0][0];
-            expect(callArgs.contents).toContain("Number of people in the household: 2");
+            expect(res.body.data.suggestedRestockQuantity).toBeNull();
         });
     });
 
     describe('Scenario C: Condiments - Well Stocked', () => {
-        it('should handle standard condiments for large household (Shared)', async () => {
+        it('does not flag a full ketchup bottle for a household of 5', async () => {
             const fId = await setupFridge(5);
+            mockProfile('Ketchup', { packageServings: 30, servingsPerPersonPerWeek: 0.5 });
 
-            mockGenerateContent.mockResolvedValueOnce({
-                text: JSON.stringify({
-                    isRunningLow: false,
-                    reasoning: "1 bottle is standard."
-                })
-            });
-
-            const res = await request(app)
-                .post(`/fridges/${fId}/items`)
-                .set('Authorization', token)
-                .send({
-                    name: "Ketchup",
-                    quantity: "1 bottle",
-                    ownership: "SHARED"
-                });
+            const res = await addItem(fId, { name: 'Ketchup', quantity: '1 bottle', ownership: 'SHARED' });
 
             expect(res.statusCode).toBe(201);
             expect(res.body.data.isRunningLow).toBe(false);
-
-            const callArgs = mockGenerateContent.mock.calls[0][0];
-            expect(callArgs.contents).toContain("Number of people in the household: 5");
-            expect(callArgs.contents).toContain('Item: "Ketchup"');
         });
     });
 
     describe('Scenario D: Condiments - Low Stock', () => {
-        it('should detect nearly empty condiments for 4 members', async () => {
+        it('flags a ketchup bottle with a splash left for a household of 4', async () => {
             const fId = await setupFridge(4);
-
-            mockGenerateContent.mockResolvedValueOnce({
-                text: JSON.stringify({
-                    isRunningLow: true,
-                    reasoning: "Empty is empty."
-                })
+            mockProfile('Ketchup', {
+                packageServings: 30, mlPerServing: 15, servingsPerPersonPerWeek: 0.5,
             });
 
-            const res = await request(app)
-                .post(`/fridges/${fId}/items`)
-                .set('Authorization', token)
-                .send({
-                    name: "Ketchup",
-                    quantity: "0.1 bottle",
-                    ownership: "SHARED"
-                });
+            const res = await addItem(fId, { name: 'Ketchup', quantity: '5ml', ownership: 'SHARED' });
 
             expect(res.statusCode).toBe(201);
             expect(res.body.data.isRunningLow).toBe(true);
-
-            const callArgs = mockGenerateContent.mock.calls[0][0];
-            expect(callArgs.contents).toContain("Number of people in the household: 4");
-            expect(callArgs.contents).toContain('Current quantity: "0.1 bottle"');
+            expect(res.body.data.suggestedRestockQuantity).toBeTruthy();
         });
     });
 
     describe('Scenario E: Private Item - Well Stocked', () => {
-        it('should evaluate private items against 1 person regardless of fridge size', async () => {
-            const fId = await setupFridge(4); // 4 members
-
-            mockGenerateContent.mockResolvedValueOnce({
-                text: JSON.stringify({
-                    isRunningLow: false,
-                    reasoning: "One yogurt is sufficient for one person."
-                })
+        it('measures a private item against one person regardless of fridge size', async () => {
+            const fId = await setupFridge(4);
+            mockProfile('Protein Yogurt', {
+                pieceServings: 1, packageServings: 1, servingsPerPersonPerWeek: 1,
             });
 
-            const res = await request(app)
-                .post(`/fridges/${fId}/items`)
-                .set('Authorization', token)
-                .send({
-                    name: "Protein Yogurt",
-                    quantity: "1 pcs",
-                    ownership: "PRIVATE"
-                });
+            const priv = await addItem(fId, {
+                name: 'Protein Yogurt', quantity: '1 pcs', ownership: 'PRIVATE',
+            });
+            const shared = await addItem(fId, {
+                name: 'Protein Yogurt', quantity: '1 pcs', ownership: 'SHARED',
+            });
+
+            // Same item, same quantity, same fridge — only the audience differs.
+            expect(priv.body.data.isRunningLow).toBe(false);
+            expect(priv.body.data.lowStockReason).toBeNull();
+            expect(shared.body.data.isRunningLow).toBe(true);
+            expect(shared.body.data.lowStockReason).toContain('4 people');
+        });
+    });
+
+    describe('Scenario F: Household size drives the outcome', () => {
+        it('reaches opposite verdicts for the same quantity in a 1- and 8-person fridge', async () => {
+            const smallFridge = await setupFridge(1);
+            mockProfile('Milk', { packageServings: 8, servingsPerPersonPerWeek: 4 });
+            const small = await addItem(smallFridge, {
+                name: 'Milk', quantity: '1 carton', ownership: 'SHARED',
+            });
+
+            const bigFridge = await setupFridge(8);
+            const big = await addItem(bigFridge, {
+                name: 'Milk', quantity: '1 carton', ownership: 'SHARED',
+            });
+
+            expect(small.body.data.isRunningLow).toBe(false);
+            expect(big.body.data.isRunningLow).toBe(true);
+            // The second request reused the cached profile instead of asking again.
+            expect(mockGenerateContent).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe('Scenario G: AI unavailable', () => {
+        it('reports "not low" rather than guessing when the profile lookup fails', async () => {
+            const fId = await setupFridge(4);
+            mockGenerateContent.mockRejectedValueOnce(new Error('AI down'));
+
+            const res = await addItem(fId, { name: 'Milk', quantity: '1 carton', ownership: 'SHARED' });
 
             expect(res.statusCode).toBe(201);
             expect(res.body.data.isRunningLow).toBe(false);
-
-            // CRITICAL: Check that userCount sent to AI was 1
-            const callArgs = mockGenerateContent.mock.calls[0][0];
-            expect(callArgs.contents).toContain("Number of people in the household: 1");
+            expect(res.body.data.daysOfSupply).toBeNull();
         });
     });
 });

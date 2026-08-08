@@ -1,5 +1,5 @@
 const mockGenerateContent = jest.fn();
-const mockCheckMultiple = jest.fn().mockResolvedValue(new Map());
+const mockGetProfiles = jest.fn().mockResolvedValue(new Map());
 
 jest.mock('@google/genai', () => ({
     GoogleGenAI: jest.fn().mockImplementation(() => ({
@@ -13,7 +13,7 @@ jest.mock('../../services/ai.service', () => {
         ...actual,
         AIService: {
             ...actual.AIService,
-            checkMultipleItemsIfRunningLow: (...args: any[]) => mockCheckMultiple(...args),
+            getConsumptionProfiles: (...args: any[]) => mockGetProfiles(...args),
         },
     };
 });
@@ -50,7 +50,7 @@ describe('Scan Routes', () => {
 
     beforeEach(async () => {
         jest.clearAllMocks();
-        mockCheckMultiple.mockResolvedValue(new Map());
+        mockGetProfiles.mockResolvedValue(new Map());
         await FridgeModel.deleteMany({});
         await InventoryItem.deleteMany({});
         await ScanModel.deleteMany({});

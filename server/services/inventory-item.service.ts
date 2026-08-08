@@ -2,7 +2,8 @@ import mongoose from "mongoose";
 import { ApiError } from "../utils/errors";
 import { InventoryItemModel } from "../models/inventory-item.model";
 import { FridgeModel } from "../models/fridge.model";
-import { AIService } from "./ai.service";
+import { ConsumptionProfileService } from "./consumption-profile.service";
+import { StockService, NO_ASSESSMENT, StockAssessment } from "./stock.service";
 import { io } from "../index";
 import {
   CreateInventoryItemInput,
@@ -11,6 +12,40 @@ import {
 } from "../validators/inventory-item.validators";
 
 export class InventoryItemService {
+  /**
+   * How many people an item has to stretch across. Assigning an owner to a
+   * SHARED item marks who's responsible for it and deliberately does not change
+   * this — otherwise the low-stock flag would flip every time someone was tagged.
+   */
+  private static householdSizeFor(ownership: string, memberCount: number) {
+    return ownership === "SHARED" ? Math.max(1, memberCount) : 1;
+  }
+
+  /**
+   * Falls back to "unknown" (never low) when no profile can be resolved, so an
+   * AI outage can't spam the household with restock warnings.
+   */
+  private static async assessStock(
+    name: string,
+    quantity: string,
+    ownership: string,
+    memberCount: number
+  ): Promise<StockAssessment> {
+    try {
+      const profiles = await ConsumptionProfileService.getProfiles([name]);
+      const profile = profiles.get(ConsumptionProfileService.normalizeKey(name));
+      return StockService.assess(
+        quantity,
+        this.householdSizeFor(ownership, memberCount),
+        profile,
+        name
+      );
+    } catch (err) {
+      console.warn("Stock assessment failed", err);
+      return NO_ASSESSMENT;
+    }
+  }
+
   /**
    * Verify user is a member of the fridge
    */
@@ -42,27 +77,22 @@ export class InventoryItemService {
     data: Omit<CreateInventoryItemInput, "fridgeId">
   ) {
     const fridge = await this.verifyFridgeMembership(fridgeId, userId);
+    const ownership = data.ownership ?? "PRIVATE";
 
-    // AI Check for running low
-    let isRunningLow = false;
-    try {
-      const ownership = data.ownership ?? "PRIVATE";
-      // If shared, consider all members. If private, only the owner (1 person).
-      const userCount = ownership === 'SHARED' ? fridge.members.length : 1;
-
-      const aiResult = await AIService.checkIfRunningLow(data.name, data.quantity, userCount);
-      isRunningLow = aiResult.isRunningLow;
-    } catch (err) {
-      console.warn("AI low stock check failed", err);
-    }
+    const assessment = await this.assessStock(
+      data.name,
+      data.quantity,
+      ownership,
+      fridge.members.length
+    );
 
     const item = await InventoryItemModel.create({
       fridgeId: new mongoose.Types.ObjectId(fridgeId),
       ownerId: new mongoose.Types.ObjectId(userId),
       name: data.name,
       quantity: data.quantity,
-      ownership: data.ownership ?? "PRIVATE",
-      isRunningLow,
+      ownership,
+      ...assessment,
     });
 
     return item.toObject();
@@ -110,7 +140,8 @@ export class InventoryItemService {
 
     const [items, total] = await Promise.all([
       InventoryItemModel.find(filter)
-        .sort({ createdAt: -1 })
+        // _id breaks createdAt ties so page boundaries stay put between requests.
+        .sort({ createdAt: -1, _id: -1 })
         .skip(pagination.skip)
         .limit(pagination.limit)
         .lean(),
@@ -168,22 +199,15 @@ export class InventoryItemService {
 
     // Re-check stock levels if name, quantity OR ownership changed
     if (data.name !== undefined || data.quantity !== undefined || data.ownership !== undefined) {
-      try {
-        const fridge = await FridgeModel.findById(item.fridgeId);
-        if (fridge) {
-          // Determine user count based on the (possibly updated) ownership
-          const currentOwnership = data.ownership ?? item.ownership;
-          const userCount = currentOwnership === 'SHARED' ? fridge.members.length : 1;
-
-          const aiResult = await AIService.checkIfRunningLow(
-            item.name,
-            item.quantity,
-            userCount
-          );
-          item.isRunningLow = aiResult.isRunningLow;
-        }
-      } catch (err) {
-        console.warn("AI low stock re-check failed", err);
+      const fridge = await FridgeModel.findById(item.fridgeId);
+      if (fridge) {
+        const assessment = await this.assessStock(
+          item.name,
+          item.quantity,
+          item.ownership,
+          fridge.members.length
+        );
+        Object.assign(item, assessment);
       }
     }
 
@@ -253,59 +277,61 @@ export class InventoryItemService {
   }
 
   /**
-   * Recalculates 'isRunningLow' status for all SHARED items in a fridge based on new member count.
-   * This is typically called when a user joins or leaves a fridge.
+   * Re-assesses every item in a fridge. Costs no AI calls once the fridge's item
+   * names have been profiled, which is what makes it practical to run on every
+   * member change and scan.
    */
-  static async recalculateSharedItemsStatus(fridgeId: string, memberCount: number) {
+  static async recalculateFridgeStock(fridgeId: string, memberCount?: number) {
     try {
-      // Find all SHARED items in the fridge
-      const items = await InventoryItemModel.find({
-        fridgeId: new mongoose.Types.ObjectId(fridgeId),
-        ownership: 'SHARED'
-      }).select('_id name quantity isRunningLow');
+      const fridgeObjectId = new mongoose.Types.ObjectId(fridgeId);
+
+      let people = memberCount;
+      if (people === undefined) {
+        const fridge = await FridgeModel.findById(fridgeId).select("members").lean();
+        if (!fridge) return;
+        people = fridge.members.length;
+      }
+
+      const items = await InventoryItemModel.find({ fridgeId: fridgeObjectId })
+        .select("_id name quantity ownership isRunningLow daysOfSupply suggestedRestockQuantity lowStockReason")
+        .lean();
 
       if (items.length === 0) return;
 
-      // Prepare items for AI check
-      const itemsToCheck = items.map(item => ({
-        id: item._id.toString(),
-        name: item.name,
-        quantity: item.quantity
-      }));
+      const profiles = await ConsumptionProfileService.getProfiles(
+        items.map((item) => item.name)
+      );
 
-      // Process in chunks to avoid overwhelming the AI or hitting token limits
-      const CHUNK_SIZE = 20;
-      for (let i = 0; i < itemsToCheck.length; i += CHUNK_SIZE) {
-        const chunk = itemsToCheck.slice(i, i + CHUNK_SIZE);
+      const updates: any[] = [];
+      for (const item of items) {
+        const profile = profiles.get(ConsumptionProfileService.normalizeKey(item.name));
+        const assessment = StockService.assess(
+          item.quantity,
+          this.householdSizeFor(item.ownership, people),
+          profile,
+          item.name
+        );
 
-        // Call AI Service (Batch)
-        const statusMap = await AIService.checkMultipleItemsIfRunningLow(chunk, memberCount);
+        const unchanged =
+          item.isRunningLow === assessment.isRunningLow &&
+          (item.daysOfSupply ?? null) === assessment.daysOfSupply &&
+          (item.suggestedRestockQuantity ?? null) === assessment.suggestedRestockQuantity &&
+          (item.lowStockReason ?? null) === assessment.lowStockReason;
+        if (unchanged) continue;
 
-        // Prepare bulk updates for items where status has changed
-        const updates: any[] = [];
-        for (const itemData of chunk) {
-          const newStatus = statusMap.get(itemData.id);
+        updates.push({
+          updateOne: {
+            filter: { _id: item._id },
+            update: { $set: assessment },
+          },
+        });
+      }
 
-          // Only update if we got a result and it's different from current status
-          if (newStatus !== undefined) {
-            const originalItem = items.find(it => it._id.toString() === itemData.id);
-            if (originalItem && originalItem.isRunningLow !== newStatus) {
-              updates.push({
-                updateOne: {
-                  filter: { _id: originalItem._id },
-                  update: { $set: { isRunningLow: newStatus } }
-                }
-              });
-            }
-          }
-        }
-
-        if (updates.length > 0) {
-          await InventoryItemModel.bulkWrite(updates);
-        }
+      if (updates.length > 0) {
+        await InventoryItemModel.bulkWrite(updates, { ordered: false });
       }
     } catch (error) {
-      console.error("Failed to recalculate shared items status:", error);
+      console.error("Failed to recalculate fridge stock:", error);
     }
   }
 }
