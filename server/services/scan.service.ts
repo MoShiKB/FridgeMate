@@ -133,6 +133,16 @@ export class ScanService {
       }
     }
 
+    // Now remove items that were in the fridge but not detected
+    const detectedNames = new Set(detectedItems.map(d => d.name.toLowerCase()));
+    
+    for (const preScanItem of preScanItems) {
+      if (!detectedNames.has(preScanItem.name.toLowerCase())) {
+        await InventoryItemModel.findByIdAndDelete(preScanItem._id);
+        removed.push({ name: preScanItem.name, quantity: preScanItem.quantity });
+      }
+    }
+
     const scan = await ScanModel.create({
       fridgeId: new mongoose.Types.ObjectId(fridgeId),
       userId: new mongoose.Types.ObjectId(userId),
