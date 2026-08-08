@@ -33,12 +33,12 @@ export interface StockAssessment {
   lowStockReason: string | null;
 }
 
-export const NO_ASSESSMENT: StockAssessment = {
+export const noAssessment = (): StockAssessment => ({
   isRunningLow: false,
   daysOfSupply: null,
   suggestedRestockQuantity: null,
   lowStockReason: null,
-};
+});
 
 type QuantityKind = "piece" | "package" | "mass" | "volume";
 
@@ -308,18 +308,18 @@ export class StockService {
     profile: ConsumptionProfile | undefined,
     itemName = ""
   ): StockAssessment {
-    if (!profile) return NO_ASSESSMENT;
+    if (!profile) return noAssessment();
 
     const people = Math.max(1, householdSize);
     const dailyDemand = (profile.servingsPerPersonPerWeek * people) / 7;
 
     // Condiments, spices and anything the household doesn't actually work
     // through (empty containers, cookware) never run low.
-    if (!Number.isFinite(dailyDemand) || dailyDemand <= 0) return NO_ASSESSMENT;
+    if (!Number.isFinite(dailyDemand) || dailyDemand <= 0) return noAssessment();
 
     const parsed = parseQuantity(quantity, itemName);
     const totalServings = toServings(parsed, profile);
-    if (!Number.isFinite(totalServings)) return NO_ASSESSMENT;
+    if (!Number.isFinite(totalServings)) return noAssessment();
 
     const daysOfSupply = totalServings / dailyDemand;
     const isRunningLow = daysOfSupply < LOW_STOCK_DAYS;

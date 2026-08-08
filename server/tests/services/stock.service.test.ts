@@ -182,6 +182,27 @@ describe("StockService.assess", () => {
         });
     });
 
+    it("never returns a low flag without a reason to show for it", () => {
+        const quantities = ["1", "2 left", "200g", "1 liter", "1 carton", "0.5kg"];
+
+        for (const quantity of quantities) {
+            for (const profile of [MILK, EGGS, CHICKEN, JUICE, KETCHUP]) {
+                const result = StockService.assess(quantity, 6, profile);
+                expect(Boolean(result.lowStockReason)).toBe(result.isRunningLow);
+            }
+        }
+    });
+
+    it("hands every caller its own object, since results are written straight to mongo", () => {
+        const first = StockService.assess("1", 6, NOT_CONSUMED);
+        const second = StockService.assess("1", 6, NOT_CONSUMED);
+
+        expect(first).not.toBe(second);
+
+        (first as any).updatedAt = new Date();
+        expect(second).not.toHaveProperty("updatedAt");
+    });
+
     it("shrinks days of supply as the household grows", () => {
         const small = StockService.assess("2 cartons", 2, MILK).daysOfSupply!;
         const large = StockService.assess("2 cartons", 6, MILK).daysOfSupply!;

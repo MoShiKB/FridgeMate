@@ -3,7 +3,7 @@ import { ApiError } from "../utils/errors";
 import { InventoryItemModel } from "../models/inventory-item.model";
 import { FridgeModel } from "../models/fridge.model";
 import { ConsumptionProfileService } from "./consumption-profile.service";
-import { StockService, NO_ASSESSMENT, StockAssessment } from "./stock.service";
+import { StockService, noAssessment, StockAssessment } from "./stock.service";
 import { io } from "../index";
 import {
   CreateInventoryItemInput,
@@ -42,7 +42,7 @@ export class InventoryItemService {
       );
     } catch (err) {
       console.warn("Stock assessment failed", err);
-      return NO_ASSESSMENT;
+      return noAssessment();
     }
   }
 
