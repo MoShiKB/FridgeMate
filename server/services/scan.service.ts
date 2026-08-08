@@ -9,15 +9,14 @@ import { NotificationService } from "./notification.service";
 
 export class ScanService {
 
-  static async createScan(userId: string, imageBuffer: Buffer, mimeType: string) {
+  private static async getActiveFridge(userId: string) {
     const user = await UserModel.findById(userId).lean();
     if (!user) throw new ApiError(404, "User not found", "USER_NOT_FOUND");
     if (!user.activeFridgeId) {
       throw new ApiError(400, "User has no active fridge", "NO_ACTIVE_FRIDGE");
     }
 
-    const fridgeId = user.activeFridgeId.toString();
-    const fridge = await FridgeModel.findById(fridgeId);
+    const fridge = await FridgeModel.findById(user.activeFridgeId);
     if (!fridge) throw new ApiError(404, "Fridge not found", "FRIDGE_NOT_FOUND");
 
     const isMember = fridge.members.some(
@@ -26,6 +25,13 @@ export class ScanService {
     if (!isMember) {
       throw new ApiError(403, "Not a member of this fridge", "FORBIDDEN");
     }
+
+    return fridge;
+  }
+
+  static async createScan(userId: string, imageBuffer: Buffer, mimeType: string) {
+    const fridge = await this.getActiveFridge(userId);
+    const fridgeId = fridge._id.toString();
 
     const preScanItems = await InventoryItemModel.find({
       fridgeId: new mongoose.Types.ObjectId(fridgeId),
@@ -132,6 +138,7 @@ export class ScanService {
       status: "completed",
       detectedItems,
       addedItemIds,
+      changes: { added, updated, removed },
     });
 
     // Update fridge's lastScannedAt timestamp on successful scan
@@ -196,10 +203,26 @@ export class ScanService {
       }
     })();
 
-    return {
-      ...scan.toJSON(),
-      changes: { added, updated, removed },
-    };
+    return scan.toJSON();
+  }
+
+  static async getScans(
+    userId: string,
+    pagination: { skip: number; limit: number }
+  ) {
+    const fridge = await this.getActiveFridge(userId);
+
+    const filter = { fridgeId: fridge._id };
+
+    const [scans, total] = await Promise.all([
+      ScanModel.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(pagination.skip)
+        .limit(pagination.limit),
+      ScanModel.countDocuments(filter),
+    ]);
+
+    return { items: scans.map((scan) => scan.toJSON()), total };
   }
 
   /**

@@ -340,6 +340,37 @@ describe('Scan Routes', () => {
                 ]);
             });
 
+            it('should persist changes so another member can read them after the scan', async () => {
+                await InventoryItem.create({
+                    fridgeId, ownerId: userId, name: 'milk', quantity: '1 liter', ownership: 'SHARED', isRunningLow: false,
+                });
+
+                mockAIScan([
+                    { name: 'milk', quantity: '500ml' },
+                    { name: 'bread', quantity: '1 loaf' },
+                ]);
+
+                const uploadRes = await request(app)
+                    .post('/fridges/me/scans')
+                    .set('Authorization', token)
+                    .attach('image', FIXTURE_IMAGE);
+
+                expect(uploadRes.statusCode).toBe(201);
+
+                const detailRes = await request(app)
+                    .get(`/fridges/me/scans/${uploadRes.body.data.id}`)
+                    .set('Authorization', token);
+
+                expect(detailRes.statusCode).toBe(200);
+                expect(detailRes.body.data.changes.added).toEqual([
+                    { name: 'Bread', quantity: '1 loaf' },
+                ]);
+                expect(detailRes.body.data.changes.updated).toEqual([
+                    { name: 'milk', oldQuantity: '1 liter', newQuantity: '500ml' },
+                ]);
+                expect(detailRes.body.data.changes.removed).toEqual([]);
+            });
+
             it('should return empty changes lists on an empty-scan safety-guard path', async () => {
                 await InventoryItem.create({
                     fridgeId, ownerId: userId, name: 'milk', quantity: '1 liter', ownership: 'SHARED', isRunningLow: false,
@@ -459,6 +490,84 @@ describe('Scan Routes', () => {
             expect(res.body.data.status).toBe('completed');
             expect(res.body.data.detectedItems).toHaveLength(0);
             expect(res.body.data.addedItemIds).toHaveLength(0);
+        });
+    });
+
+    describe('GET /fridges/me/scans', () => {
+        const seedScan = async (targetFridgeId: string, name: string, createdAt: Date) => {
+            const scan = await ScanModel.create({
+                fridgeId: new mongoose.Types.ObjectId(targetFridgeId),
+                userId: new mongoose.Types.ObjectId(userId),
+                status: 'completed',
+                detectedItems: [{ name, quantity: '1' }],
+                addedItemIds: [],
+                changes: { added: [{ name, quantity: '1' }], updated: [], removed: [] }
+            });
+            // timestamps would otherwise stamp every seeded scan with "now"
+            await ScanModel.findByIdAndUpdate(scan._id, { createdAt }, { timestamps: false });
+            return scan._id.toString();
+        };
+
+        it('should return the fridge scan history newest first, including changes', async () => {
+            const olderId = await seedScan(fridgeId, 'egg', new Date('2024-01-01T10:00:00.000Z'));
+            const newerId = await seedScan(fridgeId, 'bread', new Date('2024-02-01T10:00:00.000Z'));
+
+            const res = await request(app)
+                .get('/fridges/me/scans')
+                .set('Authorization', token);
+
+            expect(res.statusCode).toBe(200);
+            expect(res.body.total).toBe(2);
+            expect(res.body.items.map((s: any) => s.id)).toEqual([newerId, olderId]);
+            expect(res.body.items[0].changes.added).toEqual([{ name: 'bread', quantity: '1' }]);
+        });
+
+        it('should only return scans of the active fridge', async () => {
+            const otherFridge = await FridgeModel.create({
+                name: 'Other Fridge',
+                inviteCode: `OTHER_${Date.now()}`,
+                members: [{ userId: new mongoose.Types.ObjectId(), joinedAt: new Date() }]
+            });
+            await seedScan(otherFridge._id.toString(), 'cheese', new Date('2024-03-01T10:00:00.000Z'));
+            const mineId = await seedScan(fridgeId, 'egg', new Date('2024-01-01T10:00:00.000Z'));
+
+            const res = await request(app)
+                .get('/fridges/me/scans')
+                .set('Authorization', token);
+
+            expect(res.statusCode).toBe(200);
+            expect(res.body.total).toBe(1);
+            expect(res.body.items[0].id).toBe(mineId);
+        });
+
+        it('should respect the limit query param', async () => {
+            await seedScan(fridgeId, 'egg', new Date('2024-01-01T10:00:00.000Z'));
+            const newerId = await seedScan(fridgeId, 'bread', new Date('2024-02-01T10:00:00.000Z'));
+
+            const res = await request(app)
+                .get('/fridges/me/scans?limit=1')
+                .set('Authorization', token);
+
+            expect(res.statusCode).toBe(200);
+            expect(res.body.total).toBe(2);
+            expect(res.body.items).toHaveLength(1);
+            expect(res.body.items[0].id).toBe(newerId);
+        });
+
+        it('should return 400 when user has no active fridge', async () => {
+            await User.findByIdAndUpdate(userId, { activeFridgeId: null });
+
+            const res = await request(app)
+                .get('/fridges/me/scans')
+                .set('Authorization', token);
+
+            expect(res.statusCode).toBe(400);
+        });
+
+        it('should return 401 without authorization', async () => {
+            const res = await request(app).get('/fridges/me/scans');
+
+            expect(res.statusCode).toBe(401);
         });
     });
 
