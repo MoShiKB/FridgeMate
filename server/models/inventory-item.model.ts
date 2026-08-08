@@ -12,6 +12,11 @@ export interface IInventoryItem {
   category?: string;
   ownership: ItemOwnership;
   isRunningLow: boolean;
+  /** Estimated days the remaining quantity lasts the household. */
+  daysOfSupply: number | null;
+  /** How much to buy to get back to a full stock, e.g. "3 cartons". */
+  suggestedRestockQuantity: string | null;
+  lowStockReason: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -55,6 +60,18 @@ const InventoryItemSchema = new Schema<IInventoryItem>(
     isRunningLow: {
       type: Boolean,
       default: false,
+    },
+    daysOfSupply: {
+      type: Number,
+      default: null,
+    },
+    suggestedRestockQuantity: {
+      type: String,
+      default: null,
+    },
+    lowStockReason: {
+      type: String,
+      default: null,
     },
   },
   { timestamps: true }
