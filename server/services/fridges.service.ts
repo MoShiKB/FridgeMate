@@ -3,6 +3,7 @@ import { ApiError } from "../utils/errors";
 import { FridgeModel } from "../models/fridge.model";
 import { UserModel } from "../models/user.model";
 import { NotificationService } from "./notification.service";
+import { InventoryItemService } from "./inventory-item.service";
 
 function makeInviteCode() {
   const part = Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -45,6 +46,11 @@ export class FridgesService {
 
     await UserModel.findByIdAndUpdate(userId, { activeFridgeId: fridge._id });
 
+    InventoryItemService.recalculateFridgeStock(
+      fridge._id.toString(),
+      fridge.members.length
+    ).catch(() => {});
+
     if (existingMemberIds.length > 0) {
       UserModel.findById(userId).select("displayName").lean().then((joiner: any) => {
         const joinerName = joiner?.displayName ?? "Someone";
@@ -55,8 +61,8 @@ export class FridgesService {
             type: "FRIDGE_INVITE",
             title: `${joinerName} joined ${fridgeName}`,
             message: "They can now see and add items",
-            metadata: { fridgeId: fridge._id.toString(), fridgeName, actorId: userId },
-            dedupeBy: ["fridgeId", "actorId"],
+            metadata: { fridgeId: fridge._id.toString(), fridgeName, actorId: userId, event: "join" },
+            dedupeBy: ["fridgeId", "actorId", "event"],
             skipPush: true,
           }).catch(() => {});
         }
@@ -81,6 +87,10 @@ export class FridgesService {
       await FridgeModel.deleteOne({ _id: fridge._id });
     } else {
       await fridge.save();
+      InventoryItemService.recalculateFridgeStock(
+        fridge._id.toString(),
+        fridge.members.length
+      ).catch(() => {});
     }
 
     await UserModel.findByIdAndUpdate(userId, { activeFridgeId: null });
@@ -94,8 +104,8 @@ export class FridgesService {
           type: "FRIDGE_INVITE",
           title: `${leaverName} left ${fridgeName}`,
           message: "They no longer share this fridge",
-          metadata: { fridgeId: fridge._id.toString(), fridgeName, actorId: userId },
-          dedupeBy: ["fridgeId", "actorId"],
+          metadata: { fridgeId: fridge._id.toString(), fridgeName, actorId: userId, event: "leave" },
+          dedupeBy: ["fridgeId", "actorId", "event"],
           skipPush: true,
         }).catch(() => {});
       }

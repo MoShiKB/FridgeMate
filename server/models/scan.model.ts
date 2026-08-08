@@ -6,12 +6,30 @@ export interface IDetectedItem {
   category?: string;
 }
 
+export interface IChangedItem {
+  name: string;
+  quantity: string;
+}
+
+export interface IUpdatedItem {
+  name: string;
+  oldQuantity: string;
+  newQuantity: string;
+}
+
+export interface IScanChanges {
+  added: IChangedItem[];
+  updated: IUpdatedItem[];
+  removed: IChangedItem[];
+}
+
 export interface IScan {
   fridgeId: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
   status: "completed" | "failed";
   detectedItems: IDetectedItem[];
   addedItemIds: mongoose.Types.ObjectId[];
+  changes?: IScanChanges;
   error?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -22,6 +40,32 @@ const DetectedItemSchema = new Schema<IDetectedItem>(
     name: { type: String, required: true },
     quantity: { type: String, required: true },
     category: { type: String, required: false },
+  },
+  { _id: false }
+);
+
+const ChangedItemSchema = new Schema<IChangedItem>(
+  {
+    name: { type: String, required: true },
+    quantity: { type: String, required: true },
+  },
+  { _id: false }
+);
+
+const UpdatedItemSchema = new Schema<IUpdatedItem>(
+  {
+    name: { type: String, required: true },
+    oldQuantity: { type: String, required: true },
+    newQuantity: { type: String, required: true },
+  },
+  { _id: false }
+);
+
+const ScanChangesSchema = new Schema<IScanChanges>(
+  {
+    added: { type: [ChangedItemSchema], default: [] },
+    updated: { type: [UpdatedItemSchema], default: [] },
+    removed: { type: [ChangedItemSchema], default: [] },
   },
   { _id: false }
 );
@@ -50,6 +94,7 @@ const ScanSchema = new Schema<IScan>(
       type: [{ type: Schema.Types.ObjectId, ref: "InventoryItem" }],
       default: [],
     },
+    changes: { type: ScanChangesSchema, required: false },
     error: { type: String },
   },
   { timestamps: true }

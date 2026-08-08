@@ -373,109 +373,89 @@ describe('AIService Tests', () => {
         });
     });
 
-    describe('checkIfRunningLow', () => {
-        it('should return isRunningLow true', async () => {
-            mockGenerateContent.mockResolvedValueOnce({
-                text: JSON.stringify({ isRunningLow: true, reasoning: 'Only 1 egg for 4 people' }),
-            });
-
-            const result = await AIService.checkIfRunningLow('egg', '1', 4);
-            expect(result.isRunningLow).toBe(true);
-            expect(result.reasoning).toContain('1 egg');
+    describe('getConsumptionProfiles', () => {
+        const profileJson = (name: string, overrides: Record<string, number> = {}) => ({
+            name,
+            pieceServings: 1,
+            packageServings: 8,
+            gramsPerServing: 250,
+            mlPerServing: 250,
+            servingsPerPersonPerWeek: 4,
+            ...overrides,
         });
 
-        it('should return isRunningLow false', async () => {
-            mockGenerateContent.mockResolvedValueOnce({
-                text: JSON.stringify({ isRunningLow: false, reasoning: 'Plenty of milk' }),
-            });
-
-            const result = await AIService.checkIfRunningLow('milk', '2 liters', 2);
-            expect(result.isRunningLow).toBe(false);
-        });
-
-        it('should default to false on AI failure', async () => {
-            mockGenerateContent.mockRejectedValueOnce(new Error('AI down'));
-
-            const result = await AIService.checkIfRunningLow('egg', '1', 1);
-            expect(result.isRunningLow).toBe(false);
-            expect(result.reasoning).toContain('Could not determine');
-        });
-
-        it('should default to false on empty AI response', async () => {
-            mockGenerateContent.mockResolvedValueOnce({ text: null });
-
-            const result = await AIService.checkIfRunningLow('egg', '1', 1);
-            expect(result.isRunningLow).toBe(false);
-        });
-
-        it('should default reasoning when AI omits it', async () => {
-            mockGenerateContent.mockResolvedValueOnce({
-                text: JSON.stringify({ isRunningLow: true }),
-            });
-
-            const result = await AIService.checkIfRunningLow('egg', '1', 1);
-            expect(result.isRunningLow).toBe(true);
-            expect(result.reasoning).toBe('AI assessment.');
-        });
-    });
-
-    describe('checkMultipleItemsIfRunningLow', () => {
-        it('should return status map for multiple items', async () => {
+        it('returns a profile per requested item', async () => {
             mockGenerateContent.mockResolvedValueOnce({
                 text: JSON.stringify([
-                    { id: 'id1', isRunningLow: true },
-                    { id: 'id2', isRunningLow: false },
+                    profileJson('Milk'),
+                    profileJson('Ketchup', { packageServings: 30, servingsPerPersonPerWeek: 0.5 }),
                 ]),
             });
 
-            const items = [
-                { id: 'id1', name: 'egg', quantity: '1' },
-                { id: 'id2', name: 'milk', quantity: '2 liters' },
-            ];
-
-            const result = await AIService.checkMultipleItemsIfRunningLow(items, 3);
-            expect(result.get('id1')).toBe(true);
-            expect(result.get('id2')).toBe(false);
+            const result = await AIService.getConsumptionProfiles(['Milk', 'Ketchup']);
+            expect(result.get('Milk')?.packageServings).toBe(8);
+            expect(result.get('Ketchup')?.servingsPerPersonPerWeek).toBe(0.5);
         });
 
-        it('should return empty map for empty items array', async () => {
-            const result = await AIService.checkMultipleItemsIfRunningLow([], 1);
+        it('asks for per-person figures and lists every requested item', async () => {
+            mockGenerateContent.mockResolvedValueOnce({
+                text: JSON.stringify([profileJson('Milk')]),
+            });
+
+            await AIService.getConsumptionProfiles(['Milk']);
+            const prompt = mockGenerateContent.mock.calls[0][0].contents;
+            expect(prompt).toContain('"Milk"');
+            expect(prompt).toContain('PER-PERSON');
+        });
+
+        it('keeps a zero weekly consumption, so non-food items stay un-flagged', async () => {
+            mockGenerateContent.mockResolvedValueOnce({
+                text: JSON.stringify([profileJson('Plastic Container', { servingsPerPersonPerWeek: 0 })]),
+            });
+
+            const result = await AIService.getConsumptionProfiles(['Plastic Container']);
+            expect(result.get('Plastic Container')?.servingsPerPersonPerWeek).toBe(0);
+        });
+
+        it('substitutes defaults for missing or nonsensical numbers', async () => {
+            mockGenerateContent.mockResolvedValueOnce({
+                text: JSON.stringify([{ name: 'Mystery', packageServings: -3 }]),
+            });
+
+            const profile = (await AIService.getConsumptionProfiles(['Mystery'])).get('Mystery');
+            expect(profile?.packageServings).toBeGreaterThan(0);
+            expect(profile?.pieceServings).toBeGreaterThan(0);
+            expect(profile?.servingsPerPersonPerWeek).toBe(0);
+        });
+
+        it('returns an empty map for an empty request without calling the AI', async () => {
+            const result = await AIService.getConsumptionProfiles([]);
             expect(result.size).toBe(0);
             expect(mockGenerateContent).not.toHaveBeenCalled();
         });
 
-        it('should return empty map on AI failure', async () => {
+        it('returns an empty map on AI failure', async () => {
             mockGenerateContent.mockRejectedValueOnce(new Error('AI down'));
-
-            const result = await AIService.checkMultipleItemsIfRunningLow(
-                [{ id: 'id1', name: 'egg', quantity: '1' }],
-                1
-            );
+            const result = await AIService.getConsumptionProfiles(['Milk']);
             expect(result.size).toBe(0);
         });
 
-        it('should handle markdown code blocks in response', async () => {
+        it('handles a response wrapped in a markdown code block', async () => {
             mockGenerateContent.mockResolvedValueOnce({
-                text: '```json\n[{"id":"id1","isRunningLow":true}]\n```',
+                text: `\`\`\`json\n${JSON.stringify([profileJson('Milk')])}\n\`\`\``,
             });
 
-            const result = await AIService.checkMultipleItemsIfRunningLow(
-                [{ id: 'id1', name: 'egg', quantity: '1' }],
-                2
-            );
-            expect(result.get('id1')).toBe(true);
+            const result = await AIService.getConsumptionProfiles(['Milk']);
+            expect(result.get('Milk')?.packageServings).toBe(8);
         });
 
-        it('should handle trailing commas in response', async () => {
+        it('handles trailing commas in the response', async () => {
             mockGenerateContent.mockResolvedValueOnce({
-                text: '[{"id":"id1","isRunningLow":false},]',
+                text: `[${JSON.stringify(profileJson('Milk'))},]`,
             });
 
-            const result = await AIService.checkMultipleItemsIfRunningLow(
-                [{ id: 'id1', name: 'egg', quantity: '6' }],
-                1
-            );
-            expect(result.get('id1')).toBe(false);
+            const result = await AIService.getConsumptionProfiles(['Milk']);
+            expect(result.get('Milk')).toBeDefined();
         });
     });
 
@@ -663,52 +643,32 @@ describe('AIService Tests', () => {
         });
     });
 
-    describe('checkMultipleItemsIfRunningLow — parsing edge cases', () => {
-        it('returns an empty map when the AI throws', async () => {
-            mockGenerateContent.mockRejectedValueOnce(new Error('boom'));
-            const map = await AIService.checkMultipleItemsIfRunningLow(
-                [{ id: 'a', name: 'x', quantity: '1' }],
-                2
-            );
+    describe('getConsumptionProfiles — parsing edge cases', () => {
+        it('returns an empty map when the AI response is empty', async () => {
+            mockGenerateContent.mockResolvedValueOnce({ text: '' });
+            const map = await AIService.getConsumptionProfiles(['x']);
             expect(map.size).toBe(0);
         });
 
-        it('returns an empty map on empty input (no AI call)', async () => {
-            const map = await AIService.checkMultipleItemsIfRunningLow([], 2);
-            expect(map.size).toBe(0);
-        });
-
-        it('handles response wrapped in a ```json code block', async () => {
+        it('salvages a truncated array rather than throwing', async () => {
             mockGenerateContent.mockResolvedValueOnce({
-                text: '```json\n[{"id":"a","isRunningLow":true}]\n```',
+                text: 'here is the data [{"name":"a","packageServings":4,"servingsPerPersonPerWeek":2}',
             });
-            const map = await AIService.checkMultipleItemsIfRunningLow(
-                [{ id: 'a', name: 'x', quantity: '1' }],
-                2
-            );
-            expect(map.get('a')).toBe(true);
-        });
-
-        it('handles response with only a trailing "[" character (self-healing fallback)', async () => {
-            // Malformed: array opens but never closes; parser tries to salvage.
-            mockGenerateContent.mockResolvedValueOnce({
-                text: 'here is the data [{"id":"a","isRunningLow":false}',
-            });
-            const map = await AIService.checkMultipleItemsIfRunningLow(
-                [{ id: 'a', name: 'x', quantity: '1' }],
-                2
-            );
-            // Either the parser recovered "a" or returned empty — both are acceptable
-            // signals that the code path executed without throwing.
+            const map = await AIService.getConsumptionProfiles(['a']);
             expect(map).toBeInstanceOf(Map);
         });
 
         it('returns an empty map when the AI response is unparseable JSON', async () => {
             mockGenerateContent.mockResolvedValueOnce({ text: 'not json at all' });
-            const map = await AIService.checkMultipleItemsIfRunningLow(
-                [{ id: 'a', name: 'x', quantity: '1' }],
-                2
-            );
+            const map = await AIService.getConsumptionProfiles(['a']);
+            expect(map.size).toBe(0);
+        });
+
+        it('skips entries with no name', async () => {
+            mockGenerateContent.mockResolvedValueOnce({
+                text: JSON.stringify([{ packageServings: 4, servingsPerPersonPerWeek: 2 }]),
+            });
+            const map = await AIService.getConsumptionProfiles(['a']);
             expect(map.size).toBe(0);
         });
     });

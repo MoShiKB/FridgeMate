@@ -5,6 +5,7 @@ import path from 'path';
 import crypto from 'crypto';
 import { UPLOADS_DIR } from '../config/env';
 import { ApiError } from '../utils/errors';
+import type { ConsumptionProfile } from './stock.service';
 
 // Initialize Gemini AI client
 if (!process.env.GEMINI_API_KEY) {
@@ -247,29 +248,44 @@ export const AIService = {
     },
 
     /**
-     * Checks multiple items for "running low" status in a single request.
+     * Deliberately household-size agnostic: these are stable properties of the
+     * item itself, so they can be cached instead of re-derived on every
+     * recalculation.
      */
-    async checkMultipleItemsIfRunningLow(items: { id: string; name: string; quantity: string }[], userCount: number): Promise<Map<string, boolean>> {
-        if (items.length === 0) return new Map();
-
-        const itemsList = items.map(item => `- ID: ${item.id}, Name: "${item.name}", Quantity: "${item.quantity}"`).join('\n');
+    async getConsumptionProfiles(names: string[]): Promise<Map<string, ConsumptionProfile>> {
+        if (names.length === 0) return new Map();
 
         const prompt = `
-You are a smart kitchen assistant. Determine if each of the following fridge items is running low for a household of ${userCount} people.
+You are a grocery stock analyst. For each item below, estimate the numbers needed
+to work out how long a supply of it lasts.
 
-Context:
-Household Size: ${userCount} person(s)
+Items:
+${names.map(name => `- "${name}"`).join('\n')}
 
-Items to evaluate:
-${itemsList}
+For each item return:
+- "name": the item name, echoed back EXACTLY as given.
+- "pieceServings": servings in ONE individual piece (1 egg = 1, 1 apple = 1, 1 watermelon = 8). Use 1 when the item isn't counted in pieces.
+- "packageServings": servings in ONE typical retail package (1 carton of milk = 8, 1 jar of pickles = 20, 1 can of soda = 1, 1 tub of yogurt = 4, 1 bottle of ketchup = 30).
+- "gramsPerServing": grams in one serving (chicken breast 150, cheese 30, spinach 80).
+- "mlPerServing": millilitres in one serving (milk 250, olive oil 15, wine 150).
+- "servingsPerPersonPerWeek": how many servings ONE person realistically gets through in a week.
 
-Task:
-- Analyze if the quantity for each item is typically considered low/insufficient for this household size.
-- Respond with ONLY a JSON array of objects.
+Guidance for servingsPerPersonPerWeek — be conservative, this drives restock alerts:
+- Daily staples (milk, bread, eggs): 4 to 10
+- Regular produce, meat, fish, dairy: 1 to 4
+- Snacks, desserts, treats: 1 to 3
+- Condiments, sauces, spreads, dressings, jams, spices, vinegar, cooking oil: 0.2 to 1
+- Alcohol: 0.5 to 2
+- Anything that is not food, an empty or unidentified container, or cookware: 0
 
-Format:
+Rules:
+- These are PER-PERSON figures. Do NOT multiply by household size.
+- A single jar of a condiment lasts a household for weeks — express that with a high packageServings and a low servingsPerPersonPerWeek.
+- Every number must be greater than 0, except servingsPerPersonPerWeek which may be 0.
+
+Respond with ONLY a JSON array:
 [
-  { "id": "item_id_here", "isRunningLow": true/false }
+  { "name": "Milk", "pieceServings": 1, "packageServings": 8, "gramsPerServing": 250, "mlPerServing": 250, "servingsPerPersonPerWeek": 6 }
 ]
 `;
 
@@ -278,41 +294,32 @@ Format:
                 model: MODEL_NAME,
                 contents: prompt,
                 config: {
-                    temperature: 0.1,
-                    maxOutputTokens: 4096,
+                    temperature: 0,
+                    maxOutputTokens: 8192,
                     responseMimeType: "application/json"
                 }
             });
 
             const textContent = (response.text ?? '').trim();
-            if (!textContent) throw new Error('No response from AI check');
+            if (!textContent) throw new Error('No response from AI profile lookup');
 
-            let cleaned = textContent;
-            const cbMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-            if (cbMatch) cleaned = cbMatch[1];
-            const arrMatch = cleaned.match(/\[[\s\S]*\]/);
-            if (arrMatch) {
-                cleaned = arrMatch[0];
-            } else if (cleaned.includes('[')) {
-                cleaned = cleaned.substring(cleaned.indexOf('['));
-                cleaned = cleaned.replace(/,?\s*\{[^}]*$/, '');
-                cleaned = cleaned.replace(/,\s*$/, '');
-                cleaned += ']';
-            }
-            cleaned = cleaned.replace(/,\s*([}\]])/g, '$1');
+            const results = parseJsonArray(textContent);
+            const profiles = new Map<string, ConsumptionProfile>();
 
-            const results = JSON.parse(cleaned);
-            const statusMap = new Map<string, boolean>();
-
-            if (Array.isArray(results)) {
-                results.forEach((r: any) => {
-                    if (r.id) statusMap.set(r.id, !!r.isRunningLow);
+            for (const entry of results) {
+                if (!entry?.name) continue;
+                profiles.set(String(entry.name), {
+                    pieceServings: positiveNumber(entry.pieceServings, 1),
+                    packageServings: positiveNumber(entry.packageServings, 1),
+                    gramsPerServing: positiveNumber(entry.gramsPerServing, 100),
+                    mlPerServing: positiveNumber(entry.mlPerServing, 250),
+                    servingsPerPersonPerWeek: Math.max(0, Number(entry.servingsPerPersonPerWeek) || 0),
                 });
             }
 
-            return statusMap;
+            return profiles;
         } catch (error: any) {
-            console.error('AI checkMultipleItemsIfRunningLow error:', error);
+            console.error('AI getConsumptionProfiles error:', error);
             return new Map();
         }
     },
@@ -400,7 +407,7 @@ Respond with ONLY a JSON object in this EXACT shape (no prose, no markdown):
                 ],
                 config: {
                     temperature: 0.2,
-                    maxOutputTokens: 4096,
+                    maxOutputTokens: 8192,
                     responseMimeType: "application/json",
                 },
             });
@@ -428,54 +435,36 @@ Respond with ONLY a JSON object in this EXACT shape (no prose, no markdown):
             }
             throw new ApiError(502, 'Scan failed — please try again.');
         }
-    },
-
-    async checkIfRunningLow(itemName: string, quantity: string, userCount: number): Promise<{ isRunningLow: boolean; reasoning: string }> {
-        const prompt = `
-You are a smart kitchen assistant. Decide if a fridge item is running low.
-
-Item: "${itemName}"
-Current quantity: "${quantity}"
-Number of people in the household: ${userCount}
-
-Think step by step:
-1. What is the typical weekly consumption of this item per person?
-2. Divide the current quantity by ${userCount} people — is each person's share enough to last a reasonable time?
-3. For example: 2 cartons of milk for 1 person is fine, but 2 cartons for 5 people is low.
-
-Respond with ONLY valid JSON:
-{
-  "isRunningLow": true or false,
-  "reasoning": "one short sentence (max 15 words)"
-}
-`;
-
-        try {
-            const response = await ai.models.generateContent({
-                model: MODEL_NAME,
-                contents: prompt,
-                config: {
-                    temperature: 0.1,
-                    maxOutputTokens: 200,
-                    responseMimeType: "application/json"
-                }
-            });
-
-            const textContent = response.text;
-            if (!textContent) throw new Error('No response from AI check');
-
-            const result = JSON.parse(textContent);
-            return {
-                isRunningLow: !!result.isRunningLow,
-                reasoning: result.reasoning || "AI assessment."
-            };
-        } catch (error: any) {
-            console.error('AI checkRunningLow error:', error);
-            // Default to false if AI fails
-            return { isRunningLow: false, reasoning: "Could not determine status." };
-        }
     }
 };
+
+function positiveNumber(value: any, fallback: number): number {
+    const num = Number(value);
+    return Number.isFinite(num) && num > 0 ? num : fallback;
+}
+
+/** Pulls a JSON array out of a model response, tolerating fences and trailing commas. */
+function parseJsonArray(text: string): any[] {
+    let cleaned = text.trim();
+
+    const codeBlockMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (codeBlockMatch) cleaned = codeBlockMatch[1];
+
+    const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
+    if (arrayMatch) {
+        cleaned = arrayMatch[0];
+    } else if (cleaned.includes('[')) {
+        // Truncated response: drop the partial trailing object and close the array.
+        cleaned = cleaned.substring(cleaned.indexOf('['));
+        cleaned = cleaned.replace(/,?\s*\{[^}]*$/, '');
+        cleaned = cleaned.replace(/,\s*$/, '');
+        cleaned += ']';
+    }
+    cleaned = cleaned.replace(/,\s*([}\]])/g, '$1');
+
+    const parsed = JSON.parse(cleaned);
+    return Array.isArray(parsed) ? parsed : [];
+}
 
 function buildRecipePrompt(
     ingredients: string[],

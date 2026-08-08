@@ -2,8 +2,7 @@ import mongoose from "mongoose";
 
 jest.mock("../../services/ai.service", () => ({
     AIService: {
-        checkIfRunningLow: jest.fn(),
-        checkMultipleItemsIfRunningLow: jest.fn(),
+        getConsumptionProfiles: jest.fn(),
     },
 }));
 
@@ -17,11 +16,37 @@ jest.mock("../../services/notification.service", () => ({
 
 import { InventoryItemService } from "../../services/inventory-item.service";
 import { InventoryItemModel } from "../../models/inventory-item.model";
+import { ConsumptionProfileModel } from "../../models/consumption-profile.model";
 import { FridgeModel } from "../../models/fridge.model";
 import { AIService } from "../../services/ai.service";
+import { ConsumptionProfile } from "../../services/stock.service";
 import { userId } from "../setup";
 
 const mockedAI = AIService as jest.Mocked<typeof AIService>;
+
+/** One carton is 8 servings; a person drinks 4 servings a week. */
+const MILK_PROFILE: ConsumptionProfile = {
+    pieceServings: 1,
+    packageServings: 8,
+    gramsPerServing: 250,
+    mlPerServing: 250,
+    servingsPerPersonPerWeek: 4,
+};
+
+/** A jar lasts a household for weeks. */
+const CONDIMENT_PROFILE: ConsumptionProfile = {
+    pieceServings: 1,
+    packageServings: 30,
+    gramsPerServing: 15,
+    mlPerServing: 15,
+    servingsPerPersonPerWeek: 0.5,
+};
+
+/** Answers every requested name with the same profile. */
+const respondWith = (profile: ConsumptionProfile) =>
+    mockedAI.getConsumptionProfiles.mockImplementation(async (names: string[]) =>
+        new Map(names.map((name) => [name, profile]))
+    );
 
 describe("InventoryItemService (branches)", () => {
     let fridgeId: string;
@@ -29,8 +54,8 @@ describe("InventoryItemService (branches)", () => {
 
     beforeEach(async () => {
         jest.clearAllMocks();
-        mockedAI.checkIfRunningLow.mockResolvedValue({ isRunningLow: false, reasoning: "ok" });
-        mockedAI.checkMultipleItemsIfRunningLow.mockResolvedValue(new Map());
+        await ConsumptionProfileModel.deleteMany({});
+        respondWith(MILK_PROFILE);
 
         otherUserId = new mongoose.Types.ObjectId();
         const fridge = await FridgeModel.create({
@@ -45,35 +70,56 @@ describe("InventoryItemService (branches)", () => {
     });
 
     describe("create", () => {
-        it("creates an item and consults the AI stock check", async () => {
-            mockedAI.checkIfRunningLow.mockResolvedValueOnce({ isRunningLow: true, reasoning: "low" });
+        it("flags a new item as low and proposes how much to buy", async () => {
             const item = await InventoryItemService.create(fridgeId, userId.toString(), {
                 name: "Milk",
-                quantity: "500ml",
+                quantity: "250ml",
                 ownership: "SHARED",
             } as any);
+
             expect(item.name).toBe("Milk");
             expect(item.isRunningLow).toBe(true);
-            expect(mockedAI.checkIfRunningLow).toHaveBeenCalledWith("Milk", "500ml", 2);
+            expect(item.suggestedRestockQuantity).toBeTruthy();
+            expect(item.lowStockReason).toContain("2 people");
         });
 
-        it("falls back gracefully when the AI check throws", async () => {
-            mockedAI.checkIfRunningLow.mockRejectedValueOnce(new Error("AI down"));
+        it("leaves a well-stocked item alone", async () => {
+            const item = await InventoryItemService.create(fridgeId, userId.toString(), {
+                name: "Ketchup",
+                quantity: "1 bottle",
+                ownership: "SHARED",
+            } as any);
+
+            expect(item.isRunningLow).toBe(false);
+            expect(item.suggestedRestockQuantity).toBeNull();
+        });
+
+        it("falls back to 'not low' when the profile lookup throws", async () => {
+            mockedAI.getConsumptionProfiles.mockRejectedValueOnce(new Error("AI down"));
             const item = await InventoryItemService.create(fridgeId, userId.toString(), {
                 name: "Eggs",
-                quantity: "6",
+                quantity: "1",
                 ownership: "PRIVATE",
             } as any);
+
             expect(item.isRunningLow).toBe(false);
+            expect(item.daysOfSupply).toBeNull();
         });
 
-        it("uses userCount=1 for PRIVATE ownership even in a multi-member fridge", async () => {
-            await InventoryItemService.create(fridgeId, userId.toString(), {
-                name: "Cheese",
-                quantity: "1 block",
+        it("measures a PRIVATE item against one person even in a multi-member fridge", async () => {
+            const shared = await InventoryItemService.create(fridgeId, userId.toString(), {
+                name: "Milk",
+                quantity: "1 carton",
+                ownership: "SHARED",
+            } as any);
+            const priv = await InventoryItemService.create(fridgeId, userId.toString(), {
+                name: "Milk",
+                quantity: "1 carton",
                 ownership: "PRIVATE",
             } as any);
-            expect(mockedAI.checkIfRunningLow).toHaveBeenCalledWith("Cheese", "1 block", 1);
+
+            expect(priv.daysOfSupply).toBeCloseTo(shared.daysOfSupply! * 2, 1);
+            expect(priv.isRunningLow).toBe(false);
         });
 
         it("defaults ownership to PRIVATE when not supplied", async () => {
@@ -206,19 +252,40 @@ describe("InventoryItemService (branches)", () => {
         });
 
         it("re-checks running-low when ownership changes (SHARED → PRIVATE)", async () => {
-            mockedAI.checkIfRunningLow.mockResolvedValueOnce({ isRunningLow: true, reasoning: "low" });
             const item = await InventoryItemModel.create({
-                fridgeId, ownerId: userId, name: "milk", quantity: "1L", ownership: "SHARED",
+                fridgeId, ownerId: userId, name: "milk", quantity: "500ml", ownership: "SHARED",
             });
-            const updated = await InventoryItemService.update(item._id.toString(), userId.toString(), {
+            const asShared = await InventoryItemService.update(item._id.toString(), userId.toString(), {
+                quantity: "500ml",
+            });
+            const asPrivate = await InventoryItemService.update(item._id.toString(), userId.toString(), {
                 ownership: "PRIVATE",
             });
-            expect(updated.isRunningLow).toBe(true);
-            expect(mockedAI.checkIfRunningLow).toHaveBeenCalledWith("milk", "1L", 1);
+
+            // Halving the household roughly doubles how long the stock lasts
+            // (exact ratio drifts slightly because daysOfSupply is rounded).
+            expect(asPrivate.daysOfSupply).toBeCloseTo(asShared.daysOfSupply! * 2, 0);
         });
 
-        it("swallows AI errors during the stock re-check", async () => {
-            mockedAI.checkIfRunningLow.mockRejectedValueOnce(new Error("boom"));
+        it("clears the restock proposal once the quantity is topped up", async () => {
+            const item = await InventoryItemModel.create({
+                fridgeId, ownerId: userId, name: "milk", quantity: "250ml", ownership: "SHARED",
+            });
+            const low = await InventoryItemService.update(item._id.toString(), userId.toString(), {
+                quantity: "250ml",
+            });
+            expect(low.isRunningLow).toBe(true);
+
+            const restocked = await InventoryItemService.update(item._id.toString(), userId.toString(), {
+                quantity: "4 cartons",
+            });
+            expect(restocked.isRunningLow).toBe(false);
+            expect(restocked.suggestedRestockQuantity).toBeNull();
+            expect(restocked.lowStockReason).toBeNull();
+        });
+
+        it("swallows profile lookup errors during the stock re-check", async () => {
+            mockedAI.getConsumptionProfiles.mockRejectedValueOnce(new Error("boom"));
             const item = await InventoryItemModel.create({
                 fridgeId, ownerId: userId, name: "n", quantity: "1", ownership: "PRIVATE",
             });
@@ -306,57 +373,75 @@ describe("InventoryItemService (branches)", () => {
         });
     });
 
-    describe("recalculateSharedItemsStatus", () => {
-        it("no-ops when there are no SHARED items", async () => {
-            await InventoryItemModel.create({
-                fridgeId, ownerId: userId, name: "priv", quantity: "1", ownership: "PRIVATE",
-            });
-            await InventoryItemService.recalculateSharedItemsStatus(fridgeId, 2);
-            expect(mockedAI.checkMultipleItemsIfRunningLow).not.toHaveBeenCalled();
-        });
-
-        it("bulk-updates only items whose status changes", async () => {
-            const a = await InventoryItemModel.create({
-                fridgeId, ownerId: null, name: "milk", quantity: "1L", ownership: "SHARED", isRunningLow: false,
-            });
-            const b = await InventoryItemModel.create({
-                fridgeId, ownerId: null, name: "eggs", quantity: "12", ownership: "SHARED", isRunningLow: true,
+    describe("recalculateFridgeStock", () => {
+        it("flags shared stock that a bigger household would burn through", async () => {
+            const item = await InventoryItemModel.create({
+                fridgeId, ownerId: null, name: "milk", quantity: "1 carton",
+                ownership: "SHARED", isRunningLow: false,
             });
 
-            const statusMap = new Map<string, boolean>();
-            statusMap.set(a._id.toString(), true);   // changed (false → true)
-            statusMap.set(b._id.toString(), true);   // unchanged (true → true)
-            mockedAI.checkMultipleItemsIfRunningLow.mockResolvedValueOnce(statusMap);
+            await InventoryItemService.recalculateFridgeStock(fridgeId, 2);
+            expect((await InventoryItemModel.findById(item._id))!.isRunningLow).toBe(false);
 
-            await InventoryItemService.recalculateSharedItemsStatus(fridgeId, 4);
-
-            const [afterA, afterB] = await Promise.all([
-                InventoryItemModel.findById(a._id),
-                InventoryItemModel.findById(b._id),
-            ]);
-            expect(afterA!.isRunningLow).toBe(true);
-            expect(afterB!.isRunningLow).toBe(true);
+            await InventoryItemService.recalculateFridgeStock(fridgeId, 8);
+            const after = await InventoryItemModel.findById(item._id);
+            expect(after!.isRunningLow).toBe(true);
+            expect(after!.suggestedRestockQuantity).toBeTruthy();
         });
 
-        it("chunks large item batches (CHUNK_SIZE=20)", async () => {
-            const bulk = Array.from({ length: 25 }).map((_, i) => ({
-                fridgeId, ownerId: null, name: `s-${i}`, quantity: "1", ownership: "SHARED", isRunningLow: false,
-            }));
-            await InventoryItemModel.create(bulk as any);
+        it("clears the flag again when the household shrinks", async () => {
+            const item = await InventoryItemModel.create({
+                fridgeId, ownerId: null, name: "milk", quantity: "1 carton",
+                ownership: "SHARED", isRunningLow: true, suggestedRestockQuantity: "3 cartons",
+            });
 
-            mockedAI.checkMultipleItemsIfRunningLow.mockResolvedValue(new Map());
-
-            await InventoryItemService.recalculateSharedItemsStatus(fridgeId, 2);
-            expect(mockedAI.checkMultipleItemsIfRunningLow).toHaveBeenCalledTimes(2);
+            await InventoryItemService.recalculateFridgeStock(fridgeId, 1);
+            const after = await InventoryItemModel.findById(item._id);
+            expect(after!.isRunningLow).toBe(false);
+            expect(after!.suggestedRestockQuantity).toBeNull();
         });
 
-        it("swallows AI errors so a running-low recompute never breaks a caller", async () => {
+        it("leaves PRIVATE items measured against a single person", async () => {
+            const item = await InventoryItemModel.create({
+                fridgeId, ownerId: userId, name: "milk", quantity: "1 carton", ownership: "PRIVATE",
+            });
+
+            await InventoryItemService.recalculateFridgeStock(fridgeId, 8);
+            expect((await InventoryItemModel.findById(item._id))!.isRunningLow).toBe(false);
+        });
+
+        it("reads the member count from the fridge when not given one", async () => {
+            const item = await InventoryItemModel.create({
+                fridgeId, ownerId: null, name: "milk", quantity: "1 carton", ownership: "SHARED",
+            });
+
+            await InventoryItemService.recalculateFridgeStock(fridgeId);
+            expect((await InventoryItemModel.findById(item._id))!.daysOfSupply).not.toBeNull();
+        });
+
+        it("only asks the AI for names it has not profiled before", async () => {
+            await InventoryItemModel.create([
+                { fridgeId, ownerId: null, name: "milk", quantity: "1 carton", ownership: "SHARED" },
+                { fridgeId, ownerId: null, name: "milk", quantity: "2 cartons", ownership: "SHARED" },
+            ] as any);
+
+            await InventoryItemService.recalculateFridgeStock(fridgeId, 4);
+            expect(mockedAI.getConsumptionProfiles).toHaveBeenCalledTimes(1);
+            expect(mockedAI.getConsumptionProfiles).toHaveBeenCalledWith(["milk"]);
+
+            // Second pass is served entirely from the cached profile.
+            mockedAI.getConsumptionProfiles.mockClear();
+            await InventoryItemService.recalculateFridgeStock(fridgeId, 5);
+            expect(mockedAI.getConsumptionProfiles).not.toHaveBeenCalled();
+        });
+
+        it("swallows errors so a recompute never breaks its caller", async () => {
             await InventoryItemModel.create({
                 fridgeId, ownerId: null, name: "milk", quantity: "1L", ownership: "SHARED",
             });
-            mockedAI.checkMultipleItemsIfRunningLow.mockRejectedValueOnce(new Error("boom"));
+            mockedAI.getConsumptionProfiles.mockRejectedValueOnce(new Error("boom"));
             await expect(
-                InventoryItemService.recalculateSharedItemsStatus(fridgeId, 3)
+                InventoryItemService.recalculateFridgeStock(fridgeId, 3)
             ).resolves.not.toThrow();
         });
     });

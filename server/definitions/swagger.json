@@ -1248,6 +1248,92 @@
       }
     },
     "/fridges/me/scans": {
+      "get": {
+        "tags": [
+          "Fridge Scans"
+        ],
+        "summary": "List the scan history of your active fridge",
+        "description": "Returns the scans of the user's active fridge, newest first. The history is shared: every member sees all scans, including the inventory changes each one produced.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "type": "integer",
+            "description": "Page number (default 1)"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "type": "integer",
+            "description": "Page size (default 20, max 100)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Scan history page",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "fridgeId": {
+                        "type": "string"
+                      },
+                      "userId": {
+                        "type": "string",
+                        "description": "Member who ran the scan"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": ["completed", "failed"]
+                      },
+                      "changes": {
+                        "$ref": "#/definitions/ScanChanges"
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  }
+                },
+                "total": {
+                  "type": "integer"
+                },
+                "page": {
+                  "type": "integer"
+                },
+                "limit": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "User has no active fridge"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Not a member of the active fridge"
+          },
+          "404": {
+            "description": "User or fridge not found"
+          }
+        }
+      },
       "post": {
         "tags": [
           "Fridge Scans"
@@ -1323,6 +1409,9 @@
                         "type": "string"
                       },
                       "example": ["665a1f2e3b4c5d6e7f8a9b1a", "665a1f2e3b4c5d6e7f8a9b1b"]
+                    },
+                    "changes": {
+                      "$ref": "#/definitions/ScanChanges"
                     },
                     "error": {
                       "type": "string",
@@ -1422,6 +1511,9 @@
                       "items": {
                         "type": "string"
                       }
+                    },
+                    "changes": {
+                      "$ref": "#/definitions/ScanChanges"
                     },
                     "error": {
                       "type": "string"
@@ -1787,5 +1879,60 @@
       }
     }
   },
-  "definitions": {}
+  "definitions": {
+    "ScanChangeItem": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "example": "Bread"
+        },
+        "quantity": {
+          "type": "string",
+          "example": "1 loaf"
+        }
+      }
+    },
+    "ScanUpdatedItem": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "example": "milk"
+        },
+        "oldQuantity": {
+          "type": "string",
+          "example": "1 liter"
+        },
+        "newQuantity": {
+          "type": "string",
+          "example": "500ml"
+        }
+      }
+    },
+    "ScanChanges": {
+      "type": "object",
+      "description": "Inventory diff produced by the scan. Stored on the scan so every fridge member can review it later, not just the member who ran it.",
+      "properties": {
+        "added": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ScanChangeItem"
+          }
+        },
+        "updated": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ScanUpdatedItem"
+          }
+        },
+        "removed": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ScanChangeItem"
+          }
+        }
+      }
+    }
+  }
 }

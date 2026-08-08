@@ -37,6 +37,7 @@ export class NotificationService {
                     for (const key of dedupeBy) {
                         filter[`metadata.${key}`] = metadata[key];
                     }
+                    const refreshedAt = new Date();
                     notification = await NotificationModel.findOneAndUpdate(
                         filter,
                         {
@@ -45,10 +46,16 @@ export class NotificationService {
                                 message,
                                 metadata,
                                 isRead: false,
-                                createdAt: new Date(),
+                                createdAt: refreshedAt,
+                                updatedAt: refreshedAt,
                             },
                         },
-                        { new: true, upsert: true, setDefaultsOnInsert: true }
+                        {
+                            new: true,
+                            upsert: true,
+                            setDefaultsOnInsert: true,
+                            timestamps: false,
+                        }
                     );
 
                     const cooldownKey = `${userId}:${type}:${dedupeBy
