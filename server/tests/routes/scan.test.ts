@@ -182,7 +182,7 @@ describe('Scan Routes', () => {
         });
 
 
-        it('should NOT remove items not seen in the new scan, but SHOULD remove if quantity is 0', async () => {
+        it('should remove items not seen in the new scan, and remove if quantity is 0', async () => {
             // Pre-existing items in the fridge
             await InventoryItem.create([
                 { fridgeId, ownerId: userId, name: 'milk', quantity: '1 liter', ownership: 'SHARED', isRunningLow: false },
@@ -191,7 +191,7 @@ describe('Scan Routes', () => {
             ]);
 
             // New scan sees milk (updated quantity), bread (new item), and eggs (0).
-            // Cheese is NOT detected, so it should be left unchanged.
+            // Cheese is NOT detected, so it should be removed.
             mockAIScan([
                 { name: 'milk', quantity: '500ml' },
                 { name: 'bread', quantity: '1 loaf' },
@@ -208,7 +208,7 @@ describe('Scan Routes', () => {
 
             const remaining = await InventoryItem.find({ fridgeId });
             const names = remaining.map(i => i.name).sort();
-            expect(names).toEqual(['Bread', 'cheese', 'milk']);
+            expect(names).toEqual(['Bread', 'milk']);
 
             const milk = remaining.find(i => i.name === 'milk');
             expect(milk!.quantity).toBe('500ml');
@@ -393,7 +393,7 @@ describe('Scan Routes', () => {
                 expect(detailRes.body.data.changes).toEqual({ added: [], updated: [], removed: [] });
             });
 
-            it('should return empty changes lists on an empty-scan safety-guard path', async () => {
+            it('should report all existing items as removed on an empty scan', async () => {
                 await InventoryItem.create({
                     fridgeId, ownerId: userId, name: 'milk', quantity: '1 liter', ownership: 'SHARED', isRunningLow: false,
                 });
@@ -408,11 +408,13 @@ describe('Scan Routes', () => {
                 expect(res.statusCode).toBe(201);
                 expect(res.body.data.changes.added).toEqual([]);
                 expect(res.body.data.changes.updated).toEqual([]);
-                expect(res.body.data.changes.removed).toEqual([]);
+                expect(res.body.data.changes.removed).toEqual([
+                    { name: 'milk', quantity: '1 liter' }
+                ]);
             });
         });
 
-        it('should NOT wipe the fridge when the scan returns zero items (safety guard)', async () => {
+        it('should wipe the fridge when the scan returns zero items', async () => {
             // Pre-existing items in the fridge
             await InventoryItem.create([
                 { fridgeId, ownerId: userId, name: 'milk', quantity: '1 liter', ownership: 'SHARED', isRunningLow: false },
@@ -432,9 +434,9 @@ describe('Scan Routes', () => {
             expect(res.body.data.detectedItems).toHaveLength(0);
             expect(res.body.data.addedItemIds).toHaveLength(0);
 
-            // Existing items must still be there.
+            // Existing items must be removed.
             const remaining = await InventoryItem.find({ fridgeId });
-            expect(remaining).toHaveLength(2);
+            expect(remaining).toHaveLength(0);
         });
 
         it('should return failed scan with BAD_SCAN_IMAGE error when AI flags the photo as unusable', async () => {
